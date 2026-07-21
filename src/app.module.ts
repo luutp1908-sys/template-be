@@ -18,6 +18,7 @@ import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
 import { QueueModule } from './queue/queue.module';
 import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
+import { AuthenticationMiddleware } from './auth/middleware/authentication.middleware';
 
 @Module({
   imports: [
@@ -61,6 +62,6 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(RequestLoggingMiddleware).forRoutes('*');
+    consumer.apply(AuthenticationMiddleware, RequestLoggingMiddleware).forRoutes('*');
   }
 }

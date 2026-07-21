@@ -24,4 +24,7 @@ export default () => ({
   log: {
     level: process.env.LOG_LEVEL ?? 'info',
   },
+  security: {
+    bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 12),
+  },
 });

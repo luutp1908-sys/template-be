@@ -1,14 +1,16 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-local';
+import { AuthService } from './auth.service';
+import { AuthUser } from './types/auth-user.type';
 
 @Injectable()
 export class LocalStrategy extends PassportStrategy(Strategy) {
-  constructor() {
+  constructor(private readonly authService: AuthService) {
     super({ usernameField: 'email' });
   }
 
-  validate(_email: string, _password: string): never {
-    throw new UnauthorizedException('Local strategy is scaffolded only');
+  async validate(email: string, password: string): Promise<AuthUser> {
+    return this.authService.validateUser({ email, password });
   }
 }
