@@ -187,6 +187,7 @@ model Template {
   description      String?   @db.VarChar(2000)
   thumbnailAssetId String?   @db.Uuid
   status           String    @default("draft") @db.VarChar(40)
+  publishedAt      DateTime?
   isPublic         Boolean   @default(false)
   deletedAt        DateTime?
   createdAt        DateTime  @default(now())
@@ -210,6 +211,7 @@ model Template {
   @@index([editorTypeId])
   @@index([thumbnailAssetId])
   @@index([status])
+  @@index([publishedAt])
   @@index([isPublic])
   @@index([deletedAt])
   @@index([createdAt])
