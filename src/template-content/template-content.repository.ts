@@ -107,7 +107,31 @@ export class TemplateContentRepository {
           layers: [
             { id: 'obj1', type: 'rect', x: 50, y: 50, width: 200, height: 100, fill: '#ffcc00' },
             { id: 'obj2', type: 'text', x: 300, y: 80, text: 'Hello from BE', fontSize: 24 },
-            { id: 'obj3', type: 'image', x: 100, y: 200, width: 300, height: 180, src: '/public/sample.jpg' }
+            {
+              id: 'obj3',
+              type: 'image',
+              x: 100,
+              y: 200,
+              width: 300,
+              height: 180,
+              imageConfig: {
+                size: { width: 300, height: 180 },
+                width: 300,
+                height: 180,
+                translate: [0, 0],
+                rotate: 0,
+                url: '/public/sample.jpg',
+                tagNames: [],
+                colorConfig: {},
+                cropImage: { width: 300, height: 180, translate: [0, 0] },
+                scaleX: 1,
+                scaleY: 1,
+                replaced: false,
+                isPro: false,
+                isLoading: false,
+                isLocked: false,
+              },
+            }
           ],
         },
         {
