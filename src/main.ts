@@ -3,6 +3,7 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { Logger } from 'nestjs-pino';
+import * as cookieParser from 'cookie-parser';
 import { AppModule } from './app.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
@@ -56,6 +57,8 @@ async function bootstrap(): Promise<void> {
   });
 
   const port = config.get<number>('app.port', 4000);
+  // cookie parser for httpOnly cookie auth flows
+  app.use(cookieParser());
   await app.listen(port);
 }
 
