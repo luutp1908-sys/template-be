@@ -32,6 +32,15 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
 
+  // Enable CORS. In mock/dev mode allow all origins to ease local development.
+  const frontendOrigin = config.get<string>('app.frontendOrigin') || process.env.FRONTEND_ORIGIN
+  const isDevAllowAll = config.get<boolean>('app.mockMode', false) || process.env.NODE_ENV !== 'production'
+  if (isDevAllowAll) {
+    app.enableCors({ origin: true, credentials: true })
+  } else {
+    app.enableCors({ origin: frontendOrigin || false, credentials: true })
+  }
+
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Template SaaS API')
     .setDescription('Production-ready backend foundation')
