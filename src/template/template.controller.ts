@@ -20,6 +20,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { Public } from '../auth/decorators/public.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateTemplateDto } from './dto/create-template.dto';
@@ -36,6 +37,7 @@ export class TemplateController {
   constructor(private readonly service: TemplateService) {}
 
   @Get()
+  @Public()
   @ApiOperation({
     summary: 'List templates with pagination, sorting, filtering, and title search',
   })
@@ -68,6 +70,7 @@ export class TemplateController {
   }
 
   @Get(':id')
+  @Public()
   @ApiOperation({ summary: 'Get template metadata by id' })
   @ApiOkResponse({ type: Object })
   findById(@Param('id') id: string): Promise<TemplateEntity> {
