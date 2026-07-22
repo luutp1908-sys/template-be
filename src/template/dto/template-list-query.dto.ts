@@ -1,8 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { Transform, Type } from 'class-transformer';
+import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
 
-const sortableFields = ['createdAt', 'updatedAt', 'title', 'publishedAt'] as const;
+const sortableFields = ['createdAt', 'updatedAt', 'title', 'status'] as const;
 
 export class TemplateListQueryDto {
   @ApiPropertyOptional({ default: 1 })
@@ -36,15 +36,15 @@ export class TemplateListQueryDto {
   @IsOptional()
   search?: string;
 
-  @ApiPropertyOptional({ description: 'Filter by workspace id' })
-  @IsUUID()
-  @IsOptional()
-  workspaceId?: string;
-
   @ApiPropertyOptional({ description: 'Filter by editor type id' })
   @IsUUID()
   @IsOptional()
   editorTypeId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by category id' })
+  @IsUUID()
+  @IsOptional()
+  categoryId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by author id' })
   @IsUUID()
@@ -55,9 +55,4 @@ export class TemplateListQueryDto {
   @IsIn(['draft', 'published', 'archived'])
   @IsOptional()
   status?: 'draft' | 'published' | 'archived';
-
-  @ApiPropertyOptional({ description: 'Include soft-deleted templates', default: false })
-  @Transform(({ value }) => value === true || value === 'true')
-  @IsOptional()
-  includeDeleted?: boolean = false;
 }

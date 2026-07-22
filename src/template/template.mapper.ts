@@ -4,9 +4,8 @@ interface TemplateData {
   id: string;
   title: string;
   slug: string;
+  thumbnail: string | null;
   status: string;
-  publishedAt: Date | null;
-  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
   author?: {
@@ -14,7 +13,7 @@ interface TemplateData {
     email: string;
     displayName: string | null;
   } | null;
-  workspace?: {
+  category?: {
     id: string;
     name: string;
     slug: string;
@@ -24,10 +23,6 @@ interface TemplateData {
     key: string;
     name: string;
   };
-  thumbnailAsset?: {
-    publicUrl: string | null;
-  } | null;
-  thumbnail?: string | null;
 }
 
 export class TemplateMapper {
@@ -36,7 +31,7 @@ export class TemplateMapper {
       id: partial.id ?? '',
       title: partial.title ?? '',
       slug: partial.slug ?? '',
-      thumbnail: partial.thumbnailAsset?.publicUrl ?? partial.thumbnail ?? null,
+      thumbnail: partial.thumbnail ?? null,
       author: partial.author
         ? {
             id: partial.author.id,
@@ -44,7 +39,7 @@ export class TemplateMapper {
             displayName: partial.author.displayName,
           }
         : null,
-      workspace: partial.workspace ?? {
+      category: partial.category ?? {
         id: '',
         name: '',
         slug: '',
@@ -55,8 +50,6 @@ export class TemplateMapper {
         name: '',
       },
       status: (partial.status as TemplateEntity['status']) ?? 'draft',
-      publishedAt: partial.publishedAt ?? null,
-      deletedAt: partial.deletedAt ?? null,
       createdAt: partial.createdAt ?? new Date(),
       updatedAt: partial.updatedAt ?? new Date(),
     };

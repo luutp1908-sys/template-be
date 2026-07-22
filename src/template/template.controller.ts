@@ -37,7 +37,7 @@ export class TemplateController {
 
   @Get()
   @ApiOperation({
-    summary: 'List templates with pagination, sorting, filtering, and title search (metadata only)',
+    summary: 'List templates with pagination, sorting, filtering, and title search',
   })
   @ApiOkResponse({ type: Object })
   @ApiQuery({ name: 'page', required: false, type: Number })
@@ -45,17 +45,20 @@ export class TemplateController {
   @ApiQuery({
     name: 'sortBy',
     required: false,
-    enum: ['createdAt', 'updatedAt', 'title', 'publishedAt'],
+    enum: ['createdAt', 'updatedAt', 'title', 'status'],
   })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
   @ApiQuery({ name: 'status', required: false, enum: ['draft', 'published', 'archived'] })
+  @ApiQuery({ name: 'editorTypeId', required: false, type: String })
+  @ApiQuery({ name: 'categoryId', required: false, type: String })
+  @ApiQuery({ name: 'authorId', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
   findMany(@Query() query: TemplateListQueryDto): Promise<TemplateListEntity> {
     return this.service.findMany(query);
   }
 
   @Post()
-  @ApiOperation({ summary: 'Create template metadata only' })
+  @ApiOperation({ summary: 'Create template metadata' })
   @ApiOkResponse({ type: Object })
   create(
     @Body() payload: CreateTemplateDto,
@@ -92,18 +95,11 @@ export class TemplateController {
     return this.service.archive(id);
   }
 
-  @Patch(':id/restore')
-  @ApiOperation({ summary: 'Restore soft-deleted template metadata' })
-  @ApiOkResponse({ type: Object })
-  restore(@Param('id') id: string): Promise<TemplateEntity> {
-    return this.service.restore(id);
-  }
-
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Soft delete template metadata' })
+  @ApiOperation({ summary: 'Delete template metadata' })
   @ApiNoContentResponse()
   async remove(@Param('id') id: string): Promise<void> {
-    await this.service.softDelete(id);
+    await this.service.remove(id);
   }
 }

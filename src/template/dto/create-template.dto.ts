@@ -14,16 +14,17 @@ export class CreateTemplateDto {
 
   @ApiProperty()
   @IsUUID()
-  workspaceId!: string;
+  editorTypeId!: string;
 
   @ApiProperty()
   @IsUUID()
-  editorTypeId!: string;
+  categoryId!: string;
 
-  @ApiPropertyOptional()
-  @IsUUID()
+  @ApiPropertyOptional({ maxLength: 2048 })
+  @IsString()
+  @MaxLength(2048)
   @IsOptional()
-  thumbnailAssetId?: string;
+  thumbnail?: string;
 
   @ApiPropertyOptional({ enum: ['draft', 'published', 'archived'], default: 'draft' })
   @IsIn(['draft', 'published', 'archived'])

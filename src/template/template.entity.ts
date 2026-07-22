@@ -8,7 +8,7 @@ export class TemplateEntity {
     email: string;
     displayName: string | null;
   } | null;
-  workspace!: {
+  category!: {
     id: string;
     name: string;
     slug: string;
@@ -19,8 +19,6 @@ export class TemplateEntity {
     name: string;
   };
   status!: 'draft' | 'published' | 'archived';
-  publishedAt!: Date | null;
-  deletedAt!: Date | null;
   createdAt!: Date;
   updatedAt!: Date;
 }

@@ -7,6 +7,8 @@ import { WorkspaceModule } from './workspace/workspace.module';
 import { EditorTypeModule } from './editor-type/editor-type.module';
 import { CategoryModule } from './category/category.module';
 import { TemplateModule } from './template/template.module';
+import { TemplateContentModule } from './template-content/template-content.module';
+import { UserDraftModule } from './user-draft/user-draft.module';
 import { AssetModule } from './asset/asset.module';
 import { TagModule } from './tag/tag.module';
 import { SearchModule } from './search/search.module';
@@ -53,6 +55,8 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
     EditorTypeModule,
     CategoryModule,
     TemplateModule,
+    TemplateContentModule,
+    UserDraftModule,
     AssetModule,
     TagModule,
     SearchModule,

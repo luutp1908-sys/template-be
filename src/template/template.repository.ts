@@ -6,8 +6,8 @@ import { PrismaService } from '../database/prisma.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
-import { TemplateEntity, TemplateListEntity } from './template.entity';
 import { ITemplateRepository } from './interfaces/template.repository.interface';
+import { TemplateEntity, TemplateListEntity } from './template.entity';
 import { TemplateMapper } from './template.mapper';
 
 type TemplateStatus = 'draft' | 'published' | 'archived';
@@ -16,13 +16,11 @@ interface MockTemplateRecord {
   id: string;
   title: string;
   slug: string;
-  workspaceId: string;
   editorTypeId: string;
+  categoryId: string;
   authorId: string | null;
-  thumbnailAssetId: string | null;
+  thumbnail: string | null;
   status: TemplateStatus;
-  publishedAt: Date | null;
-  deletedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,7 +33,7 @@ const templateInclude = {
       displayName: true,
     },
   },
-  workspace: {
+  category: {
     select: {
       id: true,
       name: true,
@@ -47,11 +45,6 @@ const templateInclude = {
       id: true,
       key: true,
       name: true,
-    },
-  },
-  thumbnailAsset: {
-    select: {
-      publicUrl: true,
     },
   },
 } satisfies Prisma.TemplateInclude;
@@ -68,31 +61,25 @@ export class TemplateRepository implements ITemplateRepository {
     this.isMockMode = this.configService.get<boolean>('app.mockMode', false);
   }
 
-  async create(payload: CreateTemplateDto, authorId: string | null): Promise<TemplateEntity> {
+  async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
     if (this.isMockMode) {
       const now = new Date();
-      const id = randomUUID();
-
-      const mockTemplate: MockTemplateRecord = {
-        id,
+      const record: MockTemplateRecord = {
+        id: randomUUID(),
         title: payload.title,
         slug: payload.slug,
-        workspaceId: payload.workspaceId,
         editorTypeId: payload.editorTypeId,
+        categoryId: payload.categoryId,
         authorId,
-        thumbnailAssetId: payload.thumbnailAssetId ?? null,
+        thumbnail: payload.thumbnail ?? null,
         status: payload.status ?? 'draft',
-        publishedAt: payload.status === 'published' ? now : null,
-        deletedAt: null,
         createdAt: now,
         updatedAt: now,
       };
 
-      this.mockStore.set(id, mockTemplate);
-
+      this.mockStore.set(record.id, record);
       return TemplateMapper.toEntity({
-        ...mockTemplate,
-        thumbnail: null,
+        ...record,
         author: authorId
           ? {
               id: authorId,
@@ -100,8 +87,8 @@ export class TemplateRepository implements ITemplateRepository {
               displayName: null,
             }
           : null,
-        workspace: {
-          id: payload.workspaceId,
+        category: {
+          id: payload.categoryId,
           name: '',
           slug: '',
         },
@@ -117,12 +104,11 @@ export class TemplateRepository implements ITemplateRepository {
       data: {
         title: payload.title,
         slug: payload.slug,
-        workspaceId: payload.workspaceId,
-        editorTypeId: payload.editorTypeId,
         authorId,
-        thumbnailAssetId: payload.thumbnailAssetId ?? null,
+        editorTypeId: payload.editorTypeId,
+        categoryId: payload.categoryId,
+        thumbnail: payload.thumbnail ?? null,
         status: payload.status ?? 'draft',
-        publishedAt: payload.status === 'published' ? new Date() : null,
       },
       include: templateInclude,
     });
@@ -130,53 +116,41 @@ export class TemplateRepository implements ITemplateRepository {
     return TemplateMapper.toEntity(created);
   }
 
-  async findById(id: string, includeDeleted = false): Promise<TemplateEntity | null> {
+  async findById(id: string): Promise<TemplateEntity | null> {
     if (this.isMockMode) {
-      const mockTemplate = this.mockStore.get(id);
-      if (!mockTemplate) {
-        return null;
-      }
-
-      if (!includeDeleted && mockTemplate.deletedAt) {
+      const record = this.mockStore.get(id);
+      if (!record) {
         return null;
       }
 
       return TemplateMapper.toEntity({
-        ...mockTemplate,
-        thumbnail: null,
-        author: mockTemplate.authorId
+        ...record,
+        author: record.authorId
           ? {
-              id: mockTemplate.authorId,
+              id: record.authorId,
               email: '',
               displayName: null,
             }
           : null,
-        workspace: {
-          id: mockTemplate.workspaceId,
+        category: {
+          id: record.categoryId,
           name: '',
           slug: '',
         },
         editorType: {
-          id: mockTemplate.editorTypeId,
+          id: record.editorTypeId,
           key: '',
           name: '',
         },
       });
     }
 
-    const template = await this.prisma.template.findFirst({
-      where: {
-        id,
-        ...(includeDeleted ? {} : { deletedAt: null }),
-      },
+    const template = await this.prisma.template.findUnique({
+      where: { id },
       include: templateInclude,
     });
 
-    if (!template) {
-      return null;
-    }
-
-    return TemplateMapper.toEntity(template);
+    return template ? TemplateMapper.toEntity(template) : null;
   }
 
   async findMany(query: TemplateListQueryDto): Promise<TemplateListEntity> {
@@ -187,13 +161,10 @@ export class TemplateRepository implements ITemplateRepository {
 
     if (this.isMockMode) {
       const filtered = [...this.mockStore.values()].filter((item) => {
-        if (!query.includeDeleted && item.deletedAt) {
-          return false;
-        }
-        if (query.workspaceId && item.workspaceId !== query.workspaceId) {
-          return false;
-        }
         if (query.editorTypeId && item.editorTypeId !== query.editorTypeId) {
+          return false;
+        }
+        if (query.categoryId && item.categoryId !== query.categoryId) {
           return false;
         }
         if (query.authorId && item.authorId !== query.authorId) {
@@ -227,7 +198,6 @@ export class TemplateRepository implements ITemplateRepository {
         items: paged.map((item) =>
           TemplateMapper.toEntity({
             ...item,
-            thumbnail: null,
             author: item.authorId
               ? {
                   id: item.authorId,
@@ -235,8 +205,8 @@ export class TemplateRepository implements ITemplateRepository {
                   displayName: null,
                 }
               : null,
-            workspace: {
-              id: item.workspaceId,
+            category: {
+              id: item.categoryId,
               name: '',
               slug: '',
             },
@@ -254,9 +224,8 @@ export class TemplateRepository implements ITemplateRepository {
     }
 
     const where: Prisma.TemplateWhereInput = {
-      ...(query.includeDeleted ? {} : { deletedAt: null }),
-      ...(query.workspaceId ? { workspaceId: query.workspaceId } : {}),
       ...(query.editorTypeId ? { editorTypeId: query.editorTypeId } : {}),
+      ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.authorId ? { authorId: query.authorId } : {}),
       ...(query.status ? { status: query.status } : {}),
       ...(query.search
@@ -293,23 +262,20 @@ export class TemplateRepository implements ITemplateRepository {
   async update(id: string, payload: UpdateTemplateDto): Promise<TemplateEntity | null> {
     if (this.isMockMode) {
       const current = this.mockStore.get(id);
-      if (!current || current.deletedAt) {
+      if (!current) {
         return null;
       }
 
       current.title = payload.title ?? current.title;
       current.slug = payload.slug ?? current.slug;
-      current.workspaceId = payload.workspaceId ?? current.workspaceId;
       current.editorTypeId = payload.editorTypeId ?? current.editorTypeId;
-      current.thumbnailAssetId = payload.thumbnailAssetId ?? current.thumbnailAssetId;
+      current.categoryId = payload.categoryId ?? current.categoryId;
+      current.thumbnail = payload.thumbnail ?? current.thumbnail;
       current.status = payload.status ?? current.status;
       current.updatedAt = new Date();
-      current.publishedAt =
-        current.status === 'published' ? (current.publishedAt ?? new Date()) : null;
 
       return TemplateMapper.toEntity({
         ...current,
-        thumbnail: null,
         author: current.authorId
           ? {
               id: current.authorId,
@@ -317,8 +283,8 @@ export class TemplateRepository implements ITemplateRepository {
               displayName: null,
             }
           : null,
-        workspace: {
-          id: current.workspaceId,
+        category: {
+          id: current.categoryId,
           name: '',
           slug: '',
         },
@@ -330,8 +296,8 @@ export class TemplateRepository implements ITemplateRepository {
       });
     }
 
-    const found = await this.prisma.template.findFirst({
-      where: { id, deletedAt: null },
+    const found = await this.prisma.template.findUnique({
+      where: { id },
       select: { id: true },
     });
 
@@ -344,17 +310,10 @@ export class TemplateRepository implements ITemplateRepository {
       data: {
         ...(payload.title !== undefined ? { title: payload.title } : {}),
         ...(payload.slug !== undefined ? { slug: payload.slug } : {}),
-        ...(payload.workspaceId !== undefined ? { workspaceId: payload.workspaceId } : {}),
         ...(payload.editorTypeId !== undefined ? { editorTypeId: payload.editorTypeId } : {}),
-        ...(payload.thumbnailAssetId !== undefined
-          ? { thumbnailAssetId: payload.thumbnailAssetId }
-          : {}),
-        ...(payload.status !== undefined
-          ? {
-              status: payload.status,
-              publishedAt: payload.status === 'published' ? new Date() : null,
-            }
-          : {}),
+        ...(payload.categoryId !== undefined ? { categoryId: payload.categoryId } : {}),
+        ...(payload.thumbnail !== undefined ? { thumbnail: payload.thumbnail } : {}),
+        ...(payload.status !== undefined ? { status: payload.status } : {}),
       },
       include: templateInclude,
     });
@@ -362,28 +321,12 @@ export class TemplateRepository implements ITemplateRepository {
     return TemplateMapper.toEntity(updated);
   }
 
-  async softDelete(id: string): Promise<boolean> {
+  async remove(id: string): Promise<boolean> {
     if (this.isMockMode) {
-      const current = this.mockStore.get(id);
-      if (!current || current.deletedAt) {
-        return false;
-      }
-
-      current.deletedAt = new Date();
-      current.updatedAt = new Date();
-      return true;
+      return this.mockStore.delete(id);
     }
 
-    const result = await this.prisma.template.updateMany({
-      where: {
-        id,
-        deletedAt: null,
-      },
-      data: {
-        deletedAt: new Date(),
-      },
-    });
-
+    const result = await this.prisma.template.deleteMany({ where: { id } });
     return result.count > 0;
   }
 
@@ -393,56 +336,5 @@ export class TemplateRepository implements ITemplateRepository {
 
   async archive(id: string): Promise<TemplateEntity | null> {
     return this.update(id, { status: 'archived' });
-  }
-
-  async restore(id: string): Promise<TemplateEntity | null> {
-    if (this.isMockMode) {
-      const current = this.mockStore.get(id);
-      if (!current || !current.deletedAt) {
-        return null;
-      }
-      current.deletedAt = null;
-      current.updatedAt = new Date();
-
-      return TemplateMapper.toEntity({
-        ...current,
-        thumbnail: null,
-        author: current.authorId
-          ? {
-              id: current.authorId,
-              email: '',
-              displayName: null,
-            }
-          : null,
-        workspace: {
-          id: current.workspaceId,
-          name: '',
-          slug: '',
-        },
-        editorType: {
-          id: current.editorTypeId,
-          key: '',
-          name: '',
-        },
-      });
-    }
-
-    const restored = await this.prisma.template.updateMany({
-      where: {
-        id,
-        NOT: {
-          deletedAt: null,
-        },
-      },
-      data: {
-        deletedAt: null,
-      },
-    });
-
-    if (restored.count === 0) {
-      return null;
-    }
-
-    return this.findById(id, true);
   }
 }

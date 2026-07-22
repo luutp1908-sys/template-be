@@ -3,18 +3,18 @@ import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { TemplateEntity, TemplateListEntity } from './template.entity';
-import { TemplateRepository } from './template.repository';
+import { TemplateRepository } from './template.data.repository';
 
 @Injectable()
 export class TemplateService {
   constructor(private readonly repository: TemplateRepository) {}
 
-  async create(payload: CreateTemplateDto, authorId: string | null): Promise<TemplateEntity> {
+  async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
     return this.repository.create(payload, authorId);
   }
 
-  async findById(id: string, includeDeleted = false): Promise<TemplateEntity> {
-    const template = await this.repository.findById(id, includeDeleted);
+  async findById(id: string): Promise<TemplateEntity> {
+    const template = await this.repository.findById(id);
     if (!template) {
       throw new NotFoundException('Template not found');
     }
@@ -53,18 +53,9 @@ export class TemplateService {
     return template;
   }
 
-  async restore(id: string): Promise<TemplateEntity> {
-    const template = await this.repository.restore(id);
-    if (!template) {
-      throw new NotFoundException('Template not found');
-    }
-
-    return template;
-  }
-
-  async softDelete(id: string): Promise<void> {
-    const deleted = await this.repository.softDelete(id);
-    if (!deleted) {
+  async remove(id: string): Promise<void> {
+    const removed = await this.repository.remove(id);
+    if (!removed) {
       throw new NotFoundException('Template not found');
     }
   }
