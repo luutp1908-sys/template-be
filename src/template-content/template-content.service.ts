@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateTemplateContentDto } from './dto/create-template-content.dto';
 import { UpdateTemplateContentDto } from './dto/update-template-content.dto';
 import { TemplateContentEntity } from './template-content.entity';
@@ -6,7 +6,7 @@ import { TemplateContentRepository } from './template-content.repository';
 
 @Injectable()
 export class TemplateContentService {
-  constructor(private readonly repository: TemplateContentRepository) {}
+  constructor(@Inject('TEMPLATE_CONTENT_REPOSITORY') private readonly repository: any) {}
 
   async upsert(templateId: string, payload: CreateTemplateContentDto): Promise<TemplateContentEntity> {
     return this.repository.upsert(templateId, payload);

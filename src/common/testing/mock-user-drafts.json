@@ -311,5 +311,18 @@
     "createdAt": "2026-07-22T18:53:20.852Z",
     "updatedAt": "2026-07-22T18:53:20.852Z",
     "lastOpenedAt": "2026-07-22T18:53:20.852Z"
+  },
+  {
+    "id": "8f992f18-aa73-4a67-aaf7-11a3fac6c697",
+    "userId": "30e2a4d6-dd4e-4f33-82ab-a8fd535461d4",
+    "templateId": "129469bf-3f29-4ab8-9ba2-5eaf626a4c31",
+    "name": "E2E Draft 2",
+    "thumbnail": null,
+    "content": {
+      "pages": []
+    },
+    "createdAt": "2026-07-23T09:56:06.896Z",
+    "updatedAt": "2026-07-23T09:56:06.896Z",
+    "lastOpenedAt": "2026-07-23T09:56:06.896Z"
   }
 ]

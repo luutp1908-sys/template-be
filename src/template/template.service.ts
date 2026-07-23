@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
@@ -7,7 +7,7 @@ import { TemplateRepository } from './template.data.repository';
 
 @Injectable()
 export class TemplateService {
-  constructor(private readonly repository: TemplateRepository) {}
+  constructor(@Inject('TEMPLATE_REPOSITORY') private readonly repository: any) {}
 
   async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
     return this.repository.create(payload, authorId);

@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { AuthController } from './auth.controller';
-import { AuthRepository } from './auth.repository';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
@@ -26,16 +25,21 @@ import { LocalStrategy } from './local.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [
-    AuthService,
-    AuthRepository,
-    JwtStrategy,
-    LocalStrategy,
-    JwtAuthGuard,
-    LocalAuthGuard,
-    RolesGuard,
-    PermissionsGuard,
-  ],
+  providers: (() => {
+    const impl = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1'
+      ? require('./auth.repository.mock')
+      : require('./auth.repository.prisma');
+    return [
+      AuthService,
+      { provide: 'AUTH_REPOSITORY', useClass: impl.AuthRepository },
+      JwtStrategy,
+      LocalStrategy,
+      JwtAuthGuard,
+      LocalAuthGuard,
+      RolesGuard,
+      PermissionsGuard,
+    ];
+  })(),
   exports: [AuthService, JwtAuthGuard, RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}

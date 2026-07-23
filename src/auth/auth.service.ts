@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -19,7 +19,7 @@ export class AuthService {
   private readonly saltRounds: number;
 
   constructor(
-    private readonly repository: AuthRepository,
+    @Inject('AUTH_REPOSITORY') private readonly repository: any,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {

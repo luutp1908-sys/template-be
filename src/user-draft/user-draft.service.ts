@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateUserDraftDto } from './dto/create-user-draft.dto';
 import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
 import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
@@ -7,7 +7,7 @@ import { UserDraftRepository } from './user-draft.repository';
 
 @Injectable()
 export class UserDraftService {
-  constructor(private readonly repository: UserDraftRepository) {}
+  constructor(@Inject('USER_DRAFT_REPOSITORY') private readonly repository: any) {}
 
   async create(payload: CreateUserDraftDto, userId: string): Promise<UserDraftEntity> {
     return this.repository.create(payload, userId);
