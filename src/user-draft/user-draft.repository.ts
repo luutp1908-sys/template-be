@@ -7,17 +7,68 @@ import { CreateUserDraftDto } from './dto/create-user-draft.dto';
 import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
 import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
 import { UserDraftEntity, UserDraftListEntity } from './user-draft.entity';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
+import { dirname, join } from 'path'
 
 @Injectable()
 export class UserDraftRepository {
   private readonly isMockMode: boolean;
   private readonly mockStore = new Map<string, UserDraftEntity>();
+  private readonly mockFilePath: string;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
-    this.isMockMode = this.configService.get<boolean>('app.mockMode', false);
+    // read config flag or fallback to environment variable MOCK_MODE
+    const cfgFlag = this.configService.get<boolean>('app.mockMode', false)
+    const envFlag = (process.env.MOCK_MODE === 'true') || (process.env.MOCK_MODE === '1')
+    this.isMockMode = Boolean(cfgFlag || envFlag)
+    // prefer writing into the source tree so devs can inspect the file
+    // when running the compiled app (__dirname points into dist at runtime)
+    const srcMockPath = join(process.cwd(), 'src', 'common', 'testing', 'mock-user-drafts.json')
+    this.mockFilePath = srcMockPath
+    if (this.isMockMode) {
+      try {
+        const dir = dirname(this.mockFilePath)
+        if (!existsSync(dir)) mkdirSync(dir, { recursive: true })
+        if (!existsSync(this.mockFilePath)) writeFileSync(this.mockFilePath, JSON.stringify([]))
+        const raw = readFileSync(this.mockFilePath, 'utf8') || '[]'
+        const arr = JSON.parse(raw) as any[]
+        arr.forEach((it) => {
+          // convert date strings to Date objects
+          const entity: UserDraftEntity = {
+            ...it,
+            createdAt: it.createdAt ? new Date(it.createdAt) : new Date(),
+            updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(),
+            lastOpenedAt: it.lastOpenedAt ? new Date(it.lastOpenedAt) : new Date(),
+          }
+          this.mockStore.set(entity.id, entity)
+        })
+      } catch (err) {
+        // ignore load errors and start with empty store
+        this.mockStore.clear()
+      }
+    }
+  }
+
+  private persistMockStore() {
+    try {
+      const arr = [...this.mockStore.values()].map((e) => ({
+        ...e,
+        createdAt: e.createdAt?.toISOString?.() ?? e.createdAt,
+        updatedAt: e.updatedAt?.toISOString?.() ?? e.updatedAt,
+        lastOpenedAt: e.lastOpenedAt?.toISOString?.() ?? e.lastOpenedAt,
+      }))
+      writeFileSync(this.mockFilePath, JSON.stringify(arr, null, 2), 'utf8')
+      // debug log for dev: confirm persistence
+      // eslint-disable-next-line no-console
+      console.log('[mock-user-drafts] persisted', this.mockFilePath, arr.length, 'items')
+    } catch (err) {
+      // log persistence errors to surface problems during development
+      // eslint-disable-next-line no-console
+      console.error('[mock-user-drafts] failed to persist', err)
+    }
   }
 
   async create(payload: CreateUserDraftDto, userId: string): Promise<UserDraftEntity> {
@@ -36,6 +87,7 @@ export class UserDraftRepository {
       };
 
       this.mockStore.set(entity.id, entity);
+      this.persistMockStore()
       return entity;
     }
 
@@ -147,6 +199,7 @@ export class UserDraftRepository {
       current.updatedAt = new Date();
 
       this.mockStore.set(id, current);
+      this.persistMockStore()
       return current;
     }
 
@@ -180,6 +233,7 @@ export class UserDraftRepository {
       current.lastOpenedAt = new Date();
       current.updatedAt = new Date();
       this.mockStore.set(id, current);
+      this.persistMockStore()
       return current;
     }
 
@@ -207,7 +261,9 @@ export class UserDraftRepository {
         return false;
       }
 
-      return this.mockStore.delete(id);
+      const deleted = this.mockStore.delete(id);
+      this.persistMockStore()
+      return deleted;
     }
 
     const result = await this.prisma.userDraft.deleteMany({
