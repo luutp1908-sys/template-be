@@ -22,7 +22,7 @@ export default () => ({
     password: process.env.REDIS_PASSWORD ?? '',
   },
   log: {
-    level: process.env.LOG_LEVEL ?? 'info',
+    level: process.env.LOG_LEVEL ?? 'warn',
   },
   security: {
     bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 12),

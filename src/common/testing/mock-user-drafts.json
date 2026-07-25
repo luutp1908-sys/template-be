@@ -328,8 +328,8 @@
   {
     "id": "82fc8e26-7144-44cc-8a9e-f4d9709d0073",
     "userId": "41a70675-d7de-4f2b-a71a-6d68c939c24a",
-    "templateId": "2cd25699-6c68-48fa-a1c1-ca064e02b08a",
-    "name": "Mocked Template 001",
+    "templateId": "3c8a9f68-e87d-4779-a6a6-11a16d873076",
+    "name": "Draft 2026-07-25T16:46:55.038Z",
     "thumbnail": null,
     "content": {
       "pages": [
@@ -347,15 +347,15 @@
           "layers": [
             {
               "id": 1784977727128,
-              "x": 432,
-              "y": 328,
+              "x": 38.92041519999998,
+              "y": 123.15570930000001,
               "width": 220,
-              "height": 120,
+              "height": 470.5882352941176,
               "rotate": 0,
               "visible": true,
               "locked": false,
               "type": "text",
-              "text": "hello",
+              "text": "I successfully update the api to save draft content",
               "textColor": "#1a1a1a",
               "fontFamily": "Arial, sans-serif",
               "fontSize": 32,
@@ -394,7 +394,7 @@
       ]
     },
     "createdAt": "2026-07-25T11:09:14.540Z",
-    "updatedAt": "2026-07-25T11:09:14.540Z",
+    "updatedAt": "2026-07-25T16:46:55.087Z",
     "lastOpenedAt": "2026-07-25T11:09:14.540Z"
   },
   {

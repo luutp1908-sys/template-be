@@ -38,7 +38,7 @@ const envSchema = Joi.object({
   }),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
   BCRYPT_SALT_ROUNDS: Joi.number().integer().min(10).max(15).default(12),
-  LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('info'),
+  LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('warn'),
 });
 
 export function validateEnv(config: Record<string, unknown>): Record<string, unknown> {
