@@ -3,10 +3,15 @@ import { CreateTemplateContentDto } from './dto/create-template-content.dto';
 import { UpdateTemplateContentDto } from './dto/update-template-content.dto';
 import { TemplateContentEntity } from './template-content.entity';
 import { TemplateContentRepository } from './template-content.repository';
+import { UserDraftService } from '../user-draft/user-draft.service';
+import { UserDraftEntity } from '../user-draft/user-draft.entity';
 
 @Injectable()
 export class TemplateContentService {
-  constructor(@Inject('TEMPLATE_CONTENT_REPOSITORY') private readonly repository: any) {}
+  constructor(
+    @Inject('TEMPLATE_CONTENT_REPOSITORY') private readonly repository: any,
+    private readonly userDraftService: UserDraftService,
+  ) {}
 
   async upsert(templateId: string, payload: CreateTemplateContentDto): Promise<TemplateContentEntity> {
     return this.repository.upsert(templateId, payload);
@@ -38,5 +43,16 @@ export class TemplateContentService {
     if (!removed) {
       throw new NotFoundException('Template content not found');
     }
+  }
+
+  async findFromDraft(draftId: string, userId: string): Promise<{ templateContent: TemplateContentEntity | null; draft: UserDraftEntity }> {
+    const draft = await this.userDraftService.findById(draftId, userId);
+    // load canonical template content (may throw if not found)
+    let templateContent: TemplateContentEntity | null = null;
+    try {
+      templateContent = await this.repository.findByTemplateId(draft.templateId);
+    } catch {}
+
+    return { templateContent, draft };
   }
 }

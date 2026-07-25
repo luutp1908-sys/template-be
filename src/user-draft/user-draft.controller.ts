@@ -55,6 +55,13 @@ export class UserDraftController {
     return this.service.findById(id, user.id);
   }
 
+  @Get(':id/template-content')
+  @ApiOperation({ summary: 'Get draft content only (private)' })
+  @ApiOkResponse({ type: Object })
+  getDraftTemplateContent(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<UserDraftEntity> {
+    return this.service.findById(id, user.id);
+  }
+
   @Patch(':id')
   @ApiOperation({ summary: 'Update a draft by id for the current user' })
   @ApiOkResponse({ type: Object })

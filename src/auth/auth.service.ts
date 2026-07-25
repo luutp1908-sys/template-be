@@ -72,10 +72,15 @@ export class AuthService {
   }
 
   async refreshToken(payload: RefreshTokenDto): Promise<AuthEntity> {
+    const token = payload?.refreshToken;
+    if (!token) {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+
     let claims: JwtClaims;
 
     try {
-      claims = await this.jwtService.verifyAsync<JwtClaims>(payload.refreshToken, {
+      claims = await this.jwtService.verifyAsync<JwtClaims>(token, {
         secret: this.refreshSecret,
       });
     } catch {
@@ -87,7 +92,7 @@ export class AuthService {
       throw new UnauthorizedException('Invalid refresh token');
     }
 
-    const tokenMatches = await bcrypt.compare(payload.refreshToken, user.refreshTokenHash);
+    const tokenMatches = await bcrypt.compare(token, user.refreshTokenHash);
     if (!tokenMatches) {
       throw new UnauthorizedException('Invalid refresh token');
     }

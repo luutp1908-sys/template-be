@@ -324,5 +324,90 @@
     "createdAt": "2026-07-23T09:56:06.896Z",
     "updatedAt": "2026-07-23T09:56:06.896Z",
     "lastOpenedAt": "2026-07-23T09:56:06.896Z"
+  },
+  {
+    "id": "82fc8e26-7144-44cc-8a9e-f4d9709d0073",
+    "userId": "41a70675-d7de-4f2b-a71a-6d68c939c24a",
+    "templateId": "2cd25699-6c68-48fa-a1c1-ca064e02b08a",
+    "name": "Mocked Template 001",
+    "thumbnail": null,
+    "content": {
+      "pages": [
+        {
+          "id": "page_1",
+          "width": 1200,
+          "height": 800,
+          "background": {
+            "color": "#ffffff",
+            "image": {
+              "src": "https://picsum.photos/id/1003/1200/800",
+              "fit": "cover"
+            }
+          },
+          "layers": [
+            {
+              "id": 1784977727128,
+              "x": 432,
+              "y": 328,
+              "width": 220,
+              "height": 120,
+              "rotate": 0,
+              "visible": true,
+              "locked": false,
+              "type": "text",
+              "text": "hello",
+              "textColor": "#1a1a1a",
+              "fontFamily": "Arial, sans-serif",
+              "fontSize": 32,
+              "fontWeight": "normal",
+              "textAlign": "left",
+              "lineHeight": 1.2,
+              "wrapMode": "fixed",
+              "textConfig": {
+                "value": "New text",
+                "type": "text-box",
+                "width": "220px",
+                "height": "60px",
+                "translate": [
+                  0,
+                  0
+                ],
+                "rotate": 0,
+                "fontFamily": "Arial, sans-serif",
+                "fontSize": "32px",
+                "fontColor": "#1a1a1a",
+                "textAlign": "left",
+                "lineHeight": 1.2,
+                "letterSpacing": "0px",
+                "isBold": false,
+                "isItalic": false,
+                "isUnderline": false,
+                "isCapital": false,
+                "presentationType": "body",
+                "colorPaletteType": null,
+                "externalFontUrl": null,
+                "isLogoQrCode": false
+              }
+            }
+          ]
+        }
+      ]
+    },
+    "createdAt": "2026-07-25T11:09:14.540Z",
+    "updatedAt": "2026-07-25T11:09:14.540Z",
+    "lastOpenedAt": "2026-07-25T11:09:14.540Z"
+  },
+  {
+    "id": "87ba6ed8-25c5-45de-b5a8-a403293b2fbf",
+    "userId": "ef3c79fb-7907-4535-81f8-f102b0c8051d",
+    "templateId": "00000000-0000-4000-8000-000000000000",
+    "name": "curl-test",
+    "thumbnail": null,
+    "content": {
+      "pages": []
+    },
+    "createdAt": "2026-07-25T11:58:37.222Z",
+    "updatedAt": "2026-07-25T11:58:37.222Z",
+    "lastOpenedAt": "2026-07-25T11:58:37.222Z"
   }
 ]
