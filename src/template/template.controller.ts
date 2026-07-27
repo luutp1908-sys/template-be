@@ -51,7 +51,7 @@ export class TemplateController {
   })
   @ApiQuery({ name: 'sortOrder', required: false, enum: ['asc', 'desc'] })
   @ApiQuery({ name: 'status', required: false, enum: ['draft', 'published', 'archived'] })
-  @ApiQuery({ name: 'editorTypeId', required: false, type: String })
+  @ApiQuery({ name: 'editorTypeId', required: false, type: Number, enum: [0, 1, 2] })
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   @ApiQuery({ name: 'authorId', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })

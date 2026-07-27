@@ -15,7 +15,7 @@ export class CategoryRepository implements ICategoryRepository {
     const rows = await this.prisma.category.findMany({
       where: {
         deletedAt: null,
-        ...(query.editorTypeId ? { editorTypeId: query.editorTypeId } : {}),
+        ...(query.editorTypeId !== undefined ? { editorTypeId: String(query.editorTypeId) } : {}),
         ...(query.search
           ? {
               name: {
@@ -63,7 +63,7 @@ export class CategoryRepository implements ICategoryRepository {
       data: {
         id: randomUUID(),
         workspaceId,
-        editorTypeId: payload.editorTypeId,
+        editorTypeId: String(payload.editorTypeId),
         parentId: payload.parentId ?? null,
         name: payload.name,
         slug,

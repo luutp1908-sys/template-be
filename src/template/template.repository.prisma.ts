@@ -47,7 +47,7 @@ export class TemplateRepository implements ITemplateRepository {
         title: payload.title,
         slug: payload.slug,
         authorId,
-        editorTypeId: payload.editorTypeId,
+        editorTypeId: String(payload.editorTypeId),
         categoryId: payload.categoryId,
         thumbnail: payload.thumbnail ?? null,
         status: payload.status ?? 'draft',
@@ -74,7 +74,7 @@ export class TemplateRepository implements ITemplateRepository {
     const sortOrder = query.sortOrder ?? 'desc';
 
     const where: Prisma.TemplateWhereInput = {
-      ...(query.editorTypeId ? { editorTypeId: query.editorTypeId } : {}),
+      ...(query.editorTypeId !== undefined ? { editorTypeId: String(query.editorTypeId) } : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.authorId ? { authorId: query.authorId } : {}),
       ...(query.status ? { status: query.status } : {}),
@@ -124,7 +124,7 @@ export class TemplateRepository implements ITemplateRepository {
       data: {
         ...(payload.title !== undefined ? { title: payload.title } : {}),
         ...(payload.slug !== undefined ? { slug: payload.slug } : {}),
-        ...(payload.editorTypeId !== undefined ? { editorTypeId: payload.editorTypeId } : {}),
+        ...(payload.editorTypeId !== undefined ? { editorTypeId: String(payload.editorTypeId) } : {}),
         ...(payload.categoryId !== undefined ? { categoryId: payload.categoryId } : {}),
         ...(payload.thumbnail !== undefined ? { thumbnail: payload.thumbnail } : {}),
         ...(payload.status !== undefined ? { status: payload.status } : {}),

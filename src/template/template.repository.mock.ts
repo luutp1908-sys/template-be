@@ -15,7 +15,7 @@ interface MockTemplateRecord {
   id: string;
   title: string;
   slug: string;
-  editorTypeId: string;
+  editorTypeId: number;
   categoryId: string;
   authorId: string | null;
   thumbnail: string | null;
@@ -40,6 +40,7 @@ export class TemplateRepository implements ITemplateRepository {
       arr.forEach((it) => {
         const rec: MockTemplateRecord = {
           ...it,
+          editorTypeId: typeof it.editorTypeId === 'number' ? it.editorTypeId : Number(it.editorTypeId ?? 0),
           createdAt: it.createdAt ? new Date(it.createdAt) : new Date(),
           updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(),
         }
@@ -98,7 +99,7 @@ export class TemplateRepository implements ITemplateRepository {
         slug: '',
       },
       editorType: {
-        id: payload.editorTypeId,
+        id: String(payload.editorTypeId),
         key: '',
         name: '',
       },
@@ -124,7 +125,7 @@ export class TemplateRepository implements ITemplateRepository {
         slug: '',
       },
       editorType: {
-        id: record.editorTypeId,
+        id: String(record.editorTypeId),
         key: '',
         name: '',
       },
@@ -188,7 +189,7 @@ export class TemplateRepository implements ITemplateRepository {
             slug: '',
           },
           editorType: {
-            id: item.editorTypeId,
+            id: String(item.editorTypeId),
             key: '',
             name: '',
           },
@@ -229,7 +230,7 @@ export class TemplateRepository implements ITemplateRepository {
         slug: '',
       },
       editorType: {
-        id: current.editorTypeId,
+        id: String(current.editorTypeId),
         key: '',
         name: '',
       },
@@ -253,7 +254,7 @@ export class TemplateRepository implements ITemplateRepository {
       ...current,
       author: current.authorId ? { id: current.authorId, email: '', displayName: null } : null,
       category: { id: current.categoryId, name: '', slug: '' },
-      editorType: { id: current.editorTypeId, key: '', name: '' },
+      editorType: { id: String(current.editorTypeId), key: '', name: '' },
     });
   }
 
@@ -268,7 +269,7 @@ export class TemplateRepository implements ITemplateRepository {
       ...current,
       author: current.authorId ? { id: current.authorId, email: '', displayName: null } : null,
       category: { id: current.categoryId, name: '', slug: '' },
-      editorType: { id: current.editorTypeId, key: '', name: '' },
+      editorType: { id: String(current.editorTypeId), key: '', name: '' },
     });
   }
 }

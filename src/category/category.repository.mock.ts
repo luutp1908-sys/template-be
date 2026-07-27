@@ -32,7 +32,7 @@ export class CategoryRepository implements ICategoryRepository {
         const entity: CategoryEntity = {
           id: it.id,
           workspaceId: it.workspaceId ?? CategoryRepository.DEFAULT_WORKSPACE_ID,
-          editorTypeId: it.editorTypeId,
+          editorTypeId: typeof it.editorTypeId === 'number' ? it.editorTypeId : Number(it.editorTypeId ?? 0),
           parentId: it.parentId ?? null,
           name: it.name,
           slug: it.slug,
@@ -73,7 +73,7 @@ export class CategoryRepository implements ICategoryRepository {
     const entity: CategoryEntity = {
       id: randomUUID(),
       workspaceId: payload.workspaceId ?? CategoryRepository.DEFAULT_WORKSPACE_ID,
-      editorTypeId: payload.editorTypeId,
+      editorTypeId: payload.editorTypeId ?? 0,
       parentId: payload.parentId ?? null,
       name: payload.name,
       slug: payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180),

@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateTemplateDto {
   @ApiProperty({ maxLength: 240 })
@@ -13,8 +13,9 @@ export class CreateTemplateDto {
   slug!: string;
 
   @ApiProperty()
-  @IsUUID()
-  editorTypeId!: string;
+  @IsInt()
+  @IsIn([0, 1, 2])
+  editorTypeId!: number;
 
   @ApiProperty()
   @IsUUID()

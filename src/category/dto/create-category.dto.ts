@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateCategoryDto {
   // workspaceId is intentionally optional at API level for global categories.
@@ -6,8 +6,9 @@ export class CreateCategoryDto {
   @IsOptional()
   workspaceId?: string;
 
-  @IsUUID()
-  editorTypeId!: string;
+  @IsInt()
+  @IsIn([0, 1, 2])
+  editorTypeId!: number;
 
   @IsUUID()
   @IsOptional()

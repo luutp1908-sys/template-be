@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "d1d1197b-fb9f-4a1d-ac19-740177f0cc38",
+    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "editorTypeId": 0,
+    "parentId": null,
+    "name": "Facebook",
+    "slug": "facebook",
+    "deletedAt": null,
+    "createdAt": "2026-07-27T18:13:20.316Z",
+    "updatedAt": "2026-07-27T18:13:20.316Z"
+  }
+]
