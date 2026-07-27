@@ -53,6 +53,10 @@ describe('AuthService', () => {
       providers: [
         AuthService,
         {
+          provide: 'AUTH_REPOSITORY',
+          useValue: repository,
+        },
+        {
           provide: AuthRepository,
           useValue: repository,
         },

@@ -10,6 +10,13 @@ describe('CategoryService', () => {
       providers: [
         CategoryService,
         {
+          provide: 'CATEGORY_REPOSITORY',
+          useValue: {
+            create: jest.fn(),
+            findById: jest.fn(),
+          },
+        },
+        {
           provide: CategoryRepository,
           useValue: {
             create: jest.fn(),

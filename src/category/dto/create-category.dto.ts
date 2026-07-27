@@ -1,7 +1,22 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, IsUUID } from 'class-validator';
 
 export class CreateCategoryDto {
+  // workspaceId is intentionally optional at API level for global categories.
+  @IsUUID()
+  @IsOptional()
+  workspaceId?: string;
+
+  @IsUUID()
+  editorTypeId!: string;
+
+  @IsUUID()
+  @IsOptional()
+  parentId?: string | null;
+
+  @IsString()
+  name!: string;
+
   @IsString()
   @IsOptional()
-  name?: string;
+  slug?: string;
 }

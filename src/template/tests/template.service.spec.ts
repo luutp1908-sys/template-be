@@ -29,6 +29,10 @@ describe('TemplateService', () => {
       providers: [
         TemplateService,
         {
+          provide: 'TEMPLATE_REPOSITORY',
+          useValue: repository,
+        },
+        {
           provide: TemplateRepository,
           useValue: repository,
         },
