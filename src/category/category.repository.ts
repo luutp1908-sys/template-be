@@ -1,24 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InMemoryStore } from '../common/testing/in-memory-store';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { CategoryEntity } from './category.entity';
-import { ICategoryRepository } from './interfaces/category.repository.interface';
-import { CategoryMapper } from './category.mapper';
-
-@Injectable()
-export class CategoryRepository implements ICategoryRepository {
-  private readonly store = new InMemoryStore<CategoryEntity>();
-
-  async create(payload: CreateCategoryDto): Promise<CategoryEntity> {
-    return this.store.create((base) =>
-      CategoryMapper.toEntity({
-        ...base,
-        ...payload,
-      }),
-    );
-  }
-
-  async findById(id: string): Promise<CategoryEntity | null> {
-    return this.store.findById(id);
-  }
-}
+// runtime switch: choose implementation based on MOCK_MODE
+const isMock = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1';
+const impl = isMock ? require('./category.repository.mock') : require('./category.repository.prisma');
+export const CategoryRepository = impl.CategoryRepository;
+export default CategoryRepository;
+// Note: keep only runtime value export; do not export conflicting type alias
