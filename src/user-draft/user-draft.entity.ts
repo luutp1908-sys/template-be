@@ -3,7 +3,7 @@ import { Prisma } from '@prisma/client';
 export class UserDraftEntity {
   id!: string;
   userId!: string;
-  templateId!: string;
+  templateId!: string | null;
   name!: string;
   thumbnail!: string | null;
   content!: Prisma.JsonValue;

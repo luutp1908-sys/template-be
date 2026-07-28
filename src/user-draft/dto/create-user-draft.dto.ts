@@ -3,9 +3,10 @@ import { Prisma } from '@prisma/client';
 import { IsObject, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 export class CreateUserDraftDto {
-  @ApiProperty()
+  @ApiPropertyOptional()
   @IsUUID()
-  templateId!: string;
+  @IsOptional()
+  templateId?: string;
 
   @ApiProperty({ maxLength: 240 })
   @IsString()

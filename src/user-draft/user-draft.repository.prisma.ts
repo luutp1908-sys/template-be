@@ -18,7 +18,7 @@ export class UserDraftRepository {
     return this.prisma.userDraft.create({
       data: {
         userId,
-        templateId: payload.templateId,
+        templateId: payload.templateId ?? null,
         name: payload.name,
         thumbnail: payload.thumbnail ?? null,
         content: payload.content,
