@@ -61,7 +61,6 @@ export class TemplateController {
   }
 
   @Post()
-  @Public()
   @ApiOperation({ summary: 'Create template metadata' })
   @ApiOkResponse({ type: Object })
   create(
