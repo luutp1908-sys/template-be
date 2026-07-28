@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
+import { ROLE_KEYS } from '../../common/constants/roles.constant';
 import { AuthRepository } from '../auth.repository';
 import { AuthService } from '../auth.service';
 import { AuthUser } from '../types/auth-user.type';
@@ -14,7 +15,7 @@ describe('AuthService', () => {
     id: 'user-1',
     email: 'user@example.com',
     displayName: 'User',
-    roles: ['member'],
+    roles: [ROLE_KEYS.user],
     permissions: ['template:read'],
   };
 

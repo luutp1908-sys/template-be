@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { ROLE_KEYS } from '../common/constants/roles.constant';
 import { RegisterDto } from './dto/register.dto';
 import { IAuthRepository } from './interfaces/auth.repository.interface';
 import { AuthUser, AuthUserWithSecrets } from './types/auth-user.type';
@@ -85,7 +86,7 @@ export class AuthRepository implements IAuthRepository {
       id: mock.id,
       email: mock.email,
       displayName: mock.displayName,
-      roles: ['member'],
+      roles: [ROLE_KEYS.user],
       permissions: ['template:read'],
     };
   }

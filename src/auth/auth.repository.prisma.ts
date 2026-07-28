@@ -1,6 +1,7 @@
 import { ConflictException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
+import { ROLE_KEYS } from '../common/constants/roles.constant';
 import { PrismaService } from '../database/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { IAuthRepository } from './interfaces/auth.repository.interface';
@@ -122,20 +123,43 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async createUser(payload: RegisterDto, passwordHash: string): Promise<AuthUserWithSecrets> {
-    const user = await this.prisma.user.create({
-      data: {
-        email: payload.email.toLowerCase(),
-        displayName: payload.displayName ?? null,
-        passwordHash,
-      },
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        isActive: true,
-        passwordHash: true,
-        refreshTokenHash: true,
-      },
+    const user = await this.prisma.$transaction(async (tx) => {
+      const createdUser = await tx.user.create({
+        data: {
+          email: payload.email.toLowerCase(),
+          displayName: payload.displayName ?? null,
+          passwordHash,
+        },
+        select: {
+          id: true,
+          email: true,
+          displayName: true,
+          isActive: true,
+          passwordHash: true,
+          refreshTokenHash: true,
+        },
+      });
+
+      const userRole = await tx.role.findFirst({
+        where: {
+          key: ROLE_KEYS.user,
+          deletedAt: null,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (userRole) {
+        await tx.userRole.create({
+          data: {
+            userId: createdUser.id,
+            roleId: userRole.id,
+          },
+        });
+      }
+
+      return createdUser;
     });
 
     return user;
