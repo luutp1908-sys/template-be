@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, IsUUID } from 'class-validator';
+import { EDITOR_TYPE_IDS } from '../../common/constants/editor-types.constant';
 
 export class CreateCategoryDto {
   // workspaceId is intentionally optional at API level for global categories.
@@ -6,9 +7,10 @@ export class CreateCategoryDto {
   @IsOptional()
   workspaceId?: string;
 
-  @IsUUID()
+  @IsInt()
+  @IsIn(EDITOR_TYPE_IDS)
   @IsOptional()
-  editorTypeId?: string;
+  editorTypeId?: number;
 
   @IsUUID()
   @IsOptional()

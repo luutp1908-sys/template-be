@@ -1,11 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsIn, IsInt, IsOptional, IsString, MaxLength } from 'class-validator';
+import { EDITOR_TYPE_IDS } from '../../common/constants/editor-types.constant';
 
 export class CategoryListQueryDto {
   @ApiPropertyOptional({ description: 'Filter by editor type id' })
-  @IsUUID()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(EDITOR_TYPE_IDS)
   @IsOptional()
-  editorTypeId?: string;
+  editorTypeId?: number;
 
   @ApiPropertyOptional({ description: 'Search by category name' })
   @IsString()

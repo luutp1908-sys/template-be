@@ -1,1 +1,83 @@
-[]
+[
+  {
+    "templateId": "tmpl_001",
+    "content": {
+      "templateId": "tmpl_001",
+      "title": "Mocked Template 001",
+      "blocks": []
+    }
+  },
+  {
+    "templateId": "14de0d13-e574-4a0d-9693-13e0e888611e",
+    "content": {
+      "pages": [
+        {
+          "id": "page_1",
+          "width": 1200,
+          "height": 800,
+          "background": {
+            "color": "#ffffff"
+          },
+          "layers": [
+            {
+              "id": 1785251458204,
+              "x": 771.6475096,
+              "y": 106.51341,
+              "width": 140,
+              "height": 100,
+              "rotate": 0,
+              "visible": true,
+              "locked": false,
+              "type": "rect",
+              "color": "#0066cc"
+            },
+            {
+              "id": 1785251476722,
+              "x": 200,
+              "y": 200,
+              "width": 220,
+              "height": 142.52873563218392,
+              "rotate": 0,
+              "visible": true,
+              "locked": false,
+              "type": "text",
+              "text": "this is the new template",
+              "textColor": "#1a1a1a",
+              "fontFamily": "Arial, sans-serif",
+              "fontSize": 32,
+              "fontWeight": "normal",
+              "textAlign": "left",
+              "lineHeight": 1.2,
+              "wrapMode": "fixed",
+              "textConfig": {
+                "value": "New text",
+                "type": "text-box",
+                "width": "220px",
+                "height": "60px",
+                "translate": [
+                  0,
+                  0
+                ],
+                "rotate": 0,
+                "fontFamily": "Arial, sans-serif",
+                "fontSize": "32px",
+                "fontColor": "#1a1a1a",
+                "textAlign": "left",
+                "lineHeight": 1.2,
+                "letterSpacing": "0px",
+                "isBold": false,
+                "isItalic": false,
+                "isUnderline": false,
+                "isCapital": false,
+                "presentationType": "body",
+                "colorPaletteType": null,
+                "externalFontUrl": null,
+                "isLogoQrCode": false
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

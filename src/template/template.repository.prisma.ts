@@ -1,8 +1,7 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
-import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
+import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
@@ -36,18 +35,50 @@ const templateInclude = {
 
 @Injectable()
 export class TemplateRepository implements ITemplateRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
+
+  private async resolveDbEditorTypeId(editorTypeId: number): Promise<string> {
+    const editorType = getEditorTypeById(editorTypeId);
+    if (!editorType) {
+      throw new BadRequestException(`Unsupported editorTypeId: ${editorTypeId}`);
+    }
+
+    const dbEditorType = await this.prisma.editorType.findFirst({
+      where: { key: editorType.type, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!dbEditorType) {
+      throw new BadRequestException(`Editor type '${editorType.type}' is not available`);
+    }
+
+    return dbEditorType.id;
+  }
+
+  private mapEditorTypeKeyToValue(key?: string | null): TemplateEntity['editorType'] {
+    const editorType = getEditorTypeByCode(key ?? '') ?? getEditorTypeById(0)!;
+    return {
+      id: editorType.id,
+      type: editorType.type,
+    };
+  }
+
+  private mapTemplateRow(row: any): TemplateEntity {
+    return TemplateMapper.toEntity({
+      ...row,
+      editorType: this.mapEditorTypeKeyToValue(row.editorType?.key),
+    });
+  }
 
   async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
+    const dbEditorTypeId = await this.resolveDbEditorTypeId(payload.editorTypeId);
+
     const created = await this.prisma.template.create({
       data: {
         title: payload.title,
         slug: payload.slug,
         authorId,
-        editorTypeId: payload.editorTypeId,
+        editorTypeId: dbEditorTypeId,
         categoryId: payload.categoryId,
         thumbnail: payload.thumbnail ?? null,
         status: payload.status ?? 'draft',
@@ -55,7 +86,7 @@ export class TemplateRepository implements ITemplateRepository {
       include: templateInclude,
     });
 
-    return TemplateMapper.toEntity(created);
+    return this.mapTemplateRow(created);
   }
 
   async findById(id: string): Promise<TemplateEntity | null> {
@@ -64,7 +95,7 @@ export class TemplateRepository implements ITemplateRepository {
       include: templateInclude,
     });
 
-    return template ? TemplateMapper.toEntity(template) : null;
+    return template ? this.mapTemplateRow(template) : null;
   }
 
   async findMany(query: TemplateListQueryDto): Promise<TemplateListEntity> {
@@ -74,7 +105,6 @@ export class TemplateRepository implements ITemplateRepository {
     const sortOrder = query.sortOrder ?? 'desc';
 
     const where: Prisma.TemplateWhereInput = {
-      ...(query.editorTypeId !== undefined ? { editorTypeId: String(query.editorTypeId) } : {}),
       ...(query.categoryId ? { categoryId: query.categoryId } : {}),
       ...(query.authorId ? { authorId: query.authorId } : {}),
       ...(query.status ? { status: query.status } : {}),
@@ -87,6 +117,10 @@ export class TemplateRepository implements ITemplateRepository {
           }
         : {}),
     };
+
+    if (query.editorTypeId !== undefined) {
+      where.editorTypeId = await this.resolveDbEditorTypeId(query.editorTypeId);
+    }
 
     const [total, rows] = await this.prisma.$transaction([
       this.prisma.template.count({ where }),
@@ -102,7 +136,7 @@ export class TemplateRepository implements ITemplateRepository {
     ]);
 
     return {
-      items: rows.map((row) => TemplateMapper.toEntity(row)),
+      items: rows.map((row) => this.mapTemplateRow(row)),
       total,
       page,
       pageSize,
@@ -119,20 +153,29 @@ export class TemplateRepository implements ITemplateRepository {
       return null;
     }
 
+    const updateData: Prisma.TemplateUpdateInput = {
+      ...(payload.title !== undefined ? { title: payload.title } : {}),
+      ...(payload.slug !== undefined ? { slug: payload.slug } : {}),
+      ...(payload.categoryId !== undefined ? { categoryId: payload.categoryId } : {}),
+      ...(payload.thumbnail !== undefined ? { thumbnail: payload.thumbnail } : {}),
+      ...(payload.status !== undefined ? { status: payload.status } : {}),
+    };
+
+    if (payload.editorTypeId !== undefined) {
+      updateData.editorType = {
+        connect: {
+          id: await this.resolveDbEditorTypeId(payload.editorTypeId),
+        },
+      };
+    }
+
     const updated = await this.prisma.template.update({
       where: { id },
-      data: {
-        ...(payload.title !== undefined ? { title: payload.title } : {}),
-        ...(payload.slug !== undefined ? { slug: payload.slug } : {}),
-        ...(payload.editorTypeId !== undefined ? { editorTypeId: String(payload.editorTypeId) } : {}),
-        ...(payload.categoryId !== undefined ? { categoryId: payload.categoryId } : {}),
-        ...(payload.thumbnail !== undefined ? { thumbnail: payload.thumbnail } : {}),
-        ...(payload.status !== undefined ? { status: payload.status } : {}),
-      },
+      data: updateData,
       include: templateInclude,
     });
 
-    return TemplateMapper.toEntity(updated);
+    return this.mapTemplateRow(updated);
   }
 
   async remove(id: string): Promise<boolean> {

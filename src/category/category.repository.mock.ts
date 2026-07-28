@@ -7,6 +7,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
 import { ICategoryRepository } from './interfaces/category.repository.interface';
 import { randomUUID } from 'crypto';
+import { getEditorTypeById } from '../common/constants/editor-types.constant';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
@@ -32,7 +33,12 @@ export class CategoryRepository implements ICategoryRepository {
         const entity: CategoryEntity = {
           id: it.id,
           workspaceId: it.workspaceId ?? CategoryRepository.DEFAULT_WORKSPACE_ID,
-          editorTypeId: it.editorTypeId !== undefined && it.editorTypeId !== null ? String(it.editorTypeId) : '0',
+          editorTypeId:
+            typeof it.editorTypeId === 'number'
+              ? it.editorTypeId
+              : Number.isFinite(Number(it.editorTypeId))
+                ? Number(it.editorTypeId)
+                : 0,
           parentId: it.parentId ?? null,
           name: it.name,
           slug: it.slug,
@@ -62,7 +68,7 @@ export class CategoryRepository implements ICategoryRepository {
     const normalizedSearch = query.search?.trim().toLowerCase();
     return [...this.store.values()].filter((c) => {
       if (c.deletedAt) return false;
-      if (query.editorTypeId && c.editorTypeId !== query.editorTypeId) return false;
+      if (query.editorTypeId !== undefined && c.editorTypeId !== query.editorTypeId) return false;
       if (normalizedSearch && !c.name.toLowerCase().includes(normalizedSearch)) return false;
       return true;
     });
@@ -73,7 +79,7 @@ export class CategoryRepository implements ICategoryRepository {
     const entity: CategoryEntity = {
       id: randomUUID(),
       workspaceId: payload.workspaceId ?? CategoryRepository.DEFAULT_WORKSPACE_ID,
-      editorTypeId: payload.editorTypeId ?? '0',
+      editorTypeId: getEditorTypeById(payload.editorTypeId ?? 0)?.id ?? 0,
       parentId: payload.parentId ?? null,
       name: payload.name,
       slug: payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180),

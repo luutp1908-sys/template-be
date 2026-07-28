@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, MaxLength, Min } from 'class-validator';
+import { EDITOR_TYPE_IDS } from '../../common/constants/editor-types.constant';
 
 const sortableFields = ['createdAt', 'updatedAt', 'title', 'status'] as const;
 
@@ -37,9 +38,11 @@ export class TemplateListQueryDto {
   search?: string;
 
   @ApiPropertyOptional({ description: 'Filter by editor type id' })
-  @IsUUID()
+  @Type(() => Number)
+  @IsInt()
+  @IsIn(EDITOR_TYPE_IDS)
   @IsOptional()
-  editorTypeId?: string;
+  editorTypeId?: number;
 
   @ApiPropertyOptional({ description: 'Filter by category id' })
   @IsUUID()

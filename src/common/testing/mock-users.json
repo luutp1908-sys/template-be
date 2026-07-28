@@ -49,10 +49,10 @@
     "displayName": "Luu",
     "isActive": true,
     "passwordHash": "$2b$12$l9s2zLntMjaCkfZkXwuAOewzIEJJ09SjPVlC9GkwSmhAIrTGkClQ.",
-    "refreshTokenHash": "$2b$12$hZm8Mo/tiFqwUwkxOPOlUe4bvI8wvMK.wyoQS.CHNj6vtA8Ql15KO",
+    "refreshTokenHash": "$2b$12$52ofe8tH5sFc1QYXyPSDruRf9rJ2N09PwlSgEDHx474zwwEMvTHjS",
     "deletedAt": null,
     "createdAt": "2026-07-23T10:16:26.650Z",
-    "updatedAt": "2026-07-27T14:55:59.818Z"
+    "updatedAt": "2026-07-28T16:17:52.364Z"
   },
   {
     "id": "ef3c79fb-7907-4535-81f8-f102b0c8051d",

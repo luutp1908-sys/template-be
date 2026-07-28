@@ -6,31 +6,39 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
 import { ICategoryRepository } from './interfaces/category.repository.interface';
 import { randomUUID } from 'crypto';
+import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async resolveDbEditorTypeId(editorTypeId: number): Promise<string> {
+    const editorType = getEditorTypeById(editorTypeId);
+    if (!editorType) {
+      throw new BadRequestException(`Unsupported editorTypeId: ${editorTypeId}`);
+    }
+
+    const dbEditorType = await this.prisma.editorType.findFirst({
+      where: { key: editorType.type, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!dbEditorType) {
+      throw new BadRequestException(`Editor type '${editorType.type}' is not available`);
+    }
+
+    return dbEditorType.id;
+  }
+
+  private mapEditorTypeKeyToId(key?: string | null): number {
+    return getEditorTypeByCode(key ?? '')?.id ?? 0;
+  }
+
   async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {
-    // Build where clause, mapping numeric editorTypeId (mock-style 0/1/2)
-    // to actual EditorType UUIDs stored in DB.
     const where: any = { deletedAt: null };
 
     if (query.editorTypeId !== undefined) {
-      // DTO currently casts query value to Number. If it's a small integer
-      // (mock-style), map to the corresponding EditorType by creation order.
-      if (typeof query.editorTypeId === 'number') {
-        const idx = query.editorTypeId;
-        const editorTypes = await this.prisma.editorType.findMany({ orderBy: [{ createdAt: 'asc' }], select: { id: true } });
-        const et = editorTypes[idx];
-        if (!et) {
-          // no matching editor type for this numeric index -> return empty
-          return [];
-        }
-        where.editorTypeId = et.id;
-      } else {
-        where.editorTypeId = String(query.editorTypeId);
-      }
+      where.editorTypeId = await this.resolveDbEditorTypeId(query.editorTypeId);
     }
 
     if (query.search) {
@@ -43,7 +51,7 @@ export class CategoryRepository implements ICategoryRepository {
       select: {
         id: true,
         workspaceId: true,
-        editorTypeId: true,
+        editorType: { select: { key: true } },
         parentId: true,
         name: true,
         slug: true,
@@ -53,7 +61,17 @@ export class CategoryRepository implements ICategoryRepository {
       },
     });
 
-    return rows as unknown as CategoryEntity[];
+    return rows.map((row: any) => ({
+      id: row.id,
+      workspaceId: row.workspaceId,
+      editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
+      parentId: row.parentId ?? null,
+      name: row.name,
+      slug: row.slug,
+      deletedAt: row.deletedAt ?? null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
   }
 
   async create(_payload: CreateCategoryDto): Promise<CategoryEntity> {
@@ -80,26 +98,13 @@ export class CategoryRepository implements ICategoryRepository {
       workspaceId = ws.id;
     }
 
-    let editorTypeId = payload.editorTypeId ? String(payload.editorTypeId) : undefined;
-    if (!editorTypeId) {
-      editorTypeId = (await this.prisma.editorType.findFirst({ select: { id: true } }))?.id;
-    }
-
-    if (!editorTypeId) {
-      // create a default editor type similar to mock's permissive behavior
-      const etId = randomUUID();
-      const et = await this.prisma.editorType.create({
-        data: { id: etId, key: `default-${etId.slice(0, 8)}`, name: 'Default' },
-        select: { id: true },
-      });
-      editorTypeId = et.id;
-    }
+    const dbEditorTypeId = await this.resolveDbEditorTypeId(payload.editorTypeId ?? 0);
 
     const created = await this.prisma.category.create({
       data: {
         id: randomUUID(),
         workspaceId,
-        editorTypeId: editorTypeId,
+        editorTypeId: dbEditorTypeId,
         parentId: payload.parentId ?? null,
         name: payload.name,
         slug,
@@ -107,7 +112,7 @@ export class CategoryRepository implements ICategoryRepository {
       select: {
         id: true,
         workspaceId: true,
-        editorTypeId: true,
+        editorType: { select: { key: true } },
         parentId: true,
         name: true,
         slug: true,
@@ -117,13 +122,33 @@ export class CategoryRepository implements ICategoryRepository {
       },
     });
 
-    return created as unknown as CategoryEntity;
+    return {
+      id: created.id,
+      workspaceId: (created as any).workspaceId,
+      editorTypeId: this.mapEditorTypeKeyToId((created as any).editorType?.key),
+      parentId: (created as any).parentId ?? null,
+      name: (created as any).name,
+      slug: (created as any).slug,
+      deletedAt: (created as any).deletedAt ?? null,
+      createdAt: created.createdAt,
+      updatedAt: created.updatedAt,
+    } as CategoryEntity;
   }
 
   async findById(id: string): Promise<CategoryEntity | null> {
     const row = await this.prisma.category.findFirst({
       where: { id, deletedAt: null },
-      select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        workspaceId: true,
+        editorType: { select: { key: true } },
+        parentId: true,
+        name: true,
+        slug: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!row) return null;
@@ -131,7 +156,7 @@ export class CategoryRepository implements ICategoryRepository {
     return {
       id: row.id,
       workspaceId: (row as any).workspaceId,
-      editorTypeId: (row as any).editorTypeId,
+      editorTypeId: this.mapEditorTypeKeyToId((row as any).editorType?.key),
       parentId: (row as any).parentId ?? null,
       name: (row as any).name,
       slug: (row as any).slug,
@@ -144,9 +169,29 @@ export class CategoryRepository implements ICategoryRepository {
   async findChildren(id: string): Promise<CategoryEntity[]> {
     const rows = await this.prisma.category.findMany({
       where: { parentId: id, deletedAt: null },
-      select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true },
+      select: {
+        id: true,
+        workspaceId: true,
+        editorType: { select: { key: true } },
+        parentId: true,
+        name: true,
+        slug: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
-    return rows as unknown as CategoryEntity[];
+    return rows.map((row: any) => ({
+      id: row.id,
+      workspaceId: row.workspaceId,
+      editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
+      parentId: row.parentId ?? null,
+      name: row.name,
+      slug: row.slug,
+      deletedAt: row.deletedAt ?? null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
   }
 
   async findDescendants(id: string): Promise<CategoryEntity[]> {
@@ -157,14 +202,34 @@ export class CategoryRepository implements ICategoryRepository {
     while (queue.length > 0) {
       const rows = await this.prisma.category.findMany({
         where: { parentId: { in: queue }, deletedAt: null },
-        select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true },
+        select: {
+          id: true,
+          workspaceId: true,
+          editorType: { select: { key: true } },
+          parentId: true,
+          name: true,
+          slug: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
       });
 
       const next: string[] = [];
       for (const r of rows) {
         if (seen.has(r.id)) continue;
         seen.add(r.id);
-        descendants.push(r as unknown as CategoryEntity);
+        descendants.push({
+          id: r.id,
+          workspaceId: (r as any).workspaceId,
+          editorTypeId: this.mapEditorTypeKeyToId((r as any).editorType?.key),
+          parentId: (r as any).parentId ?? null,
+          name: (r as any).name,
+          slug: (r as any).slug,
+          deletedAt: (r as any).deletedAt ?? null,
+          createdAt: r.createdAt,
+          updatedAt: r.updatedAt,
+        } as CategoryEntity);
         next.push(r.id);
       }
 
@@ -180,9 +245,32 @@ export class CategoryRepository implements ICategoryRepository {
     if (!current) throw new NotFoundException('Category not found');
 
     while (current && current.parentId) {
-      const parent: any = await this.prisma.category.findFirst({ where: { id: current.parentId, deletedAt: null }, select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true } });
+      const parent: any = await this.prisma.category.findFirst({
+        where: { id: current.parentId, deletedAt: null },
+        select: {
+          id: true,
+          workspaceId: true,
+          editorType: { select: { key: true } },
+          parentId: true,
+          name: true,
+          slug: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
       if (!parent) break;
-      ancestors.push(parent as unknown as CategoryEntity);
+      ancestors.push({
+        id: parent.id,
+        workspaceId: parent.workspaceId,
+        editorTypeId: this.mapEditorTypeKeyToId(parent.editorType?.key),
+        parentId: parent.parentId ?? null,
+        name: parent.name,
+        slug: parent.slug,
+        deletedAt: parent.deletedAt ?? null,
+        createdAt: parent.createdAt,
+        updatedAt: parent.updatedAt,
+      });
       current = await this.prisma.category.findUnique({ where: { id: parent.id }, select: { parentId: true } });
     }
 
@@ -190,12 +278,37 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
+    const data: any = { ...payload };
+    if ((payload as any).editorTypeId !== undefined) {
+      data.editorTypeId = await this.resolveDbEditorTypeId((payload as any).editorTypeId);
+    }
+
     const updated = await this.prisma.category.update({
       where: { id },
-      data: { ...payload },
-      select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true },
+      data,
+      select: {
+        id: true,
+        workspaceId: true,
+        editorType: { select: { key: true } },
+        parentId: true,
+        name: true,
+        slug: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
-    return updated as unknown as CategoryEntity;
+    return {
+      id: updated.id,
+      workspaceId: (updated as any).workspaceId,
+      editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
+      parentId: (updated as any).parentId ?? null,
+      name: (updated as any).name,
+      slug: (updated as any).slug,
+      deletedAt: (updated as any).deletedAt ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    } as CategoryEntity;
   }
 
   async move(id: string, newParentId: string | null): Promise<CategoryEntity> {
@@ -211,8 +324,32 @@ export class CategoryRepository implements ICategoryRepository {
       }
     }
 
-    const updated = await this.prisma.category.update({ where: { id }, data: { parentId: newParentId }, select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true } });
-    return updated as unknown as CategoryEntity;
+    const updated = await this.prisma.category.update({
+      where: { id },
+      data: { parentId: newParentId },
+      select: {
+        id: true,
+        workspaceId: true,
+        editorType: { select: { key: true } },
+        parentId: true,
+        name: true,
+        slug: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    return {
+      id: updated.id,
+      workspaceId: (updated as any).workspaceId,
+      editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
+      parentId: (updated as any).parentId ?? null,
+      name: (updated as any).name,
+      slug: (updated as any).slug,
+      deletedAt: (updated as any).deletedAt ?? null,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+    } as CategoryEntity;
   }
 
   async softDeleteSafe(id: string): Promise<void> {
@@ -232,8 +369,31 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async getTreeByWorkspace(workspaceId: string): Promise<CategoryEntity[]> {
-    const rows = await this.prisma.category.findMany({ where: { workspaceId, deletedAt: null }, select: { id: true, workspaceId: true, editorTypeId: true, parentId: true, name: true, slug: true, deletedAt: true, createdAt: true, updatedAt: true } });
-    return rows as unknown as CategoryEntity[];
+    const rows = await this.prisma.category.findMany({
+      where: { workspaceId, deletedAt: null },
+      select: {
+        id: true,
+        workspaceId: true,
+        editorType: { select: { key: true } },
+        parentId: true,
+        name: true,
+        slug: true,
+        deletedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+    return rows.map((row: any) => ({
+      id: row.id,
+      workspaceId: row.workspaceId,
+      editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
+      parentId: row.parentId ?? null,
+      name: row.name,
+      slug: row.slug,
+      deletedAt: row.deletedAt ?? null,
+      createdAt: row.createdAt,
+      updatedAt: row.updatedAt,
+    }));
   }
 
   async getTemplatesRecursive(id: string): Promise<any[]> {

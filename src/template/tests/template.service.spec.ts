@@ -53,7 +53,7 @@ describe('TemplateService', () => {
       {
         title: 'Template 1',
         slug: 'template-1',
-        editorTypeId: '9118e74b-9bd4-40ae-9609-7969f20d1de5',
+        editorTypeId: 0,
         categoryId: '0bbf1bb8-7eb2-4f16-bd2d-bd9b27df3e32',
       },
       'user-1',

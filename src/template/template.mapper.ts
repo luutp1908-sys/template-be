@@ -19,9 +19,8 @@ interface TemplateData {
     slug: string;
   };
   editorType?: {
-    id: string;
-    key: string;
-    name: string;
+    id: number;
+    type: 'graphic' | 'document' | 'whiteboard' | 'form';
   };
 }
 
@@ -45,9 +44,8 @@ export class TemplateMapper {
         slug: '',
       },
       editorType: partial.editorType ?? {
-        id: '',
-        key: '',
-        name: '',
+        id: 0,
+        type: 'graphic',
       },
       status: (partial.status as TemplateEntity['status']) ?? 'draft',
       createdAt: partial.createdAt ?? new Date(),

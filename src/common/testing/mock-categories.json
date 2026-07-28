@@ -9,5 +9,16 @@
     "deletedAt": null,
     "createdAt": "2026-07-27T18:13:20.316Z",
     "updatedAt": "2026-07-27T18:13:20.316Z"
+  },
+  {
+    "id": "587e2a80-6430-4f9d-906e-f3e85cffaaef",
+    "workspaceId": "00000000-0000-0000-0000-000000000000",
+    "editorTypeId": 0,
+    "parentId": null,
+    "name": "Instagram Story",
+    "slug": "instagram-story",
+    "deletedAt": null,
+    "createdAt": "2026-07-28T16:16:59.758Z",
+    "updatedAt": "2026-07-28T16:16:59.758Z"
   }
 ]

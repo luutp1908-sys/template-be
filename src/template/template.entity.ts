@@ -14,9 +14,8 @@ export class TemplateEntity {
     slug: string;
   };
   editorType!: {
-    id: string;
-    key: string;
-    name: string;
+    id: number;
+    type: 'graphic' | 'document' | 'whiteboard' | 'form';
   };
   status!: 'draft' | 'published' | 'archived';
   createdAt!: Date;

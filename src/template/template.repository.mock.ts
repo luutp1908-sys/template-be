@@ -1,9 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
+import { getEditorTypeById } from '../common/constants/editor-types.constant';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
@@ -15,7 +15,7 @@ interface MockTemplateRecord {
   id: string;
   title: string;
   slug: string;
-  editorTypeId: string;
+  editorTypeId: number;
   categoryId: string;
   authorId: string | null;
   thumbnail: string | null;
@@ -40,7 +40,12 @@ export class TemplateRepository implements ITemplateRepository {
       arr.forEach((it) => {
         const rec: MockTemplateRecord = {
           ...it,
-          editorTypeId: it.editorTypeId !== undefined && it.editorTypeId !== null ? String(it.editorTypeId) : '',
+          editorTypeId:
+            typeof it.editorTypeId === 'number'
+              ? it.editorTypeId
+              : Number.isFinite(Number(it.editorTypeId))
+                ? Number(it.editorTypeId)
+                : 0,
           createdAt: it.createdAt ? new Date(it.createdAt) : new Date(),
           updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(),
         }
@@ -99,9 +104,8 @@ export class TemplateRepository implements ITemplateRepository {
         slug: '',
       },
       editorType: {
-        id: String(payload.editorTypeId),
-        key: '',
-        name: '',
+        id: getEditorTypeById(payload.editorTypeId)?.id ?? 0,
+        type: getEditorTypeById(payload.editorTypeId)?.type ?? 'graphic',
       },
     });
   }
@@ -125,9 +129,8 @@ export class TemplateRepository implements ITemplateRepository {
         slug: '',
       },
       editorType: {
-        id: String(record.editorTypeId),
-        key: '',
-        name: '',
+        id: getEditorTypeById(record.editorTypeId)?.id ?? 0,
+        type: getEditorTypeById(record.editorTypeId)?.type ?? 'graphic',
       },
     });
   }
@@ -189,9 +192,8 @@ export class TemplateRepository implements ITemplateRepository {
             slug: '',
           },
           editorType: {
-            id: String(item.editorTypeId),
-            key: '',
-            name: '',
+            id: getEditorTypeById(item.editorTypeId)?.id ?? 0,
+            type: getEditorTypeById(item.editorTypeId)?.type ?? 'graphic',
           },
         }),
       ),
@@ -230,9 +232,8 @@ export class TemplateRepository implements ITemplateRepository {
         slug: '',
       },
       editorType: {
-        id: String(current.editorTypeId),
-        key: '',
-        name: '',
+        id: getEditorTypeById(current.editorTypeId)?.id ?? 0,
+        type: getEditorTypeById(current.editorTypeId)?.type ?? 'graphic',
       },
     });
   }
@@ -254,7 +255,10 @@ export class TemplateRepository implements ITemplateRepository {
       ...current,
       author: current.authorId ? { id: current.authorId, email: '', displayName: null } : null,
       category: { id: current.categoryId, name: '', slug: '' },
-      editorType: { id: String(current.editorTypeId), key: '', name: '' },
+      editorType: {
+        id: getEditorTypeById(current.editorTypeId)?.id ?? 0,
+        type: getEditorTypeById(current.editorTypeId)?.type ?? 'graphic',
+      },
     });
   }
 
@@ -269,7 +273,10 @@ export class TemplateRepository implements ITemplateRepository {
       ...current,
       author: current.authorId ? { id: current.authorId, email: '', displayName: null } : null,
       category: { id: current.categoryId, name: '', slug: '' },
-      editorType: { id: String(current.editorTypeId), key: '', name: '' },
+      editorType: {
+        id: getEditorTypeById(current.editorTypeId)?.id ?? 0,
+        type: getEditorTypeById(current.editorTypeId)?.type ?? 'graphic',
+      },
     });
   }
 }
