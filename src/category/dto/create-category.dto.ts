@@ -7,8 +7,10 @@ export class CreateCategoryDto {
   workspaceId?: string;
 
   @IsInt()
+  @IsOptional()
+  @IsInt()
   @IsIn([0, 1, 2])
-  editorTypeId!: number;
+  editorTypeId?: number;
 
   @IsUUID()
   @IsOptional()

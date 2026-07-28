@@ -12,19 +12,33 @@ export class CategoryRepository implements ICategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {
+    // Build where clause, mapping numeric editorTypeId (mock-style 0/1/2)
+    // to actual EditorType UUIDs stored in DB.
+    const where: any = { deletedAt: null };
+
+    if (query.editorTypeId !== undefined) {
+      // DTO currently casts query value to Number. If it's a small integer
+      // (mock-style), map to the corresponding EditorType by creation order.
+      if (typeof query.editorTypeId === 'number') {
+        const idx = query.editorTypeId;
+        const editorTypes = await this.prisma.editorType.findMany({ orderBy: [{ createdAt: 'asc' }], select: { id: true } });
+        const et = editorTypes[idx];
+        if (!et) {
+          // no matching editor type for this numeric index -> return empty
+          return [];
+        }
+        where.editorTypeId = et.id;
+      } else {
+        where.editorTypeId = String(query.editorTypeId);
+      }
+    }
+
+    if (query.search) {
+      where.name = { contains: query.search, mode: 'insensitive' };
+    }
+
     const rows = await this.prisma.category.findMany({
-      where: {
-        deletedAt: null,
-        ...(query.editorTypeId !== undefined ? { editorTypeId: String(query.editorTypeId) } : {}),
-        ...(query.search
-          ? {
-              name: {
-                contains: query.search,
-                mode: 'insensitive',
-              },
-            }
-          : {}),
-      },
+      where,
       orderBy: [{ createdAt: 'asc' }],
       select: {
         id: true,
@@ -50,20 +64,42 @@ export class CategoryRepository implements ICategoryRepository {
 
     const slug = payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180);
 
-    // Database schema still requires workspaceId. If not provided, use the first available workspace.
-    const workspaceId =
-      payload.workspaceId ??
-      (await this.prisma.workspace.findFirst({ select: { id: true } }))?.id;
+    // Database schema requires workspaceId and editorTypeId. If not provided,
+    // attempt to reuse the first existing row, otherwise create sensible defaults
+    // so the repository behaves similarly to the in-memory mock in dev.
+    let workspaceId =
+      payload.workspaceId ?? (await this.prisma.workspace.findFirst({ select: { id: true } }))?.id;
 
     if (!workspaceId) {
-      throw new BadRequestException('No workspace found to attach category. Create a workspace first.');
+      // create a default workspace to match mock behavior (avoids hard failures)
+      const wsId = randomUUID();
+      const ws = await this.prisma.workspace.create({
+        data: { id: wsId, name: 'Default Workspace', slug: `default-${wsId.slice(0, 8)}` },
+        select: { id: true },
+      });
+      workspaceId = ws.id;
+    }
+
+    let editorTypeId = payload.editorTypeId ? String(payload.editorTypeId) : undefined;
+    if (!editorTypeId) {
+      editorTypeId = (await this.prisma.editorType.findFirst({ select: { id: true } }))?.id;
+    }
+
+    if (!editorTypeId) {
+      // create a default editor type similar to mock's permissive behavior
+      const etId = randomUUID();
+      const et = await this.prisma.editorType.create({
+        data: { id: etId, key: `default-${etId.slice(0, 8)}`, name: 'Default' },
+        select: { id: true },
+      });
+      editorTypeId = et.id;
     }
 
     const created = await this.prisma.category.create({
       data: {
         id: randomUUID(),
         workspaceId,
-        editorTypeId: String(payload.editorTypeId),
+        editorTypeId: editorTypeId,
         parentId: payload.parentId ?? null,
         name: payload.name,
         slug,
