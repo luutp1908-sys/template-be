@@ -47,7 +47,7 @@ export class TemplateRepository implements ITemplateRepository {
         title: payload.title,
         slug: payload.slug,
         authorId,
-        editorTypeId: String(payload.editorTypeId),
+        editorTypeId: payload.editorTypeId,
         categoryId: payload.categoryId,
         thumbnail: payload.thumbnail ?? null,
         status: payload.status ?? 'draft',

@@ -1,7 +1,7 @@
 export class CategoryEntity {
   id!: string;
   workspaceId?: string;
-  editorTypeId?: number;
+  editorTypeId?: string;
   parentId?: string | null;
   name!: string;
   slug!: string;

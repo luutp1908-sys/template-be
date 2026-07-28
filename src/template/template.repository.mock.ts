@@ -15,7 +15,7 @@ interface MockTemplateRecord {
   id: string;
   title: string;
   slug: string;
-  editorTypeId: number;
+  editorTypeId: string;
   categoryId: string;
   authorId: string | null;
   thumbnail: string | null;
@@ -40,7 +40,7 @@ export class TemplateRepository implements ITemplateRepository {
       arr.forEach((it) => {
         const rec: MockTemplateRecord = {
           ...it,
-          editorTypeId: typeof it.editorTypeId === 'number' ? it.editorTypeId : Number(it.editorTypeId ?? 0),
+          editorTypeId: it.editorTypeId !== undefined && it.editorTypeId !== null ? String(it.editorTypeId) : '',
           createdAt: it.createdAt ? new Date(it.createdAt) : new Date(),
           updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(),
         }

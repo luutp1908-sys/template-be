@@ -37,11 +37,9 @@ export class TemplateListQueryDto {
   search?: string;
 
   @ApiPropertyOptional({ description: 'Filter by editor type id' })
-  @Type(() => Number)
-  @IsInt()
-  @IsIn([0, 1, 2])
+  @IsUUID()
   @IsOptional()
-  editorTypeId?: number;
+  editorTypeId?: string;
 
   @ApiPropertyOptional({ description: 'Filter by category id' })
   @IsUUID()
