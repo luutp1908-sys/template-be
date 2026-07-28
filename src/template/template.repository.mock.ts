@@ -111,6 +111,7 @@ export class TemplateRepository implements ITemplateRepository {
   }
 
   async findById(id: string): Promise<TemplateEntity | null> {
+    console.log('findById mock', id)
     const record = this.mockStore.get(id);
     if (!record) return null;
 

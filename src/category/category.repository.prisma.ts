@@ -18,14 +18,13 @@ export class CategoryRepository implements ICategoryRepository {
       throw new BadRequestException(`Unsupported editorTypeId: ${editorTypeId}`);
     }
 
-    const dbEditorType = await this.prisma.editorType.findFirst({
-      where: { key: editorType.type, deletedAt: null },
+    const name = `${editorType.type.charAt(0).toUpperCase()}${editorType.type.slice(1)}`;
+    const dbEditorType = await this.prisma.editorType.upsert({
+      where: { key: editorType.type },
+      create: { key: editorType.type, name },
+      update: { name, deletedAt: null },
       select: { id: true },
     });
-
-    if (!dbEditorType) {
-      throw new BadRequestException(`Editor type '${editorType.type}' is not available`);
-    }
 
     return dbEditorType.id;
   }
