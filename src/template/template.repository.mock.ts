@@ -139,7 +139,7 @@ export class TemplateRepository implements ITemplateRepository {
     const sortOrder = query.sortOrder ?? 'desc';
 
     const filtered = [...this.mockStore.values()].filter((item) => {
-      if (query.editorTypeId && item.editorTypeId !== query.editorTypeId) {
+      if (query.editorTypeId !== undefined && item.editorTypeId !== query.editorTypeId) {
         return false;
       }
       if (query.categoryId && item.categoryId !== query.categoryId) {

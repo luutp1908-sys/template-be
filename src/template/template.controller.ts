@@ -5,6 +5,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  UnauthorizedException,
   Param,
   Patch,
   Post,
@@ -60,13 +61,21 @@ export class TemplateController {
   }
 
   @Post()
+  @Public()
   @ApiOperation({ summary: 'Create template metadata' })
   @ApiOkResponse({ type: Object })
   create(
     @Body() payload: CreateTemplateDto,
-    @CurrentUser() user: AuthUser,
+    @CurrentUser() user?: AuthUser,
   ): Promise<TemplateEntity> {
-    return this.service.create(payload, user.id);
+    const isMockMode = (process.env.MOCK_MODE ?? '').toLowerCase() === 'true';
+    if (!user?.id && !isMockMode) {
+      throw new UnauthorizedException(
+        'Authentication is required to create template when MOCK_MODE is disabled',
+      );
+    }
+
+    return this.service.create(payload, user?.id ?? '');
   }
 
   @Get(':id')
