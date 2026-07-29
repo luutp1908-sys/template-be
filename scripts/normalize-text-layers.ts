@@ -82,7 +82,6 @@ function normalizeLayer(layer: any) {
 
 async function main() {
   const all = await prisma.templateContent.findMany();
-  console.log('Found', all.length, 'templateContent rows');
   let updated = 0;
   for (const row of all) {
     const { templateId, content } = row as any;
