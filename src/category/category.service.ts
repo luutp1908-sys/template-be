@@ -29,8 +29,8 @@ export class CategoryService {
     return this.repository.softDeleteSafe(id);
   }
 
-  async getTreeByWorkspace(workspaceId: string): Promise<any> {
-    const rows = await this.repository.getTreeByWorkspace(workspaceId);
+  async getTree(): Promise<any> {
+    const rows = await this.repository.getTree();
     // build tree
     const map = new Map<string, any>();
     (rows as any[]).forEach((r: any) => map.set(r.id, { ...r, children: [] }));

@@ -13,6 +13,6 @@ export interface ICategoryRepository {
   update(_id: string, payload: UpdateCategoryDto): Promise<CategoryEntity>;
   move(_id: string, newParentId: string | null): Promise<CategoryEntity>;
   softDeleteSafe(_id: string): Promise<void>;
-  getTreeByWorkspace(_workspaceId: string): Promise<CategoryEntity[]>;
+  getTree(): Promise<CategoryEntity[]>;
   getTemplatesRecursive(_id: string): Promise<any[]>;
 }

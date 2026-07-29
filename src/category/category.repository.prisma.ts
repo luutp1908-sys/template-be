@@ -49,7 +49,6 @@ export class CategoryRepository implements ICategoryRepository {
       orderBy: [{ createdAt: 'asc' }],
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -62,7 +61,6 @@ export class CategoryRepository implements ICategoryRepository {
 
     return rows.map((row: any) => ({
       id: row.id,
-      workspaceId: row.workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
       parentId: row.parentId ?? null,
       name: row.name,
@@ -81,28 +79,11 @@ export class CategoryRepository implements ICategoryRepository {
 
     const slug = payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180);
 
-    // Database schema requires workspaceId and editorTypeId. If not provided,
-    // attempt to reuse the first existing row, otherwise create sensible defaults
-    // so the repository behaves similarly to the in-memory mock in dev.
-    let workspaceId =
-      payload.workspaceId ?? (await this.prisma.workspace.findFirst({ select: { id: true } }))?.id;
-
-    if (!workspaceId) {
-      // create a default workspace to match mock behavior (avoids hard failures)
-      const wsId = randomUUID();
-      const ws = await this.prisma.workspace.create({
-        data: { id: wsId, name: 'Default Workspace', slug: `default-${wsId.slice(0, 8)}` },
-        select: { id: true },
-      });
-      workspaceId = ws.id;
-    }
-
     const dbEditorTypeId = await this.resolveDbEditorTypeId(payload.editorTypeId ?? 0);
 
     const created = await this.prisma.category.create({
       data: {
         id: randomUUID(),
-        workspaceId,
         editorTypeId: dbEditorTypeId,
         parentId: payload.parentId ?? null,
         name: payload.name,
@@ -110,7 +91,6 @@ export class CategoryRepository implements ICategoryRepository {
       },
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -123,7 +103,6 @@ export class CategoryRepository implements ICategoryRepository {
 
     return {
       id: created.id,
-      workspaceId: (created as any).workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId((created as any).editorType?.key),
       parentId: (created as any).parentId ?? null,
       name: (created as any).name,
@@ -139,7 +118,6 @@ export class CategoryRepository implements ICategoryRepository {
       where: { id, deletedAt: null },
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -154,7 +132,6 @@ export class CategoryRepository implements ICategoryRepository {
 
     return {
       id: row.id,
-      workspaceId: (row as any).workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId((row as any).editorType?.key),
       parentId: (row as any).parentId ?? null,
       name: (row as any).name,
@@ -170,7 +147,6 @@ export class CategoryRepository implements ICategoryRepository {
       where: { parentId: id, deletedAt: null },
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -182,7 +158,6 @@ export class CategoryRepository implements ICategoryRepository {
     });
     return rows.map((row: any) => ({
       id: row.id,
-      workspaceId: row.workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
       parentId: row.parentId ?? null,
       name: row.name,
@@ -203,7 +178,6 @@ export class CategoryRepository implements ICategoryRepository {
         where: { parentId: { in: queue }, deletedAt: null },
         select: {
           id: true,
-          workspaceId: true,
           editorType: { select: { key: true } },
           parentId: true,
           name: true,
@@ -220,7 +194,6 @@ export class CategoryRepository implements ICategoryRepository {
         seen.add(r.id);
         descendants.push({
           id: r.id,
-          workspaceId: (r as any).workspaceId,
           editorTypeId: this.mapEditorTypeKeyToId((r as any).editorType?.key),
           parentId: (r as any).parentId ?? null,
           name: (r as any).name,
@@ -247,8 +220,7 @@ export class CategoryRepository implements ICategoryRepository {
       const parent: any = await this.prisma.category.findFirst({
         where: { id: current.parentId, deletedAt: null },
         select: {
-          id: true,
-          workspaceId: true,
+            id: true,
           editorType: { select: { key: true } },
           parentId: true,
           name: true,
@@ -260,9 +232,8 @@ export class CategoryRepository implements ICategoryRepository {
       });
       if (!parent) break;
       ancestors.push({
-        id: parent.id,
-        workspaceId: parent.workspaceId,
-        editorTypeId: this.mapEditorTypeKeyToId(parent.editorType?.key),
+          id: parent.id,
+          editorTypeId: this.mapEditorTypeKeyToId(parent.editorType?.key),
         parentId: parent.parentId ?? null,
         name: parent.name,
         slug: parent.slug,
@@ -287,7 +258,6 @@ export class CategoryRepository implements ICategoryRepository {
       data,
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -299,7 +269,6 @@ export class CategoryRepository implements ICategoryRepository {
     });
     return {
       id: updated.id,
-      workspaceId: (updated as any).workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
       parentId: (updated as any).parentId ?? null,
       name: (updated as any).name,
@@ -328,7 +297,6 @@ export class CategoryRepository implements ICategoryRepository {
       data: { parentId: newParentId },
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -340,7 +308,6 @@ export class CategoryRepository implements ICategoryRepository {
     });
     return {
       id: updated.id,
-      workspaceId: (updated as any).workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
       parentId: (updated as any).parentId ?? null,
       name: (updated as any).name,
@@ -367,12 +334,11 @@ export class CategoryRepository implements ICategoryRepository {
     await this.prisma.category.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 
-  async getTreeByWorkspace(workspaceId: string): Promise<CategoryEntity[]> {
+  async getTree(): Promise<CategoryEntity[]> {
     const rows = await this.prisma.category.findMany({
-      where: { workspaceId, deletedAt: null },
+      where: { deletedAt: null },
       select: {
         id: true,
-        workspaceId: true,
         editorType: { select: { key: true } },
         parentId: true,
         name: true,
@@ -384,7 +350,6 @@ export class CategoryRepository implements ICategoryRepository {
     });
     return rows.map((row: any) => ({
       id: row.id,
-      workspaceId: row.workspaceId,
       editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
       parentId: row.parentId ?? null,
       name: row.name,

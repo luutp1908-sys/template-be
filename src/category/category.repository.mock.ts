@@ -11,7 +11,7 @@ import { getEditorTypeById } from '../common/constants/editor-types.constant';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
-  private static readonly DEFAULT_WORKSPACE_ID = '00000000-0000-0000-0000-000000000000';
+  // categories are global now; no workspace scoping required
   private readonly store = new Map<string, CategoryEntity>();
   private readonly mockFilePath: string;
 
@@ -32,7 +32,6 @@ export class CategoryRepository implements ICategoryRepository {
       for (const it of arr) {
         const entity: CategoryEntity = {
           id: it.id,
-          workspaceId: it.workspaceId ?? CategoryRepository.DEFAULT_WORKSPACE_ID,
           editorTypeId:
             typeof it.editorTypeId === 'number'
               ? it.editorTypeId
@@ -78,7 +77,6 @@ export class CategoryRepository implements ICategoryRepository {
     const now = new Date();
     const entity: CategoryEntity = {
       id: randomUUID(),
-      workspaceId: payload.workspaceId ?? CategoryRepository.DEFAULT_WORKSPACE_ID,
       editorTypeId: getEditorTypeById(payload.editorTypeId ?? 0)?.id ?? 0,
       parentId: payload.parentId ?? null,
       name: payload.name,
@@ -173,8 +171,8 @@ export class CategoryRepository implements ICategoryRepository {
     this.persistStore();
   }
 
-  async getTreeByWorkspace(workspaceId: string): Promise<CategoryEntity[]> {
-    return [...this.store.values()].filter((c) => c.workspaceId === workspaceId && !c.deletedAt);
+  async getTree(): Promise<CategoryEntity[]> {
+    return [...this.store.values()].filter((c) => !c.deletedAt);
   }
 
   async getTemplatesRecursive(_id: string): Promise<any[]> {

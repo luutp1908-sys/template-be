@@ -38,9 +38,9 @@ export class CategoryController {
     return this.service.delete(id);
   }
 
-  @Get('workspace/:workspaceId/tree')
-  getTree(@Param('workspaceId') workspaceId: string): Promise<any> {
-    return this.service.getTreeByWorkspace(workspaceId);
+  @Get('tree')
+  getTree(): Promise<any> {
+    return this.service.getTree();
   }
 
   @Post(':id/move')
