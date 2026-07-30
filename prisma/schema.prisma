@@ -159,11 +159,34 @@ model Category {
   editorType EditorType @relation(fields: [editorTypeId], references: [id], onDelete: Restrict)
   parent     Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
   children   Category[] @relation("CategoryHierarchy")
+  seo        CategorySeo?
   templates  Template[]
   @@unique([slug])
   @@index([editorTypeId])
   @@index([parentId])
   @@index([deletedAt])
+}
+
+model CategorySeo {
+  id              String    @id @default(uuid()) @db.Uuid
+  categoryId      String    @unique @db.Uuid
+  metaTitle       String?   @db.VarChar(60)
+  metaDescription String?   @db.VarChar(160)
+  metaKeywords    String?   @db.VarChar(255)
+  ogTitle         String?   @db.VarChar(100)
+  ogDescription   String?   @db.VarChar(160)
+  ogImage         String?   @db.VarChar(2048)
+  canonicalUrl    String?   @db.VarChar(512)
+  robotsMeta      String?   @db.VarChar(100)
+  deletedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("CategorySEO")
 }
 
 model Template {
