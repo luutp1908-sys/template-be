@@ -12,6 +12,28 @@ import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/edit
 export class CategoryRepository implements ICategoryRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async loadSeoMapByCategoryIds(categoryIds: string[]): Promise<Map<string, any>> {
+    if (!categoryIds.length) return new Map<string, any>();
+
+    const rows = await this.prisma.$queryRaw<Array<any>>`
+      SELECT
+        "categoryId",
+        "metaTitle",
+        "metaDescription",
+        "metaKeywords",
+        "ogTitle",
+        "ogDescription",
+        "ogImage",
+        "canonicalUrl",
+        "robotsMeta"
+      FROM "CategorySEO"
+      WHERE "deletedAt" IS NULL
+        AND "categoryId" = ANY(${categoryIds}::uuid[])
+    `;
+
+    return new Map<string, any>(rows.map((row) => [String(row.categoryId), row]));
+  }
+
   private async resolveDbEditorTypeId(editorTypeId: number): Promise<string> {
     const editorType = getEditorTypeById(editorTypeId);
     if (!editorType) {
@@ -59,12 +81,26 @@ export class CategoryRepository implements ICategoryRepository {
       },
     });
 
+    const seoMap = await this.loadSeoMapByCategoryIds(rows.map((r: any) => r.id));
+
     return rows.map((row: any) => ({
       id: row.id,
       editorTypeId: this.mapEditorTypeKeyToId(row.editorType?.key),
       parentId: row.parentId ?? null,
       name: row.name,
       slug: row.slug,
+      seo: seoMap.get(row.id)
+        ? {
+            metaTitle: seoMap.get(row.id).metaTitle ?? null,
+            metaDescription: seoMap.get(row.id).metaDescription ?? null,
+            metaKeywords: seoMap.get(row.id).metaKeywords ?? null,
+            ogTitle: seoMap.get(row.id).ogTitle ?? null,
+            ogDescription: seoMap.get(row.id).ogDescription ?? null,
+            ogImage: seoMap.get(row.id).ogImage ?? null,
+            canonicalUrl: seoMap.get(row.id).canonicalUrl ?? null,
+            robotsMeta: seoMap.get(row.id).robotsMeta ?? null,
+          }
+        : null,
       deletedAt: row.deletedAt ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
@@ -130,12 +166,27 @@ export class CategoryRepository implements ICategoryRepository {
 
     if (!row) return null;
 
+    const seoMap = await this.loadSeoMapByCategoryIds([row.id]);
+    const seo = seoMap.get(row.id);
+
     return {
       id: row.id,
       editorTypeId: this.mapEditorTypeKeyToId((row as any).editorType?.key),
       parentId: (row as any).parentId ?? null,
       name: (row as any).name,
       slug: (row as any).slug,
+      seo: seo
+        ? {
+            metaTitle: seo.metaTitle ?? null,
+            metaDescription: seo.metaDescription ?? null,
+            metaKeywords: seo.metaKeywords ?? null,
+            ogTitle: seo.ogTitle ?? null,
+            ogDescription: seo.ogDescription ?? null,
+            ogImage: seo.ogImage ?? null,
+            canonicalUrl: seo.canonicalUrl ?? null,
+            robotsMeta: seo.robotsMeta ?? null,
+          }
+        : null,
       deletedAt: (row as any).deletedAt ?? null,
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
