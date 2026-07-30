@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
+import { ChangePasswordDto, UpdateProfileDto } from './dto/profile.dto';
 import { UserEntity } from './user.entity';
 import { UserRepository } from './user.repository';
 
@@ -13,5 +14,17 @@ export class UserService {
 
   async findById(id: string): Promise<UserEntity | null> {
     return this.repository.findById(id);
+  }
+
+  async getProfile(id: string): Promise<Partial<UserEntity> | null> {
+    return this.repository.getProfile(id);
+  }
+
+  async updateProfile(id: string, payload: UpdateProfileDto): Promise<Partial<UserEntity> | null> {
+    return this.repository.updateProfile(id, payload);
+  }
+
+  async changePassword(id: string, payload: ChangePasswordDto): Promise<void> {
+    await this.repository.changePassword(id, payload);
   }
 }
