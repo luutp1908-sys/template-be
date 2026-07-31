@@ -25,26 +25,45 @@ model User {
   drafts            UserDraft[]
   assets            Asset[]
   userRoles         UserRole[]
+  workspaceMembers  WorkspaceMember[]
+  invitedMembers    WorkspaceMember[] @relation("WorkspaceMemberInviter")
 
   @@index([deletedAt])
   @@index([createdAt])
 }
 
-model Workspace {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @db.VarChar(160)
-  slug      String    @unique @db.VarChar(180)
-  deletedAt DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+enum WorkspaceType {
+  PERSONAL
+  TEAM
+}
 
-  teams      Team[]
-  assets     Asset[]
-  tags       Tag[]
-  userRoles  UserRole[]
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+model Workspace {
+  id           String        @id @default(uuid()) @db.Uuid
+  name         String        @db.VarChar(160)
+  slug         String        @db.VarChar(180)
+  type         WorkspaceType @default(PERSONAL)
+  description  String?       @db.VarChar(1000)
+  avatarUrl    String?       @db.VarChar(2048)
+  isArchived   Boolean       @default(false)
+  deletedAt    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  teams            Team[]
+  assets           Asset[]
+  tags             Tag[]
+  userRoles        UserRole[]
+  workspaceMembers WorkspaceMember[]
 
   @@index([deletedAt])
   @@index([createdAt])
+  @@index([type])
 }
 
 model Team {
@@ -110,6 +129,26 @@ model RolePermission {
   @@unique([roleId, permissionId])
   @@index([roleId])
   @@index([permissionId])
+}
+
+model WorkspaceMember {
+  id          String        @id @default(uuid()) @db.Uuid
+  workspaceId String        @db.Uuid
+  userId      String        @db.Uuid
+  role        WorkspaceRole @default(MEMBER)
+  joinedAt    DateTime      @default(now())
+  invitedBy   String?       @db.Uuid
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  inviter   User?     @relation("WorkspaceMemberInviter", fields: [invitedBy], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+  @@index([role])
 }
 
 model UserRole {

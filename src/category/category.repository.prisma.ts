@@ -5,8 +5,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
 import { ICategoryRepository } from './interfaces/category.repository.interface';
-import { randomUUID } from 'crypto';
 import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
+import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
@@ -108,9 +108,6 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async create(_payload: CreateCategoryDto): Promise<CategoryEntity> {
-    // Creating a category via Prisma requires workspaceId and editorTypeId
-    // which are not present on the minimal CreateCategoryDto used in the scaffold.
-    // Implement full create behavior once DTO/entity include required fields.
     const payload = _payload as CreateCategoryDto;
 
     const slug = payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180);
@@ -119,7 +116,6 @@ export class CategoryRepository implements ICategoryRepository {
 
     const created = await this.prisma.category.create({
       data: {
-        id: randomUUID(),
         editorTypeId: dbEditorTypeId,
         parentId: payload.parentId ?? null,
         name: payload.name,

@@ -34,7 +34,13 @@ async function main() {
   let workspaceId: string;
   if (!workspace) {
     workspaceId = randomUUID();
-    await prisma.workspace.create({ data: { id: workspaceId, name: 'Demo Workspace', slug: `demo-${Date.now()}` } });
+    await prisma.workspace.create({
+      data: {
+        id: workspaceId,
+        name: 'Demo Workspace',
+        slug: 'demo-workspace',
+      },
+    });
   } else {
     workspaceId = workspace.id;
   }

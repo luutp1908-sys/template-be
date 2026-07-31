@@ -5,7 +5,7 @@ export enum WorkspaceTypeDto {
   TEAM = 'TEAM',
 }
 
-export class CreateWorkspaceDto {
+export class UpdateWorkspaceDto {
   @IsString()
   @IsOptional()
   @MinLength(1)
