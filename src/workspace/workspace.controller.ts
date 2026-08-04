@@ -54,4 +54,23 @@ export class WorkspaceController {
   ): Promise<unknown> {
     return this.service.inviteMember(id, payload, user);
   }
+
+  @Patch(':id/members/:memberId')
+  updateMemberRole(
+    @Param('id') id: string,
+    @Param('memberId') memberId: string,
+    @Body('role') role: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<unknown> {
+    return this.service.updateMemberRole(id, memberId, role, user.id);
+  }
+
+  @Delete(':id/members/:memberId')
+  removeMember(
+    @Param('id') id: string,
+    @Param('memberId') memberId: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<boolean> {
+    return this.service.removeMember(id, memberId, user.id);
+  }
 }

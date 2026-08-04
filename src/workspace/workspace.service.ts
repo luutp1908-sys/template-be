@@ -45,4 +45,12 @@ export class WorkspaceService {
   async inviteMember(workspaceId: string, payload: InviteWorkspaceMemberDto, user: AuthUser): Promise<unknown> {
     return this.repository.inviteMember(workspaceId, payload, user.id);
   }
+
+  async updateMemberRole(workspaceId: string, memberId: string, role: string, userId: string): Promise<unknown> {
+    return this.repository.updateMemberRole(workspaceId, memberId, role, userId);
+  }
+
+  async removeMember(workspaceId: string, memberId: string, userId: string): Promise<boolean> {
+    return this.repository.removeMember(workspaceId, memberId, userId);
+  }
 }

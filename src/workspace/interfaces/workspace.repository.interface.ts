@@ -10,4 +10,6 @@ export interface IWorkspaceRepository {
   update(_id: string, _payload: UpdateWorkspaceDto): Promise<WorkspaceEntity | null>;
   remove(_id: string): Promise<WorkspaceEntity | null>;
   inviteMember(_workspaceId: string, _payload: InviteWorkspaceMemberDto, _invitedByUserId: string): Promise<unknown>;
+  updateMemberRole(_workspaceId: string, _memberId: string, _role: string, _actingUserId: string): Promise<unknown>;
+  removeMember(_workspaceId: string, _memberId: string, _actingUserId: string): Promise<boolean>;
 }

@@ -14,6 +14,8 @@ describe('WorkspaceRepository', () => {
       workspaceMember: {
         create: jest.fn(),
         findFirst: jest.fn(),
+        update: jest.fn(),
+        delete: jest.fn(),
       },
       user: {
         findFirst: jest.fn(),
@@ -89,5 +91,44 @@ describe('WorkspaceRepository', () => {
         }),
       }),
     );
+  });
+
+  it('updates a member role when an owner or admin changes it', async () => {
+    prisma.workspaceMember.findFirst
+      .mockResolvedValueOnce({ role: 'OWNER', userId: 'owner-user' })
+      .mockResolvedValueOnce({ id: 'membership-2', workspaceId: 'workspace-1', userId: 'user-2', role: 'MEMBER' });
+    prisma.workspaceMember.update.mockResolvedValue({
+      id: 'membership-2',
+      workspaceId: 'workspace-1',
+      userId: 'user-2',
+      role: 'ADMIN',
+    });
+
+    const result = await repository.updateMemberRole('workspace-1', 'membership-2', 'ADMIN', 'owner-user');
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        id: 'membership-2',
+        role: 'ADMIN',
+      }),
+    );
+    expect(prisma.workspaceMember.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'membership-2' },
+        data: { role: 'ADMIN' },
+      }),
+    );
+  });
+
+  it('removes a member from a workspace when an owner or admin deletes them', async () => {
+    prisma.workspaceMember.findFirst
+      .mockResolvedValueOnce({ role: 'OWNER', userId: 'owner-user' })
+      .mockResolvedValueOnce({ id: 'membership-2', workspaceId: 'workspace-1', userId: 'user-2', role: 'MEMBER' });
+    prisma.workspaceMember.delete.mockResolvedValue({ id: 'membership-2' });
+
+    const result = await repository.removeMember('workspace-1', 'membership-2', 'owner-user');
+
+    expect(result).toBe(true);
+    expect(prisma.workspaceMember.delete).toHaveBeenCalledWith({ where: { id: 'membership-2' } });
   });
 });

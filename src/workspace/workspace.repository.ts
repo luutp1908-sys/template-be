@@ -247,4 +247,62 @@ export class WorkspaceRepository implements IWorkspaceRepository {
       },
     });
   }
+
+  async updateMemberRole(workspaceId: string, memberId: string, role: string, actingUserId: string): Promise<unknown> {
+    const actorMembership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: actingUserId },
+      select: { role: true },
+    });
+
+    if (!actorMembership || !['OWNER', 'ADMIN'].includes(actorMembership.role)) {
+      throw new ForbiddenException('Only workspace owners and admins can change member roles');
+    }
+
+    const targetMembership = await this.prisma.workspaceMember.findFirst({
+      where: { id: memberId, workspaceId },
+      select: { id: true, role: true },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Workspace member not found');
+    }
+
+    if (targetMembership.role === 'OWNER') {
+      throw new ForbiddenException('The workspace owner role cannot be changed');
+    }
+
+    const normalizedRole = role === 'ADMIN' ? 'ADMIN' : 'MEMBER';
+
+    return this.prisma.workspaceMember.update({
+      where: { id: memberId },
+      data: { role: normalizedRole },
+    });
+  }
+
+  async removeMember(workspaceId: string, memberId: string, actingUserId: string): Promise<boolean> {
+    const actorMembership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: actingUserId },
+      select: { role: true },
+    });
+
+    if (!actorMembership || !['OWNER', 'ADMIN'].includes(actorMembership.role)) {
+      throw new ForbiddenException('Only workspace owners and admins can remove members');
+    }
+
+    const targetMembership = await this.prisma.workspaceMember.findFirst({
+      where: { id: memberId, workspaceId },
+      select: { id: true, role: true },
+    });
+
+    if (!targetMembership) {
+      throw new NotFoundException('Workspace member not found');
+    }
+
+    if (targetMembership.role === 'OWNER') {
+      throw new ForbiddenException('The workspace owner cannot be removed');
+    }
+
+    await this.prisma.workspaceMember.delete({ where: { id: memberId } });
+    return true;
+  }
 }
