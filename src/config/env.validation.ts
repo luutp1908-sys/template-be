@@ -17,8 +17,8 @@ const envSchema = Joi.object({
     then: Joi.string().default('change_me_refresh'),
     otherwise: Joi.string().required(),
   }),
-  JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
-  JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
+  JWT_ACCESS_EXPIRES_IN: Joi.string().default('15d'),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
   DATABASE_URL: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().optional(),
