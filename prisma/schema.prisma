@@ -60,6 +60,7 @@ model Workspace {
   tags             Tag[]
   userRoles        UserRole[]
   workspaceMembers WorkspaceMember[]
+  userDrafts       UserDraft[]
 
   @@index([deletedAt])
   @@index([createdAt])
@@ -263,6 +264,7 @@ model TemplateContent {
 model UserDraft {
   id           String    @id @default(uuid()) @db.Uuid
   userId       String    @db.Uuid
+  workspaceId  String?   @db.Uuid
   templateId   String?   @db.Uuid
   name         String    @db.VarChar(240)
   thumbnail    String?   @db.VarChar(2048)
@@ -271,11 +273,14 @@ model UserDraft {
   updatedAt    DateTime  @updatedAt
   lastOpenedAt DateTime?
 
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  template Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  workspace Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+  template  Template?  @relation(fields: [templateId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([workspaceId])
   @@index([templateId])
+  @@index([userId, workspaceId])
   @@index([userId, templateId])
   @@index([lastOpenedAt])
 }

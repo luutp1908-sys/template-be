@@ -14,10 +14,35 @@ export class UserDraftRepository {
     private readonly configService: ConfigService,
   ) {}
 
+  private async resolveWorkspaceId(userId: string, requestedWorkspaceId?: string): Promise<string | null> {
+    if (requestedWorkspaceId) {
+      const membership = await this.prisma.workspaceMember.findFirst({
+        where: {
+          userId,
+          workspaceId: requestedWorkspaceId,
+        },
+        select: { workspaceId: true },
+      });
+
+      return membership?.workspaceId ?? null;
+    }
+
+    const firstMembership = await this.prisma.workspaceMember.findFirst({
+      where: { userId },
+      select: { workspaceId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return firstMembership?.workspaceId ?? null;
+  }
+
   async create(payload: CreateUserDraftDto, userId: string): Promise<UserDraftEntity> {
+    const workspaceId = await this.resolveWorkspaceId(userId, payload.workspaceId);
+
     return this.prisma.userDraft.create({
       data: {
         userId,
+        workspaceId,
         templateId: payload.templateId ?? null,
         name: payload.name,
         thumbnail: payload.thumbnail ?? null,
@@ -38,9 +63,10 @@ export class UserDraftRepository {
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'updatedAt';
     const sortOrder = query.sortOrder ?? 'desc';
-
+    console.log('findMany workspaceId', query)
     const where: Prisma.UserDraftWhereInput = {
       userId,
+      ...(query.workspaceId ? { workspaceId: query.workspaceId } : {}),
       ...(query.templateId ? { templateId: query.templateId } : {}),
     };
 
@@ -77,6 +103,7 @@ export class UserDraftRepository {
     return this.prisma.userDraft.update({
       where: { id },
       data: {
+        ...(payload.workspaceId !== undefined ? { workspaceId: payload.workspaceId } : {}),
         ...(payload.templateId !== undefined ? { templateId: payload.templateId } : {}),
         ...(payload.name !== undefined ? { name: payload.name } : {}),
         ...(payload.thumbnail !== undefined ? { thumbnail: payload.thumbnail } : {}),

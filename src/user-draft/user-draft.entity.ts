@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 export class UserDraftEntity {
   id!: string;
   userId!: string;
+  workspaceId!: string | null;
   templateId!: string | null;
   name!: string;
   thumbnail!: string | null;

@@ -26,6 +26,7 @@ export class UserDraftRepository {
       arr.forEach((it) => {
         const entity: UserDraftEntity = {
           ...it,
+          workspaceId: it.workspaceId ?? null,
           createdAt: it.createdAt ? new Date(it.createdAt) : new Date(),
           updatedAt: it.updatedAt ? new Date(it.updatedAt) : new Date(),
           lastOpenedAt: it.lastOpenedAt ? new Date(it.lastOpenedAt) : new Date(),
@@ -61,6 +62,7 @@ export class UserDraftRepository {
     const entity: UserDraftEntity = {
       id: randomUUID(),
       userId,
+      workspaceId: payload.workspaceId ?? null,
       templateId: payload.templateId ?? null,
       name: payload.name,
       thumbnail: payload.thumbnail ?? null,
@@ -92,6 +94,7 @@ export class UserDraftRepository {
 
     const filtered = [...this.mockStore.values()].filter((entity) => {
       if (entity.userId !== userId) return false;
+      if (query.workspaceId && entity.workspaceId !== query.workspaceId) return false;
       if (query.templateId && entity.templateId !== query.templateId) return false;
       return true;
     });
@@ -122,6 +125,7 @@ export class UserDraftRepository {
     if (!current || current.userId !== userId) return null;
 
     current.templateId = payload.templateId ?? current.templateId;
+    current.workspaceId = payload.workspaceId ?? current.workspaceId;
     current.name = payload.name ?? current.name;
     current.thumbnail = payload.thumbnail ?? current.thumbnail;
     current.content = payload.content !== undefined ? (payload.content as Prisma.JsonValue) : current.content;

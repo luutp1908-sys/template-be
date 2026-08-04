@@ -6,6 +6,11 @@ export class CreateUserDraftDto {
   @ApiPropertyOptional()
   @IsUUID()
   @IsOptional()
+  workspaceId?: string;
+
+  @ApiPropertyOptional()
+  @IsUUID()
+  @IsOptional()
   templateId?: string;
 
   @ApiProperty({ maxLength: 240 })

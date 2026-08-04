@@ -34,4 +34,9 @@ export class UserDraftListQueryDto {
   @IsUUID()
   @IsOptional()
   templateId?: string;
+
+  @ApiPropertyOptional({ description: 'Filter by workspace id' })
+  @IsUUID()
+  @IsOptional()
+  workspaceId?: string;
 }
