@@ -109,6 +109,43 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     return row ? WorkspaceMapper.toEntity(row) : null;
   }
 
+  async findMembers(workspaceId: string): Promise<unknown[]> {
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { id: workspaceId, deletedAt: null },
+      select: { id: true },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    const members = await this.prisma.workspaceMember.findMany({
+      where: { workspaceId },
+      select: {
+        id: true,
+        role: true,
+        joinedAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+          },
+        },
+      },
+      orderBy: [{ role: 'asc' }, { joinedAt: 'asc' }],
+    });
+
+    return members.map((member) => ({
+      id: member.id,
+      userId: member.user.id,
+      email: member.user.email,
+      name: member.user.displayName ?? member.user.email,
+      role: member.role,
+      joinedAt: member.joinedAt,
+    }));
+  }
+
   async update(id: string, payload: UpdateWorkspaceDto): Promise<WorkspaceEntity | null> {
     const data: Record<string, unknown> = {};
 

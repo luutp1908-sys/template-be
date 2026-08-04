@@ -22,6 +22,10 @@ export class WorkspaceService {
     return this.repository.findById(id);
   }
 
+  async findMembers(workspaceId: string): Promise<unknown[]> {
+    return this.repository.findMembers(workspaceId);
+  }
+
   async update(id: string, payload: UpdateWorkspaceDto): Promise<WorkspaceEntity> {
     const updated = await this.repository.update(id, payload);
     if (!updated) {

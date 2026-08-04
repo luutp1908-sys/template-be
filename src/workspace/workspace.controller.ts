@@ -31,6 +31,11 @@ export class WorkspaceController {
     return this.service.findById(id);
   }
 
+  @Get(':id/members')
+  findMembers(@Param('id') id: string): Promise<unknown[]> {
+    return this.service.findMembers(id);
+  }
+
   @Patch(':id')
   update(@Param('id') id: string, @Body() payload: UpdateWorkspaceDto): Promise<WorkspaceEntity> {
     return this.service.update(id, payload);
