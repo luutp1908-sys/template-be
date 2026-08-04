@@ -4,6 +4,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
+import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceEntity } from './workspace.entity';
 import { WorkspaceService } from './workspace.service';
@@ -21,8 +22,8 @@ export class WorkspaceController {
   }
 
   @Get()
-  findMany(): Promise<WorkspaceEntity[]> {
-    return this.service.findMany();
+  findMany(@CurrentUser() user: AuthUser): Promise<WorkspaceEntity[]> {
+    return this.service.findMany(user);
   }
 
   @Get(':id')
@@ -38,5 +39,14 @@ export class WorkspaceController {
   @Delete(':id')
   remove(@Param('id') id: string): Promise<WorkspaceEntity> {
     return this.service.remove(id);
+  }
+
+  @Post(':id/invite-member')
+  inviteMember(
+    @Param('id') id: string,
+    @Body() payload: InviteWorkspaceMemberDto,
+    @CurrentUser() user: AuthUser,
+  ): Promise<unknown> {
+    return this.service.inviteMember(id, payload, user);
   }
 }

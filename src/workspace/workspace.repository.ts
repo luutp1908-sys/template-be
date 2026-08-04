@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
+import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceEntity } from './workspace.entity';
 import { IWorkspaceRepository } from './interfaces/workspace.repository.interface';
@@ -67,13 +68,21 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     return WorkspaceMapper.toEntity(workspace);
   }
 
-  async findMany(): Promise<WorkspaceEntity[]> {
+  async findMany(userId: string): Promise<WorkspaceEntity[]> {
     const rows = await this.prisma.workspace.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        workspaceMembers: {
+          some: {
+            userId,
+          },
+        },
+      },
       select: {
         id: true,
         name: true,
         slug: true,
+        type: true,
         deletedAt: true,
         createdAt: true,
         updatedAt: true,
@@ -146,4 +155,59 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     return WorkspaceMapper.toEntity(row);
   }
 
+  async inviteMember(workspaceId: string, payload: InviteWorkspaceMemberDto, invitedByUserId: string): Promise<unknown> {
+    const workspace = await this.prisma.workspace.findFirst({
+      where: { id: workspaceId, deletedAt: null },
+      select: { id: true, type: true },
+    });
+
+    if (!workspace) {
+      throw new NotFoundException('Workspace not found');
+    }
+
+    if (workspace.type !== 'TEAM') {
+      throw new ForbiddenException('Invitations are only supported for team workspaces');
+    }
+
+    const inviterMembership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: invitedByUserId },
+      select: { role: true },
+    });
+
+    if (!inviterMembership || !['OWNER', 'ADMIN'].includes(inviterMembership.role)) {
+      throw new ForbiddenException('Only workspace owners and admins can invite members');
+    }
+
+    const invitedUser = await this.prisma.user.findFirst({
+      where: { email: payload.email.toLowerCase(), deletedAt: null },
+      select: { id: true, email: true },
+    });
+
+    if (!invitedUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (invitedUser.id === invitedByUserId) {
+      throw new ConflictException('You cannot invite yourself');
+    }
+
+    const existingMembership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId: invitedUser.id },
+      select: { id: true },
+    });
+
+    if (existingMembership) {
+      throw new ConflictException('User is already a member of this workspace');
+    }
+
+    return this.prisma.workspaceMember.create({
+      data: {
+        id: randomUUID(),
+        workspaceId,
+        userId: invitedUser.id,
+        role: 'MEMBER',
+        invitedBy: invitedByUserId,
+      },
+    });
+  }
 }

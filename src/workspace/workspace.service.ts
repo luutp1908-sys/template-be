@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
+import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceEntity } from './workspace.entity';
 import { WorkspaceRepository } from './workspace.repository';
@@ -12,8 +14,8 @@ export class WorkspaceService {
     return this.repository.create(payload, createdByUserId);
   }
 
-  async findMany(): Promise<WorkspaceEntity[]> {
-    return this.repository.findMany();
+  async findMany(user: AuthUser): Promise<WorkspaceEntity[]> {
+    return this.repository.findMany(user.id);
   }
 
   async findById(id: string): Promise<WorkspaceEntity | null> {
@@ -34,5 +36,9 @@ export class WorkspaceService {
       throw new NotFoundException(`Workspace ${id} not found`);
     }
     return removed;
+  }
+
+  async inviteMember(workspaceId: string, payload: InviteWorkspaceMemberDto, user: AuthUser): Promise<unknown> {
+    return this.repository.inviteMember(workspaceId, payload, user.id);
   }
 }
