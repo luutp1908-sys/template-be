@@ -9,9 +9,9 @@ This note captures the prioritized improvement list identified during the backen
 - src/config/configuration.ts defaults access/refresh to 15d and 30d.
 - Why this matters: auth behavior depends on which config path is used, and you can unintentionally issue long-lived tokens.
 
-2. High: App can start successfully even when DB is unreachable.
-- src/database/prisma.service.ts catches connection errors and only warns.
-- Why this matters: production health can look "up" while core DB-backed features are effectively down.
+2. High: App can start successfully even when DB is unreachable. (Fixed 2026-08-05)
+- Implemented: src/database/prisma.service.ts now uses configurable startup behavior via DATABASE_STARTUP_MODE and supports fail-fast mode.
+- Default behavior: production defaults to fail-fast, non-production defaults to warn.
 
 3. High: Missing auth rate limiting and brute-force protection.
 - No throttling/rate-limit usage detected in backend source.

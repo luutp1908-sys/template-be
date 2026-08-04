@@ -19,6 +19,11 @@ const envSchema = Joi.object({
   }),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15d'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
+  DATABASE_STARTUP_MODE: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().valid('fail-fast', 'warn').default('fail-fast'),
+    otherwise: Joi.string().valid('fail-fast', 'warn').default('warn'),
+  }),
   DATABASE_URL: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().optional(),

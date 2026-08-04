@@ -15,6 +15,7 @@ export default () => ({
   },
   database: {
     url: process.env.DATABASE_URL,
+    startupMode: process.env.DATABASE_STARTUP_MODE ?? 'warn',
   },
   redis: {
     host: process.env.REDIS_HOST ?? 'localhost',
