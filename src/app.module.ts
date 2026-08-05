@@ -1,6 +1,9 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { UserModule } from './user/user.module';
 import { WorkspaceModule } from './workspace/workspace.module';
@@ -29,6 +32,19 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
       cache: true,
       load: [configuration],
       validate: validateEnv,
+    }),
+    ThrottlerModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            name: 'default',
+            ttl: configService.get<number>('throttle.default.ttlMs', 60_000),
+            limit: configService.get<number>('throttle.default.limit', 120),
+            blockDuration: configService.get<number>('throttle.default.blockDurationMs', 120_000),
+          },
+        ],
+      }),
     }),
     LoggerModule.forRoot({
       pinoHttp: {
@@ -62,6 +78,12 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
     SearchModule,
     ExportModule,
     AiModule,
+  ],
+  providers: [
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
   ],
 })
 export class AppModule implements NestModule {

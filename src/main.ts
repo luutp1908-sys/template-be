@@ -33,6 +33,15 @@ async function bootstrap(): Promise<void> {
   app.useGlobalFilters(new HttpExceptionFilter());
   app.useGlobalInterceptors(new ResponseInterceptor());
 
+  const trustProxy = config.get<number>('app.trustProxy', 0);
+  if (trustProxy > 0) {
+    const httpAdapter = app.getHttpAdapter();
+    const adapterInstance = httpAdapter.getInstance();
+    if (adapterInstance && typeof adapterInstance.set === 'function') {
+      adapterInstance.set('trust proxy', trustProxy);
+    }
+  }
+
   // Enable CORS. In mock/dev mode allow all origins to ease local development.
   const frontendOrigin = config.get<string>('app.frontendOrigin') || process.env.FRONTEND_ORIGIN
   const isDevAllowAll = config.get<boolean>('app.mockMode', false) || process.env.NODE_ENV !== 'production'

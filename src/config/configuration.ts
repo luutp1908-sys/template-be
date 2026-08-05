@@ -5,6 +5,7 @@ export default () => ({
     port: Number(process.env.PORT ?? 4000),
     apiPrefix: process.env.API_PREFIX ?? 'api',
     swaggerPath: process.env.SWAGGER_PATH ?? 'docs',
+    trustProxy: Number(process.env.TRUST_PROXY ?? 0),
     mockMode: process.env.MOCK_MODE === 'true',
   },
   jwt: {
@@ -27,5 +28,29 @@ export default () => ({
   },
   security: {
     bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 12),
+  },
+  throttle: {
+    default: {
+      limit: Number(process.env.THROTTLE_DEFAULT_LIMIT ?? 120),
+      ttlMs: Number(process.env.THROTTLE_DEFAULT_TTL_MS ?? 60000),
+      blockDurationMs: Number(process.env.THROTTLE_DEFAULT_BLOCK_DURATION_MS ?? 120000),
+    },
+    auth: {
+      login: {
+        limit: Number(process.env.THROTTLE_AUTH_LOGIN_LIMIT ?? 10),
+        ttlMs: Number(process.env.THROTTLE_AUTH_LOGIN_TTL_MS ?? 60000),
+        blockDurationMs: Number(process.env.THROTTLE_AUTH_LOGIN_BLOCK_DURATION_MS ?? 300000),
+      },
+      register: {
+        limit: Number(process.env.THROTTLE_AUTH_REGISTER_LIMIT ?? 5),
+        ttlMs: Number(process.env.THROTTLE_AUTH_REGISTER_TTL_MS ?? 60000),
+        blockDurationMs: Number(process.env.THROTTLE_AUTH_REGISTER_BLOCK_DURATION_MS ?? 600000),
+      },
+      refresh: {
+        limit: Number(process.env.THROTTLE_AUTH_REFRESH_LIMIT ?? 20),
+        ttlMs: Number(process.env.THROTTLE_AUTH_REFRESH_TTL_MS ?? 60000),
+        blockDurationMs: Number(process.env.THROTTLE_AUTH_REFRESH_BLOCK_DURATION_MS ?? 300000),
+      },
+    },
   },
 });

@@ -9,6 +9,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import { AuthEntity } from './auth.entity';
 import { AuthService } from './auth.service';
 import { CurrentUser } from './decorators/current-user.decorator';
@@ -50,6 +51,39 @@ function parseDurationToMs(value: string | undefined): number {
   }
 }
 
+function parseEnvInt(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (!raw) {
+    return fallback;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
+const authRegisterThrottle = {
+  default: {
+    limit: parseEnvInt('THROTTLE_AUTH_REGISTER_LIMIT', 5),
+    ttl: parseEnvInt('THROTTLE_AUTH_REGISTER_TTL_MS', 60000),
+    blockDuration: parseEnvInt('THROTTLE_AUTH_REGISTER_BLOCK_DURATION_MS', 600000),
+  },
+};
+
+const authLoginThrottle = {
+  default: {
+    limit: parseEnvInt('THROTTLE_AUTH_LOGIN_LIMIT', 10),
+    ttl: parseEnvInt('THROTTLE_AUTH_LOGIN_TTL_MS', 60000),
+    blockDuration: parseEnvInt('THROTTLE_AUTH_LOGIN_BLOCK_DURATION_MS', 300000),
+  },
+};
+
+const authRefreshThrottle = {
+  default: {
+    limit: parseEnvInt('THROTTLE_AUTH_REFRESH_LIMIT', 20),
+    ttl: parseEnvInt('THROTTLE_AUTH_REFRESH_TTL_MS', 60000),
+    blockDuration: parseEnvInt('THROTTLE_AUTH_REFRESH_BLOCK_DURATION_MS', 300000),
+  },
+};
+
 @ApiTags('auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -57,6 +91,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
+  @Throttle(authRegisterThrottle)
   @ApiOperation({ summary: 'Register with email and password' })
   @ApiOkResponse({ type: AuthEntity })
   register(@Body() payload: RegisterDto, @Res({ passthrough: true }) res: Response): Promise<AuthEntity> {
@@ -87,6 +122,7 @@ export class AuthController {
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @UseGuards(LocalAuthGuard)
+  @Throttle(authLoginThrottle)
   @ApiOperation({ summary: 'Login with email and password' })
   @ApiBody({ type: LoginDto })
   @ApiOkResponse({ type: AuthEntity })
@@ -115,6 +151,7 @@ export class AuthController {
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
+  @Throttle(authRefreshThrottle)
   @ApiOperation({ summary: 'Refresh access and refresh tokens' })
   @ApiOkResponse({ type: AuthEntity })
   refresh(@Body() payload: RefreshTokenDto, @Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<AuthEntity> {
