@@ -23,6 +23,14 @@ export default () => ({
     port: Number(process.env.REDIS_PORT ?? 6379),
     password: process.env.REDIS_PASSWORD ?? '',
   },
+  cache: {
+    enabled: process.env.CACHE_ENABLED !== 'false',
+    keyPrefix: process.env.CACHE_KEY_PREFIX ?? 'template-saas',
+    connectTimeoutMs: Number(process.env.CACHE_CONNECT_TIMEOUT_MS ?? 2000),
+    ttlMs: {
+      categoryTree: Number(process.env.CACHE_CATEGORY_TREE_TTL_MS ?? 3600000),
+    },
+  },
   log: {
     level: process.env.LOG_LEVEL ?? 'warn',
   },

@@ -18,6 +18,7 @@ import { SearchModule } from './search/search.module';
 import { ExportModule } from './export/export.module';
 import { AiModule } from './ai/ai.module';
 import { HealthModule } from './common/health/health.module';
+import { CacheModule } from './cache/cache.module';
 import configuration from './config/configuration';
 import { validateEnv } from './config/env.validation';
 import { DatabaseModule } from './database/database.module';
@@ -62,6 +63,7 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
         redact: ['req.headers.authorization'],
       },
     }),
+    CacheModule,
     DatabaseModule,
     ...(process.env.MOCK_MODE === 'true' ? [] : [QueueModule]),
     HealthModule,
