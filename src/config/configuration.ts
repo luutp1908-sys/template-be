@@ -29,6 +29,7 @@ export default () => ({
     connectTimeoutMs: Number(process.env.CACHE_CONNECT_TIMEOUT_MS ?? 2000),
     ttlMs: {
       categoryTree: Number(process.env.CACHE_CATEGORY_TREE_TTL_MS ?? 3600000),
+      templateList: Number(process.env.CACHE_TEMPLATE_LIST_TTL_MS ?? 300000),
     },
   },
   log: {

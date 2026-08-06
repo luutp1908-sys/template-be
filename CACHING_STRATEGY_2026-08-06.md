@@ -9,7 +9,7 @@ Reduce database load and improve p95 latency by adding Redis-backed caching for 
 Implement in slices rather than one large change.
 
 1. Slice 1: Cache foundation plus category tree caching.
-2. Slice 2: Template list caching for common query shapes.
+2. Slice 2: Template list caching for common query shapes. (implemented)
 3. Slice 3: Short-TTL auth user context caching.
 4. Slice 4: Metrics, cache bypass controls, and broader invalidation coverage.
 

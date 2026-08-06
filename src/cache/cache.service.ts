@@ -89,6 +89,31 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     await this.client.del(this.withPrefix(key));
   }
 
+  async deleteByPattern(pattern: string): Promise<number> {
+    if (!this.client || !this.isAvailable) {
+      return 0;
+    }
+
+    let deleted = 0;
+    let cursor = '0';
+    const namespacedPattern = this.withPrefix(pattern);
+
+    do {
+      const result = await this.client.scan(cursor, {
+        MATCH: namespacedPattern,
+        COUNT: 100,
+      });
+      cursor = result.cursor;
+      const keys = result.keys;
+
+      if (keys.length > 0) {
+        deleted += await this.client.del(keys);
+      }
+    } while (cursor !== '0');
+
+    return deleted;
+  }
+
   private withPrefix(key: string): string {
     const prefix = this.configService.get<string>('cache.keyPrefix', 'template-saas');
     return `${prefix}:${key}`;
