@@ -70,7 +70,10 @@ export class CategoryRepository implements ICategoryRepository {
       if (query.editorTypeId !== undefined && c.editorTypeId !== query.editorTypeId) return false;
       if (normalizedSearch && !c.name.toLowerCase().includes(normalizedSearch)) return false;
       return true;
-    });
+    }).map((c) => ({
+      ...c,
+      templateCount: 0,
+    }));
   }
 
   async create(payload: CreateCategoryDto): Promise<CategoryEntity> {

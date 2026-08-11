@@ -15,6 +15,7 @@ export class CategoryEntity {
   parentId?: string | null;
   name!: string;
   slug!: string;
+  templateCount?: number;
   seo?: CategorySeoEntity | null;
   deletedAt?: Date | null;
   createdAt!: Date;

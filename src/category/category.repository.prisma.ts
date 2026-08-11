@@ -75,6 +75,7 @@ export class CategoryRepository implements ICategoryRepository {
         parentId: true,
         name: true,
         slug: true,
+        _count: { select: { templates: true } },
         deletedAt: true,
         createdAt: true,
         updatedAt: true,
@@ -89,6 +90,7 @@ export class CategoryRepository implements ICategoryRepository {
       parentId: row.parentId ?? null,
       name: row.name,
       slug: row.slug,
+      templateCount: row._count?.templates ?? 0,
       seo: seoMap.get(row.id)
         ? {
             metaTitle: seoMap.get(row.id).metaTitle ?? null,
