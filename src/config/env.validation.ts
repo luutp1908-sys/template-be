@@ -62,6 +62,7 @@ const envSchema = Joi.object({
   THROTTLE_AUTH_REFRESH_BLOCK_DURATION_MS: Joi.number().integer().min(0).default(300000),
   BCRYPT_SALT_ROUNDS: Joi.number().integer().min(10).max(15).default(12),
   LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('warn'),
+  ENABLE_REQUEST_LOGS: Joi.boolean().truthy('true').falsy('false').default(false),
 });
 
 export function validateEnv(config: Record<string, unknown>): Record<string, unknown> {

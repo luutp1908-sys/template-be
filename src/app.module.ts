@@ -50,6 +50,8 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
     LoggerModule.forRoot({
       pinoHttp: {
         level: process.env.LOG_LEVEL ?? 'warn',
+        autoLogging: false,
+        quietReqLogger: true,
         transport:
           process.env.NODE_ENV !== 'production'
             ? {
@@ -90,6 +92,11 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(AuthenticationMiddleware, RequestLoggingMiddleware).forRoutes('*');
+    consumer.apply(AuthenticationMiddleware).forRoutes('*');
+
+    const enableRequestLogs = process.env.ENABLE_REQUEST_LOGS === 'true';
+    if (enableRequestLogs) {
+      consumer.apply(RequestLoggingMiddleware).forRoutes('*');
+    }
   }
 }

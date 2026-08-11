@@ -3,6 +3,13 @@ import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
+type CategorySeed = {
+  name: string;
+  slugBase: string;
+  bg: string;
+  children: Array<{ name: string; slugBase: string; bg: string }>;
+};
+
 const makePage = (title: string, bg: string, idx: number) => ({
   id: `page_1`,
   width: 1200,
@@ -36,48 +43,166 @@ async function main() {
     user = await prisma.user.create({ data: { id: randomUUID(), email: 'demo+graphic@example.com', passwordHash: 'password-hash-placeholder', isActive: true } });
   }
 
-  const timestamp = Date.now().toString().slice(-5);
-  const categories = [
-    { name: 'Social', slugBase: 'social', bg: '#fff0f6' },
-    { name: 'Marketing', slugBase: 'marketing', bg: '#f0fff4' },
-    { name: 'Product', slugBase: 'product', bg: '#f0f7ff' },
-    { name: 'Promotions', slugBase: 'promotions', bg: '#fff8e6' },
-    { name: 'Announcements', slugBase: 'announcements', bg: '#f7fff0' },
-    { name: 'Events', slugBase: 'events', bg: '#f0fff7' },
+  const now = Date.now();
+  const timestamp = now.toString().slice(-6);
+  const templatesPerCategory = Number(process.env.TEMPLATES_PER_CATEGORY ?? 4);
+  const categories: CategorySeed[] = [
+    {
+      name: 'Social',
+      slugBase: 'social',
+      bg: '#fff0f6',
+      children: [
+        { name: 'Instagram', slugBase: 'instagram', bg: '#ffeef8' },
+        { name: 'Facebook', slugBase: 'facebook', bg: '#eef5ff' },
+        { name: 'TikTok', slugBase: 'tiktok', bg: '#f1f1f1' },
+      ],
+    },
+    {
+      name: 'Marketing',
+      slugBase: 'marketing',
+      bg: '#f0fff4',
+      children: [
+        { name: 'Email Campaign', slugBase: 'email-campaign', bg: '#f8fff1' },
+        { name: 'Lead Generation', slugBase: 'lead-generation', bg: '#f3fff9' },
+        { name: 'SEO Campaign', slugBase: 'seo-campaign', bg: '#f1fff7' },
+      ],
+    },
+    {
+      name: 'Product',
+      slugBase: 'product',
+      bg: '#f0f7ff',
+      children: [
+        { name: 'Launch', slugBase: 'launch', bg: '#eef8ff' },
+        { name: 'Feature Highlight', slugBase: 'feature-highlight', bg: '#f2f9ff' },
+        { name: 'Update Notes', slugBase: 'update-notes', bg: '#eefcff' },
+      ],
+    },
+    {
+      name: 'Promotions',
+      slugBase: 'promotions',
+      bg: '#fff8e6',
+      children: [
+        { name: 'Flash Sale', slugBase: 'flash-sale', bg: '#fff7df' },
+        { name: 'Coupons', slugBase: 'coupons', bg: '#fff4d8' },
+        { name: 'Seasonal Deals', slugBase: 'seasonal-deals', bg: '#fff9e8' },
+      ],
+    },
+    {
+      name: 'Announcements',
+      slugBase: 'announcements',
+      bg: '#f7fff0',
+      children: [
+        { name: 'Company News', slugBase: 'company-news', bg: '#f7fff4' },
+        { name: 'Hiring', slugBase: 'hiring', bg: '#efffec' },
+        { name: 'Press Release', slugBase: 'press-release', bg: '#f6fff2' },
+      ],
+    },
+    {
+      name: 'Events',
+      slugBase: 'events',
+      bg: '#f0fff7',
+      children: [
+        { name: 'Webinars', slugBase: 'webinars', bg: '#ecfff8' },
+        { name: 'Conferences', slugBase: 'conferences', bg: '#eefff9' },
+        { name: 'Workshops', slugBase: 'workshops', bg: '#f2fff9' },
+      ],
+    },
+    {
+      name: 'Ecommerce',
+      slugBase: 'ecommerce',
+      bg: '#f7f9ff',
+      children: [
+        { name: 'Product Grid', slugBase: 'product-grid', bg: '#f4f8ff' },
+        { name: 'Checkout', slugBase: 'checkout', bg: '#f1f6ff' },
+        { name: 'Abandoned Cart', slugBase: 'abandoned-cart', bg: '#edf4ff' },
+      ],
+    },
+    {
+      name: 'Education',
+      slugBase: 'education',
+      bg: '#f9fff5',
+      children: [
+        { name: 'Course Promo', slugBase: 'course-promo', bg: '#f6fff2' },
+        { name: 'Lesson Cover', slugBase: 'lesson-cover', bg: '#f3ffef' },
+        { name: 'Student Success', slugBase: 'student-success', bg: '#f1ffeb' },
+      ],
+    },
+    {
+      name: 'Real Estate',
+      slugBase: 'real-estate',
+      bg: '#f5faff',
+      children: [
+        { name: 'Open House', slugBase: 'open-house', bg: '#eff7ff' },
+        { name: 'Property Listing', slugBase: 'property-listing', bg: '#edf6ff' },
+        { name: 'Agent Branding', slugBase: 'agent-branding', bg: '#f0f8ff' },
+      ],
+    },
+    {
+      name: 'Restaurant',
+      slugBase: 'restaurant',
+      bg: '#fffaf0',
+      children: [
+        { name: 'Menu', slugBase: 'menu', bg: '#fff7ea' },
+        { name: 'Special Offer', slugBase: 'special-offer', bg: '#fff4e3' },
+        { name: 'Grand Opening', slugBase: 'grand-opening', bg: '#fff2de' },
+      ],
+    },
   ];
 
   const createdCategories: any[] = [];
   const createdTemplates: any[] = [];
+  const statuses = ['published', 'draft'];
 
-  for (let i = 0; i < categories.length; i++) {
-    const c = categories[i];
+  const categoryNodes: Array<{
+    name: string;
+    slugBase: string;
+    bg: string;
+    parentId: string | null;
+    rootKey: string;
+  }> = [];
+  for (const root of categories) {
+    categoryNodes.push({ name: root.name, slugBase: root.slugBase, bg: root.bg, parentId: null, rootKey: root.slugBase });
+    for (const child of root.children) {
+      categoryNodes.push({
+        name: `${root.name} - ${child.name}`,
+        slugBase: `${root.slugBase}-${child.slugBase}`,
+        bg: child.bg,
+        parentId: 'PENDING_ROOT_ID',
+        rootKey: root.slugBase,
+      });
+    }
+  }
+
+  const rootIdBySlugBase = new Map<string, string>();
+
+  for (let i = 0; i < categoryNodes.length; i++) {
+    const c = categoryNodes[i];
+    const isChild = c.parentId === 'PENDING_ROOT_ID';
+    const parentId = isChild ? rootIdBySlugBase.get(c.rootKey) ?? null : null;
     const slug = `${c.slugBase}-${timestamp}-${i}`;
 
-    // ensure unique by slug using raw SQL (some deployments may have different Prisma model columns)
-    let categoryRow: any = null;
-    const existing: any = await prisma.$queryRaw`
-      SELECT id, name, slug FROM "Category" WHERE slug = ${slug} LIMIT 1
-    `;
-    if (Array.isArray(existing) && existing.length > 0) {
-      categoryRow = existing[0];
-    } else {
-      const id = randomUUID();
-      const inserted: any = await prisma.$queryRaw`
-        INSERT INTO "Category" (id, "editorTypeId", "parentId", name, slug, "createdAt", "updatedAt")
-        VALUES (${id}::uuid, ${editorTypeId}::uuid, NULL, ${c.name}, ${slug}, now(), now())
-        RETURNING id, name, slug
-      `;
-      if (Array.isArray(inserted) && inserted.length > 0) categoryRow = inserted[0];
+    const categoryRow = await prisma.category.create({
+      data: {
+        id: randomUUID(),
+        editorTypeId,
+        parentId,
+        name: c.name,
+        slug,
+      },
+      select: { id: true, name: true, slug: true },
+    });
+
+    if (!isChild) {
+      rootIdBySlugBase.set(c.slugBase, categoryRow.id);
     }
 
-    if (!categoryRow) throw new Error('Failed to insert or find category ' + slug);
-    createdCategories.push({ id: categoryRow.id, name: categoryRow.name, slug: categoryRow.slug });
+    createdCategories.push({ id: categoryRow.id, name: categoryRow.name, slug: categoryRow.slug, parentId });
 
-    // create 2 templates per category
-    for (let j = 0; j < 2; j++) {
+    for (let j = 0; j < templatesPerCategory; j++) {
       const title = `${c.name} Template ${j + 1}`;
       const templateId = randomUUID();
-      const tSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}-${j}`;
+      const tSlug = `${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${timestamp}-${i}-${j}`;
+      const status = statuses[j % statuses.length];
 
       await prisma.template.create({
         data: {
@@ -87,19 +212,21 @@ async function main() {
           authorId: user.id,
           editorTypeId,
           categoryId: categoryRow.id,
-          status: 'published',
+          status,
         },
       });
 
       const content = { pages: [makePage(title, c.bg, i * 10 + j)] };
       await prisma.templateContent.create({ data: { templateId, content } });
 
-      createdTemplates.push({ templateId, title, categoryId: categoryRow.id });
+      createdTemplates.push({ templateId, title, categoryId: categoryRow.id, status });
     }
   }
 
-  console.log('Created categories:', createdCategories);
-  console.log('Created templates:', createdTemplates);
+  console.log('Created categories count:', createdCategories.length);
+  console.log('Created templates count:', createdTemplates.length);
+  console.log('Sample created categories:', createdCategories.slice(0, 10));
+  console.log('Sample created templates:', createdTemplates.slice(0, 10));
 }
 
 main()
