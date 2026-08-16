@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CreateSearchDto } from './dto/create-search.dto';
-import { SearchEntity } from './search.entity';
+import { Controller, Get, Query } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SearchQueryDto } from './dto/search-query.dto';
+import { SearchListEntity } from './search.entity';
 import { SearchService } from './search.service';
 
 @ApiTags('search')
@@ -10,13 +10,10 @@ import { SearchService } from './search.service';
 export class SearchController {
   constructor(private readonly service: SearchService) {}
 
-  @Post()
-  create(@Body() payload: CreateSearchDto): Promise<SearchEntity> {
-    return this.service.create(payload);
-  }
-
-  @Get(':id')
-  findById(@Param('id') id: string): Promise<SearchEntity | null> {
-    return this.service.findById(id);
+  @Get()
+  @ApiOperation({ summary: 'Search templates and categories' })
+  @ApiOkResponse({ type: SearchListEntity })
+  search(@Query() query: SearchQueryDto): Promise<SearchListEntity> {
+    return this.service.search(query);
   }
 }
