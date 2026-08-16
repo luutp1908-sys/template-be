@@ -1,11 +1,12 @@
 process.env.MOCK_MODE = 'true';
 
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { AppModule } from '../src/app.module';
 
-describe('Health (e2e)', () => {
+const { AppModule } = require('../../app.module');
+
+describe('Template stats (e2e)', () => {
   let app: INestApplication;
 
   beforeEach(async () => {
@@ -14,11 +15,19 @@ describe('Health (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
+    app.enableVersioning({
+      type: VersioningType.URI,
+      defaultVersion: '1',
+    });
+    app.useGlobalPipes(
+      new ValidationPipe({
+        transform: true,
+        whitelist: true,
+        forbidNonWhitelisted: true,
+      }),
+    );
     await app.init();
-  });
-
-  it('/api/v1/health (GET)', () => {
-    return request(app.getHttpServer()).get('/api/v1/health').expect(200);
   });
 
   it('/api/v1/template/stats/popularity (GET)', async () => {
@@ -27,6 +36,7 @@ describe('Health (e2e)', () => {
       .expect(200);
 
     expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBeGreaterThan(0);
     expect(response.body[0]).toEqual(
       expect.objectContaining({
         templateCount: expect.any(Number),
@@ -42,6 +52,7 @@ describe('Health (e2e)', () => {
       .expect(200);
 
     expect(Array.isArray(response.body)).toBe(true);
+    expect(response.body.length).toBeGreaterThan(0);
     expect(response.body[0]).toEqual(
       expect.objectContaining({
         categoryId: expect.any(String),

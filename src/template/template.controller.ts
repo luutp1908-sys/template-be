@@ -78,6 +78,22 @@ export class TemplateController {
     return this.service.create(payload, user?.id ?? '');
   }
 
+  @Get('stats/popularity')
+  @Public()
+  @ApiOperation({ summary: 'Get popularity stats by editor type' })
+  @ApiOkResponse({ type: [Object] })
+  getPopularityStats(@Query() query: TemplateStatsQueryDto): Promise<PopularityStatsEntity[]> {
+    return this.service.getPopularityStats(query);
+  }
+
+  @Get('stats/by-category')
+  @Public()
+  @ApiOperation({ summary: 'Get template counts by category' })
+  @ApiOkResponse({ type: [Object] })
+  getCategoryStats(@Query() query: TemplateStatsQueryDto): Promise<CategoryPopularityStatsEntity[]> {
+    return this.service.getCategoryStats(query);
+  }
+
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get template metadata by id' })
@@ -105,22 +121,6 @@ export class TemplateController {
   @ApiOkResponse({ type: Object })
   archive(@Param('id') id: string): Promise<TemplateEntity> {
     return this.service.archive(id);
-  }
-
-  @Get('stats/popularity')
-  @Public()
-  @ApiOperation({ summary: 'Get popularity stats by editor type' })
-  @ApiOkResponse({ type: [Object] })
-  getPopularityStats(@Query() query: TemplateStatsQueryDto): Promise<PopularityStatsEntity[]> {
-    return this.service.getPopularityStats(query);
-  }
-
-  @Get('stats/by-category')
-  @Public()
-  @ApiOperation({ summary: 'Get template counts by category' })
-  @ApiOkResponse({ type: [Object] })
-  getCategoryStats(@Query() query: TemplateStatsQueryDto): Promise<CategoryPopularityStatsEntity[]> {
-    return this.service.getCategoryStats(query);
   }
 
   @Delete(':id')
