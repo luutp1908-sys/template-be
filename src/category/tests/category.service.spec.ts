@@ -16,6 +16,8 @@ describe('CategoryService', () => {
     findAncestors: jest.fn(),
     findDescendants: jest.fn(),
     getTemplatesRecursive: jest.fn(),
+    getHierarchyStats: jest.fn(),
+    getOrphanedCategories: jest.fn(),
   };
   const cacheService = {
     getJson: jest.fn(),
@@ -89,5 +91,48 @@ describe('CategoryService', () => {
     await service.create({ name: 'New Category', slug: 'new-category', editorTypeId: 0 });
 
     expect(cacheService.delete).toHaveBeenCalledWith('category:tree');
+  });
+
+  it('should return hierarchy stats for a category', async () => {
+    const stats = {
+      id: 'cat-1',
+      name: 'Root',
+      slug: 'root',
+      parentId: null,
+      depth: 0,
+      directChildCount: 2,
+      descendantCount: 3,
+      templateCount: 4,
+      descendantTemplateCount: 12,
+    };
+    repository.findById.mockResolvedValue({ id: 'cat-1', name: 'Root', slug: 'root' });
+    repository.getHierarchyStats.mockResolvedValue(stats);
+
+    const result = await service.getHierarchyStats('cat-1');
+
+    expect(result).toEqual(stats);
+    expect(repository.getHierarchyStats).toHaveBeenCalledWith('cat-1');
+  });
+
+  it('should return orphaned categories', async () => {
+    const stats = [
+      {
+        id: 'cat-2',
+        name: 'Broken Child',
+        slug: 'broken-child',
+        parentId: 'missing-parent',
+        depth: 1,
+        directChildCount: 0,
+        descendantCount: 0,
+        templateCount: 0,
+        descendantTemplateCount: 0,
+      },
+    ];
+    repository.getOrphanedCategories.mockResolvedValue(stats);
+
+    const result = await service.getOrphanedCategories();
+
+    expect(result).toEqual(stats);
+    expect(repository.getOrphanedCategories).toHaveBeenCalled();
   });
 });

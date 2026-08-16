@@ -414,4 +414,138 @@ export class CategoryRepository implements ICategoryRepository {
     const templates = await this.prisma.template.findMany({ where: { categoryId: { in: ids }, }, select: { id: true, title: true, slug: true, authorId: true, status: true, createdAt: true, updatedAt: true } });
     return templates;
   }
+
+  async getHierarchyStats(id: string): Promise<any> {
+    const category = await this.prisma.category.findFirst({
+      where: { id, deletedAt: null },
+      select: { id: true, name: true, slug: true, parentId: true },
+    });
+
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    const rows = await this.prisma.$queryRaw<Array<any>>`
+      WITH RECURSIVE category_tree AS (
+        SELECT
+          c."id",
+          c."parentId",
+          0 AS depth
+        FROM "Category" c
+        WHERE c."id" = ${id}::uuid
+          AND c."deletedAt" IS NULL
+
+        UNION ALL
+
+        SELECT
+          child."id",
+          child."parentId",
+          parent.depth + 1
+        FROM "Category" child
+        INNER JOIN category_tree parent ON child."parentId" = parent."id"
+        WHERE child."deletedAt" IS NULL
+      )
+      SELECT
+        ${category.id}::uuid AS id,
+        ${category.name}::text AS name,
+        ${category.slug}::text AS slug,
+        ${category.parentId}::uuid AS "parentId",
+        (SELECT COALESCE(MAX(depth), 0) FROM category_tree) AS depth,
+        (
+          SELECT COUNT(*)
+          FROM "Category" c
+          WHERE c."parentId" = ${id}::uuid
+            AND c."deletedAt" IS NULL
+        )::int AS "directChildCount",
+        (
+          SELECT COUNT(*)
+          FROM "Category" c
+          WHERE c."deletedAt" IS NULL
+            AND c."id" IN (
+              WITH RECURSIVE descendants AS (
+                SELECT c2."id", c2."parentId"
+                FROM "Category" c2
+                WHERE c2."id" = ${id}::uuid
+                  AND c2."deletedAt" IS NULL
+
+                UNION ALL
+
+                SELECT child2."id", child2."parentId"
+                FROM "Category" child2
+                INNER JOIN descendants d ON child2."parentId" = d."id"
+                WHERE child2."deletedAt" IS NULL
+              )
+              SELECT d."id" FROM descendants d
+            )
+        )::int AS "descendantCount",
+        (
+          SELECT COUNT(*)
+          FROM "Template" t
+          WHERE t."categoryId" = ${id}::uuid
+        )::int AS "templateCount",
+        (
+          SELECT COUNT(*)
+          FROM "Template" t
+          WHERE t."categoryId" IN (
+            WITH RECURSIVE descendants AS (
+              SELECT c2."id", c2."parentId"
+              FROM "Category" c2
+              WHERE c2."id" = ${id}::uuid
+                AND c2."deletedAt" IS NULL
+
+              UNION ALL
+
+              SELECT child2."id", child2."parentId"
+              FROM "Category" child2
+              INNER JOIN descendants d ON child2."parentId" = d."id"
+              WHERE child2."deletedAt" IS NULL
+            )
+            SELECT d."id" FROM descendants d
+          )
+        )::int AS "descendantTemplateCount";
+    `;
+
+    return rows[0] ?? null;
+  }
+
+  async getOrphanedCategories(): Promise<any[]> {
+    const rows = await this.prisma.$queryRaw<Array<any>>`
+      WITH category_tree AS (
+        SELECT c."id", c."parentId", c."name", c."slug", c."deletedAt"
+        FROM "Category" c
+        WHERE c."deletedAt" IS NULL
+      )
+      SELECT
+        c."id",
+        c."name",
+        c."slug",
+        c."parentId",
+        1 AS depth,
+        (
+          SELECT COUNT(*)
+          FROM "Category" child
+          WHERE child."parentId" = c."id"
+            AND child."deletedAt" IS NULL
+        )::int AS "directChildCount",
+        0::int AS "descendantCount",
+        (
+          SELECT COUNT(*)
+          FROM "Template" t
+          WHERE t."categoryId" = c."id"
+        )::int AS "templateCount",
+        0::int AS "descendantTemplateCount"
+      FROM "Category" c
+      WHERE c."deletedAt" IS NULL
+        AND c."parentId" IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM "Category" parent
+          WHERE parent."id" = c."parentId"
+            AND parent."deletedAt" IS NULL
+        )
+      ORDER BY c."name" ASC;
+    `;
+
+    return rows;
+  }
 }

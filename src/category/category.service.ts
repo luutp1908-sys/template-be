@@ -95,6 +95,19 @@ export class CategoryService {
     return this.repository.getTemplatesRecursive(id);
   }
 
+  async getHierarchyStats(id: string): Promise<any> {
+    const category = await this.repository.findById(id);
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    return this.repository.getHierarchyStats(id);
+  }
+
+  async getOrphanedCategories(): Promise<any[]> {
+    return this.repository.getOrphanedCategories();
+  }
+
   private async invalidateCategoryTreeCache(): Promise<void> {
     try {
       await this.cacheService.delete(this.categoryTreeCacheKey);

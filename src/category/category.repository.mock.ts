@@ -182,4 +182,44 @@ export class CategoryRepository implements ICategoryRepository {
     // mock has no templates store
     return [];
   }
+
+  async getHierarchyStats(id: string): Promise<any> {
+    const category = this.store.get(id);
+    if (!category || category.deletedAt) {
+      throw new NotFoundException('Category not found');
+    }
+
+    const descendants = await this.findDescendants(id);
+    const childCount = [...this.store.values()].filter(
+      (c) => c.parentId === id && !c.deletedAt,
+    ).length;
+
+    return {
+      id: category.id,
+      name: category.name,
+      slug: category.slug,
+      parentId: category.parentId ?? null,
+      depth: 0,
+      directChildCount: childCount,
+      descendantCount: descendants.length,
+      templateCount: 0,
+      descendantTemplateCount: 0,
+    };
+  }
+
+  async getOrphanedCategories(): Promise<any[]> {
+    return [...this.store.values()]
+      .filter((c) => !c.deletedAt && c.parentId && !this.store.has(c.parentId))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        parentId: c.parentId,
+        depth: 1,
+        directChildCount: 0,
+        descendantCount: 0,
+        templateCount: 0,
+        descendantTemplateCount: 0,
+      }));
+  }
 }

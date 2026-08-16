@@ -4,8 +4,8 @@ const { PrismaClient } = require('@prisma/client');
 const p = new PrismaClient();
 
 async function main() {
-  const email = process.env.ADMIN_EMAIL || 'admin@example.com';
-  const password = process.env.ADMIN_PASS || 'changeme123';
+  const email = process.env.ADMIN_EMAIL || 'admin@gmail.com';
+  const password = process.env.ADMIN_PASS || '123456';
   const rounds = parseInt(process.env.BCRYPT_ROUNDS || '12', 10);
 
   const existing = await p.user.findFirst({ where: { email: email.toLowerCase() } });

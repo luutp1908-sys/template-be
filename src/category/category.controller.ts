@@ -23,6 +23,16 @@ export class CategoryController {
     return this.service.create(payload);
   }
 
+  @Get('stats/hierarchy/:id')
+  getHierarchyStats(@Param('id') id: string): Promise<any> {
+    return this.service.getHierarchyStats(id);
+  }
+
+  @Get('stats/orphans')
+  getOrphanedCategories(): Promise<any[]> {
+    return this.service.getOrphanedCategories();
+  }
+
   @Get(':id')
   findById(@Param('id') id: string): Promise<CategoryEntity | null> {
     return this.service.findById(id);
