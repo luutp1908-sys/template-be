@@ -3,8 +3,14 @@ import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
+import { TemplateStatsQueryDto } from './dto/template-stats-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
-import { TemplateEntity, TemplateListEntity } from './template.entity';
+import {
+  CategoryPopularityStatsEntity,
+  PopularityStatsEntity,
+  TemplateEntity,
+  TemplateListEntity,
+} from './template.entity';
 import { TemplateRepository } from './template.data.repository';
 
 @Injectable()
@@ -91,6 +97,26 @@ export class TemplateService {
     }
 
     await this.invalidateTemplateListCache();
+  }
+
+  async getPopularityStats(query: TemplateStatsQueryDto): Promise<PopularityStatsEntity[]> {
+    const normalizedQuery = {
+      ...query,
+      limit: query.limit ?? 10,
+      editorTypeId: query.editorTypeId,
+    };
+
+    return this.repository.getPopularityStats(normalizedQuery);
+  }
+
+  async getCategoryStats(query: TemplateStatsQueryDto): Promise<CategoryPopularityStatsEntity[]> {
+    const normalizedQuery = {
+      ...query,
+      limit: query.limit ?? 10,
+      editorTypeId: query.editorTypeId,
+    };
+
+    return this.repository.getCategoryStats(normalizedQuery);
   }
 
   private buildTemplateListCacheKey(query: TemplateListQueryDto): string {

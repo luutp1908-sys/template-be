@@ -27,7 +27,8 @@ import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
-import { TemplateEntity, TemplateListEntity } from './template.entity';
+import { TemplateStatsQueryDto } from './dto/template-stats-query.dto';
+import { CategoryPopularityStatsEntity, PopularityStatsEntity, TemplateEntity, TemplateListEntity } from './template.entity';
 import { TemplateService } from './template.service';
 
 @ApiTags('template')
@@ -104,6 +105,22 @@ export class TemplateController {
   @ApiOkResponse({ type: Object })
   archive(@Param('id') id: string): Promise<TemplateEntity> {
     return this.service.archive(id);
+  }
+
+  @Get('stats/popularity')
+  @Public()
+  @ApiOperation({ summary: 'Get popularity stats by editor type' })
+  @ApiOkResponse({ type: [Object] })
+  getPopularityStats(@Query() query: TemplateStatsQueryDto): Promise<PopularityStatsEntity[]> {
+    return this.service.getPopularityStats(query);
+  }
+
+  @Get('stats/by-category')
+  @Public()
+  @ApiOperation({ summary: 'Get template counts by category' })
+  @ApiOkResponse({ type: [Object] })
+  getCategoryStats(@Query() query: TemplateStatsQueryDto): Promise<CategoryPopularityStatsEntity[]> {
+    return this.service.getCategoryStats(query);
   }
 
   @Delete(':id')

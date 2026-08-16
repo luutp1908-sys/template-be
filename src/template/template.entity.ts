@@ -28,3 +28,22 @@ export class TemplateListEntity {
   page!: number;
   pageSize!: number;
 }
+
+export class PopularityStatsEntity {
+  editorType!: {
+    id: number;
+    type: 'graphic' | 'document' | 'whiteboard' | 'form';
+    name: string;
+  };
+  templateCount!: number;
+  publishedCount!: number;
+  draftCount!: number;
+}
+
+export class CategoryPopularityStatsEntity {
+  categoryId!: string;
+  categoryName!: string;
+  editorTypeId!: number;
+  templateCount!: number;
+  publishedCount!: number;
+}

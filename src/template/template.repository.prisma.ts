@@ -189,4 +189,127 @@ export class TemplateRepository implements ITemplateRepository {
   async archive(id: string): Promise<TemplateEntity | null> {
     return this.update(id, { status: 'archived' });
   }
+
+  async getPopularityStats(query: {
+    editorTypeId?: number;
+    limit?: number;
+    status?: 'draft' | 'published' | 'archived';
+  }): Promise<any[]> {
+    const limit = Math.max(1, query.limit ?? 10);
+    const where: Prisma.TemplateWhereInput = {
+      ...(query.editorTypeId !== undefined
+        ? { editorTypeId: await this.resolveDbEditorTypeId(query.editorTypeId) }
+        : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    const grouped = await this.prisma.template.groupBy({
+      by: ['editorTypeId', 'status'],
+      where,
+      _count: {
+        status: true,
+      },
+    });
+
+    const buckets = new Map<string, { editorType: { id: number; type: 'graphic' | 'document' | 'whiteboard' | 'form'; name: string }; templateCount: number; publishedCount: number; draftCount: number }>();
+
+    for (const row of grouped) {
+      const mappedEditor = await this.mapDbEditorTypeIdToValue(row.editorTypeId);
+      const current = buckets.get(row.editorTypeId) ?? {
+        editorType: {
+          id: mappedEditor.id,
+          type: mappedEditor.type,
+          name: mappedEditor.name,
+        },
+        templateCount: 0,
+        publishedCount: 0,
+        draftCount: 0,
+      };
+
+      const count = Number(row._count.status ?? 0);
+      current.templateCount += count;
+      if (row.status === 'published') current.publishedCount += count;
+      if (row.status === 'draft') current.draftCount += count;
+      buckets.set(row.editorTypeId, current);
+    }
+
+    return [...buckets.values()]
+      .sort((a, b) => b.templateCount - a.templateCount || a.editorType.id - b.editorType.id)
+      .slice(0, limit);
+  }
+
+  async getCategoryStats(query: {
+    editorTypeId?: number;
+    limit?: number;
+    status?: 'draft' | 'published' | 'archived';
+  }): Promise<any[]> {
+    const limit = Math.max(1, query.limit ?? 10);
+    const where: Prisma.TemplateWhereInput = {
+      ...(query.editorTypeId !== undefined
+        ? { editorTypeId: await this.resolveDbEditorTypeId(query.editorTypeId) }
+        : {}),
+      ...(query.status ? { status: query.status } : {}),
+    };
+
+    const grouped = await this.prisma.template.groupBy({
+      by: ['categoryId', 'status'],
+      where,
+      _count: {
+        status: true,
+      },
+    });
+
+    const categoryIds = Array.from(new Set(grouped.map((row) => row.categoryId)));
+    const categories = await this.prisma.category.findMany({
+      where: { id: { in: categoryIds } },
+      select: { id: true, name: true, editorTypeId: true },
+    });
+    const categoryMap = new Map(categories.map((category) => [category.id, category]));
+
+    const buckets = new Map<string, { categoryId: string; categoryName: string; editorTypeId: number; templateCount: number; publishedCount: number }>();
+
+    for (const row of grouped) {
+      const category = categoryMap.get(row.categoryId);
+      const editorTypeId = category ? await this.mapDbEditorTypeIdToNumeric(category.editorTypeId) : query.editorTypeId ?? 0;
+      const current = buckets.get(row.categoryId) ?? {
+        categoryId: row.categoryId,
+        categoryName: category?.name ?? 'Unknown Category',
+        editorTypeId,
+        templateCount: 0,
+        publishedCount: 0,
+      };
+
+      const count = Number(row._count.status ?? 0);
+      current.templateCount += count;
+      if (row.status === 'published') current.publishedCount += count;
+      buckets.set(row.categoryId, current);
+    }
+
+    return [...buckets.values()]
+      .sort((a, b) => b.templateCount - a.templateCount || a.categoryId.localeCompare(b.categoryId))
+      .slice(0, limit);
+  }
+
+  private async mapDbEditorTypeIdToValue(dbEditorTypeId: string): Promise<{ id: number; type: 'graphic' | 'document' | 'whiteboard' | 'form'; name: string }> {
+    const editorType = await this.prisma.editorType.findUnique({
+      where: { id: dbEditorTypeId },
+      select: { id: true, key: true, name: true },
+    });
+
+    const mapped = getEditorTypeByCode(editorType?.key ?? '') ?? getEditorTypeById(0)!;
+    return {
+      id: mapped.id,
+      type: mapped.type,
+      name: editorType?.name ?? mapped.type.charAt(0).toUpperCase() + mapped.type.slice(1),
+    };
+  }
+
+  private async mapDbEditorTypeIdToNumeric(dbEditorTypeId: string): Promise<number> {
+    const editorType = await this.prisma.editorType.findUnique({
+      where: { id: dbEditorTypeId },
+      select: { key: true },
+    });
+
+    return getEditorTypeByCode(editorType?.key ?? '')?.id ?? 0;
+  }
 }

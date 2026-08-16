@@ -14,6 +14,8 @@ describe('TemplateService', () => {
     remove: jest.Mock;
     publish: jest.Mock;
     archive: jest.Mock;
+    getPopularityStats: jest.Mock;
+    getCategoryStats: jest.Mock;
   };
   const cacheService = {
     getJson: jest.fn(),
@@ -40,6 +42,8 @@ describe('TemplateService', () => {
       remove: jest.fn(),
       publish: jest.fn(),
       archive: jest.fn(),
+      getPopularityStats: jest.fn(),
+      getCategoryStats: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -131,5 +135,39 @@ describe('TemplateService', () => {
     await service.publish('template-1');
 
     expect(cacheService.deleteByPattern).toHaveBeenCalledWith('template:list:*');
+  });
+
+  it('should return template popularity stats for the selected editor type', async () => {
+    const stats = [
+      {
+        editorType: { id: 0, type: 'graphic', name: 'Graphic' },
+        templateCount: 3,
+        publishedCount: 2,
+        draftCount: 1,
+      },
+    ];
+    repository.getPopularityStats.mockResolvedValue(stats);
+
+    const result = await service.getPopularityStats({ editorTypeId: 0, limit: 10 });
+
+    expect(result).toEqual(stats);
+    expect(repository.getPopularityStats).toHaveBeenCalledWith({ editorTypeId: 0, limit: 10 });
+  });
+
+  it('should return category popularity stats', async () => {
+    const stats = [
+      {
+        categoryId: 'category-1',
+        categoryName: 'Landing Pages',
+        templateCount: 5,
+        publishedCount: 3,
+      },
+    ];
+    repository.getCategoryStats.mockResolvedValue(stats);
+
+    const result = await service.getCategoryStats({ editorTypeId: 0, limit: 10 });
+
+    expect(result).toEqual(stats);
+    expect(repository.getCategoryStats).toHaveBeenCalledWith({ editorTypeId: 0, limit: 10 });
   });
 });

@@ -280,4 +280,78 @@ export class TemplateRepository implements ITemplateRepository {
       },
     });
   }
+
+  async getPopularityStats(query: { editorTypeId?: number; limit?: number; status?: string }): Promise<any[]> {
+    const limit = Math.max(1, query.limit ?? 10);
+    const filtered = [...this.mockStore.values()].filter((item) => {
+      if (query.editorTypeId !== undefined && item.editorTypeId !== query.editorTypeId) {
+        return false;
+      }
+      if (query.status && item.status !== query.status) {
+        return false;
+      }
+      return true;
+    });
+
+    const buckets = new Map<number, { editorType: { id: number; type: string; name: string }; templateCount: number; publishedCount: number; draftCount: number }>();
+
+    for (const item of filtered) {
+      const editorType = getEditorTypeById(item.editorTypeId) ?? { id: 0, type: 'graphic' };
+      const key = editorType.id;
+      const bucket = buckets.get(key) ?? {
+        editorType: {
+          id: editorType.id,
+          type: editorType.type,
+          name: editorType.type.charAt(0).toUpperCase() + editorType.type.slice(1),
+        },
+        templateCount: 0,
+        publishedCount: 0,
+        draftCount: 0,
+      };
+
+      bucket.templateCount += 1;
+      if (item.status === 'published') bucket.publishedCount += 1;
+      if (item.status === 'draft') bucket.draftCount += 1;
+      buckets.set(key, bucket);
+    }
+
+    return [...buckets.values()]
+      .sort((a, b) => b.templateCount - a.templateCount || a.editorType.id - b.editorType.id)
+      .slice(0, limit);
+  }
+
+  async getCategoryStats(query: { editorTypeId?: number; limit?: number; status?: string }): Promise<any[]> {
+    const limit = Math.max(1, query.limit ?? 10);
+    const filtered = [...this.mockStore.values()].filter((item) => {
+      if (query.editorTypeId !== undefined && item.editorTypeId !== query.editorTypeId) {
+        return false;
+      }
+      if (query.status && item.status !== query.status) {
+        return false;
+      }
+      return true;
+    });
+
+    const buckets = new Map<string, { categoryId: string; categoryName: string; editorTypeId: number; templateCount: number; publishedCount: number }>();
+
+    for (const item of filtered) {
+      const editorType = getEditorTypeById(item.editorTypeId) ?? { id: 0, type: 'graphic' };
+      const key = item.categoryId;
+      const bucket = buckets.get(key) ?? {
+        categoryId: item.categoryId,
+        categoryName: `Category ${item.categoryId.slice(0, 6)}`,
+        editorTypeId: editorType.id,
+        templateCount: 0,
+        publishedCount: 0,
+      };
+
+      bucket.templateCount += 1;
+      if (item.status === 'published') bucket.publishedCount += 1;
+      buckets.set(key, bucket);
+    }
+
+    return [...buckets.values()]
+      .sort((a, b) => b.templateCount - a.templateCount || a.categoryId.localeCompare(b.categoryId))
+      .slice(0, limit);
+  }
 }
