@@ -249,6 +249,7 @@ model Template {
 
   @@index([authorId])
   @@index([editorTypeId])
+  @@index([editorTypeId, status])
   @@index([categoryId])
   @@index([status])
   @@index([createdAt])
