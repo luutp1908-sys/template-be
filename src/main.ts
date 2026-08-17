@@ -44,13 +44,18 @@ async function bootstrap(): Promise<void> {
     }
   }
 
-  const configuredOrigin = config.get<string>('app.frontendOrigin') || process.env.FRONTEND_ORIGIN || '';
+  const configuredOrigin = config.get<string>('app.frontendOrigin', '');
   const localOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://127.0.0.1:3000'];
-  const allowedOrigins = configuredOrigin
+  const configuredOrigins = configuredOrigin
     ? configuredOrigin.split(',').map((origin) => origin.trim()).filter(Boolean)
-    : localOrigins;
+    : [];
+  const allowedOrigins = Array.from(new Set([...configuredOrigins, ...localOrigins]));
 
   const isProduction = config.get<string>('app.nodeEnv', 'development') === 'production';
+  if (isProduction && configuredOrigins.length === 0) {
+    throw new Error('FRONTEND_ORIGIN must be set in production for CORS allowlisting');
+  }
+
   app.enableCors({
     origin: (origin, callback) => {
       if (!origin) {
@@ -59,7 +64,7 @@ async function bootstrap(): Promise<void> {
       }
 
       if (isProduction) {
-        if (allowedOrigins.includes(origin)) {
+        if (configuredOrigins.includes(origin)) {
           callback(null, true);
           return;
         }
@@ -67,12 +72,12 @@ async function bootstrap(): Promise<void> {
         return;
       }
 
-      if (allowedOrigins.includes(origin) || localOrigins.includes(origin)) {
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
 
-      callback(null, true);
+      callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     credentials: true,
   });

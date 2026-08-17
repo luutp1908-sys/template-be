@@ -1,5 +1,7 @@
 import * as Joi from 'joi';
 
+const frontendOriginPattern = /^https?:\/\/[^,\s]+(,\s*https?:\/\/[^,\s]+)*$/;
+
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
   MOCK_MODE: Joi.boolean().truthy('true').falsy('false').default(false),
@@ -8,7 +10,11 @@ const envSchema = Joi.object({
   API_PREFIX: Joi.string().default('api'),
   SWAGGER_PATH: Joi.string().default('docs'),
   TRUST_PROXY: Joi.number().integer().min(0).default(0),
-  FRONTEND_ORIGIN: Joi.string().uri({ allowRelative: false }).optional().allow(''),
+  FRONTEND_ORIGIN: Joi.when('NODE_ENV', {
+    is: 'production',
+    then: Joi.string().pattern(frontendOriginPattern).required(),
+    otherwise: Joi.string().pattern(frontendOriginPattern).optional().allow(''),
+  }),
   JWT_ACCESS_SECRET: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().default('change_me_access'),

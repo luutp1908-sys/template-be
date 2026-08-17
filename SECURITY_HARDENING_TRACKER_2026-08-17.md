@@ -45,11 +45,11 @@ Current assessment: Partial compliance / needs hardening before broad production
 
 | Priority | Area | Item | Status | Owner | Due | Notes |
 | --- | --- | --- | --- | --- | --- | --- |
-| P0 | Config | Unify JWT and security defaults across config files | Not started | Backend | TBD | Remove drift between runtime config and validation schema |
-| P0 | App bootstrap | Add Helmet and set secure HTTP headers | Not started | Backend | TBD | Improve response security posture |
-| P0 | CORS | Restrict CORS to approved origins in production and staging | Not started | Backend | TBD | Avoid permissive origin rules |
-| P0 | Env hygiene | Replace placeholder secrets and weak defaults in [.env.example](.env.example) | Not started | Backend | TBD | Add production guidance |
-| P0 | Cookie auth | Harden `refreshToken` cookie settings and logging | In progress | Backend | TBD | Enforce `secure`, `httpOnly`, and policy review |
+| P0 | Config | Unify JWT and security defaults across config files | Completed | Backend | TBD | JWT lifetime defaults and frontend-origin config are aligned |
+| P0 | App bootstrap | Add Helmet and set secure HTTP headers | Completed | Backend | TBD | Helmet is active in bootstrap |
+| P0 | CORS | Restrict CORS to approved origins in production and staging | Completed | Backend | TBD | Production now requires configured allowlist and blocks unknown origins |
+| P0 | Env hygiene | Replace placeholder secrets and weak defaults in [.env.example](.env.example) | In progress | Backend | TBD | Added FRONTEND_ORIGIN; secret guidance still needs stricter production wording |
+| P0 | Cookie auth | Harden `refreshToken` cookie settings and logging | Completed | Backend | TBD | Shared cookie policy helper and structured warning logs in auth endpoints |
 | P1 | Auth flow | Review JWT claims and refresh rotation logic in [src/auth/auth.service.ts](src/auth/auth.service.ts) | Not started | Backend | TBD | Ensure least privilege and revoke/reuse checks |
 | P1 | Auth middleware | Review bearer-header validation and fail-closed behavior | Not started | Backend | TBD | Validate malformed token handling |
 | P1 | CSRF review | Determine if cookie refresh flow needs anti-CSRF mitigation | Not started | Backend + Frontend | TBD | Depends on cross-origin deployment model |
