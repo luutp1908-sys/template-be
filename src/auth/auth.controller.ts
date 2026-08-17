@@ -84,6 +84,16 @@ const authRefreshThrottle = {
   },
 };
 
+function getRefreshCookieOptions(configService: ConfigService): Record<string, string | boolean | number> {
+  const isProduction = configService.get<string>('app.nodeEnv', 'development') === 'production';
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: 'lax' as const,
+    path: '/',
+  };
+}
+
 @ApiTags('auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
@@ -98,17 +108,13 @@ export class AuthController {
   @ApiOkResponse({ type: AuthEntity })
   register(@Body() payload: RegisterDto, @Res({ passthrough: true }) res: Response): Promise<AuthEntity> {
     return this.service.register(payload).then((auth) => {
-      // set refresh token as httpOnly cookie and remove it from response body
       try {
         const refreshToken = (auth as any).refreshToken
         if (refreshToken) {
           const expires = this.configService.get<string>('jwt.refreshExpiresIn', '7d')
           const maxAge = parseDurationToMs(expires)
           res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: this.configService.get('app.nodeEnv') === 'production',
-            sameSite: 'lax',
-            path: '/',
+            ...getRefreshCookieOptions(this.configService),
             maxAge,
           })
         }
@@ -137,10 +143,7 @@ export class AuthController {
           const expires = this.configService.get<string>('jwt.refreshExpiresIn', '7d')
           const maxAge = parseDurationToMs(expires)
           res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: this.configService.get('app.nodeEnv') === 'production',
-            sameSite: 'lax',
-            path: '/',
+            ...getRefreshCookieOptions(this.configService),
             maxAge,
           })
         }
@@ -168,10 +171,7 @@ export class AuthController {
           const expires = this.configService.get<string>('jwt.refreshExpiresIn', '7d')
           const maxAge = parseDurationToMs(expires)
           res.cookie('refreshToken', refreshToken, {
-            httpOnly: true,
-            secure: this.configService.get('app.nodeEnv') === 'production',
-            sameSite: 'lax',
-            path: '/',
+            ...getRefreshCookieOptions(this.configService),
             maxAge,
           })
         }
@@ -191,7 +191,9 @@ export class AuthController {
   async logout(@CurrentUser() user: AuthUser, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.service.logout(user.id);
     try {
-      res.clearCookie('refreshToken', { path: '/', sameSite: 'lax', secure: this.configService.get('app.nodeEnv') === 'production' })
+      res.clearCookie('refreshToken', {
+        ...getRefreshCookieOptions(this.configService),
+      })
     } catch (error) {
       this.logger.warn({ err: error }, 'Failed to clear refresh token cookie during logout')
     }
