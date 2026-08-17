@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, UseGuards, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
 import {
@@ -87,6 +87,8 @@ const authRefreshThrottle = {
 @ApiTags('auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
+  private readonly logger = new Logger(AuthController.name);
+
   constructor(private readonly service: AuthService, private readonly configService: ConfigService) {}
 
   @Public()
@@ -110,8 +112,8 @@ export class AuthController {
             maxAge,
           })
         }
-      } catch {
-        // ignore cookie errors
+      } catch (error) {
+        this.logger.warn({ err: error }, 'Failed to write refresh token cookie during registration')
       }
       delete (auth as any).refreshToken
       return auth
@@ -142,7 +144,9 @@ export class AuthController {
             maxAge,
           })
         }
-      } catch {}
+      } catch (error) {
+        this.logger.warn({ err: error }, 'Failed to write refresh token cookie during login')
+      }
       delete (auth as any).refreshToken
       return auth
     })
@@ -171,7 +175,9 @@ export class AuthController {
             maxAge,
           })
         }
-      } catch {}
+      } catch (error) {
+        this.logger.warn({ err: error }, 'Failed to write refresh token cookie during refresh')
+      }
       delete (auth as any).refreshToken
       return auth
     })
@@ -185,8 +191,10 @@ export class AuthController {
   async logout(@CurrentUser() user: AuthUser, @Res({ passthrough: true }) res: Response): Promise<void> {
     await this.service.logout(user.id);
     try {
-      res.clearCookie('refreshToken', { path: '/' })
-    } catch {}
+      res.clearCookie('refreshToken', { path: '/', sameSite: 'lax', secure: this.configService.get('app.nodeEnv') === 'production' })
+    } catch (error) {
+      this.logger.warn({ err: error }, 'Failed to clear refresh token cookie during logout')
+    }
   }
 
   @Get('me')

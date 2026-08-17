@@ -6,13 +6,14 @@ export default () => ({
     apiPrefix: process.env.API_PREFIX ?? 'api',
     swaggerPath: process.env.SWAGGER_PATH ?? 'docs',
     trustProxy: Number(process.env.TRUST_PROXY ?? 0),
+    frontendOrigin: process.env.FRONTEND_ORIGIN ?? '',
     mockMode: process.env.MOCK_MODE === 'true',
   },
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,
     refreshSecret: process.env.JWT_REFRESH_SECRET,
-    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15d',
-    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
+    accessExpiresIn: process.env.JWT_ACCESS_EXPIRES_IN ?? '15m',
+    refreshExpiresIn: process.env.JWT_REFRESH_EXPIRES_IN ?? '7d',
   },
   database: {
     url: process.env.DATABASE_URL,

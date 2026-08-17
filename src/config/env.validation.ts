@@ -8,6 +8,7 @@ const envSchema = Joi.object({
   API_PREFIX: Joi.string().default('api'),
   SWAGGER_PATH: Joi.string().default('docs'),
   TRUST_PROXY: Joi.number().integer().min(0).default(0),
+  FRONTEND_ORIGIN: Joi.string().uri({ allowRelative: false }).optional().allow(''),
   JWT_ACCESS_SECRET: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().default('change_me_access'),
@@ -18,8 +19,8 @@ const envSchema = Joi.object({
     then: Joi.string().default('change_me_refresh'),
     otherwise: Joi.string().required(),
   }),
-  JWT_ACCESS_EXPIRES_IN: Joi.string().default('15d'),
-  JWT_REFRESH_EXPIRES_IN: Joi.string().default('30d'),
+  JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
+  JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
   DATABASE_STARTUP_MODE: Joi.when('NODE_ENV', {
     is: 'production',
     then: Joi.string().valid('fail-fast', 'warn').default('fail-fast'),
