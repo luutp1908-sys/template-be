@@ -24,6 +24,7 @@ model User {
   authoredTemplates Template[]  @relation("TemplateAuthor")
   drafts            UserDraft[]
   assets            Asset[]
+  exports           Export[]
   userRoles         UserRole[]
   workspaceMembers  WorkspaceMember[]
   invitedMembers    WorkspaceMember[] @relation("WorkspaceMemberInviter")
@@ -57,6 +58,7 @@ model Workspace {
 
   teams            Team[]
   assets           Asset[]
+  exports          Export[]
   tags             Tag[]
   userRoles        UserRole[]
   workspaceMembers WorkspaceMember[]
@@ -308,6 +310,31 @@ model Asset {
   @@index([uploadedById])
   @@index([storageKey])
   @@index([deletedAt])
+  @@index([createdAt])
+}
+
+model Export {
+  id               String    @id @default(uuid()) @db.Uuid
+  requestedByUserId String?   @db.Uuid
+  workspaceId      String?   @db.Uuid
+  draftId          String?   @db.Uuid
+  templateId       String?   @db.Uuid
+  format           String    @default("pdf") @db.VarChar(20)
+  status           String    @default("pending") @db.VarChar(30)
+  fileName         String    @db.VarChar(255)
+  downloadPath     String?   @db.VarChar(2048)
+  content          Json
+  errorMessage     String?   @db.VarChar(1000)
+  completedAt      DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  requestedByUser User?      @relation(fields: [requestedByUserId], references: [id], onDelete: SetNull)
+  workspace       Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  @@index([requestedByUserId])
+  @@index([workspaceId])
+  @@index([status])
   @@index([createdAt])
 }
 

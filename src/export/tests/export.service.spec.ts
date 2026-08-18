@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ExportService } from '../export.service';
-import { ExportRepository } from '../export.repository';
 
 describe('ExportService', () => {
   let service: ExportService;
@@ -10,7 +9,7 @@ describe('ExportService', () => {
       providers: [
         ExportService,
         {
-          provide: ExportRepository,
+          provide: 'EXPORT_REPOSITORY',
           useValue: {
             create: jest.fn(),
             findById: jest.fn(),
