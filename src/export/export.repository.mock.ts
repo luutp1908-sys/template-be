@@ -30,12 +30,33 @@ export class ExportRepository {
     );
   }
 
-  async findById(id: string, userId: string): Promise<ExportEntity | null> {
+  async findById(id: string, userId?: string): Promise<ExportEntity | null> {
     const exportJob = this.store.findById(id);
-    if (!exportJob || exportJob.requestedByUserId !== userId) {
+    if (!exportJob) {
+      return null;
+    }
+
+    if (userId && exportJob.requestedByUserId !== userId) {
       return null;
     }
 
     return exportJob;
+  }
+
+  async updateStatus(id: string, status: string, data: Partial<ExportEntity> = {}): Promise<ExportEntity | null> {
+    const current = this.store.findById(id);
+    if (!current) {
+      return null;
+    }
+
+    const updated = ExportMapper.toEntity({
+      ...current,
+      ...data,
+      status: status as ExportStatus,
+      updatedAt: new Date(),
+    });
+
+    this.store['data'].set(id, updated);
+    return updated;
   }
 }

@@ -3,12 +3,16 @@ import {
   ConflictException,
   Controller,
   Get,
+  Header,
   NotFoundException,
   Param,
   Post,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Response } from 'express';
+import { existsSync } from 'fs';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthUser } from '../auth/types/auth-user.type';
@@ -49,7 +53,12 @@ export class ExportController {
   @ApiOperation({ summary: 'Download generated export file when completed' })
   @ApiOkResponse({ type: Object })
   @ApiConflictResponse({ description: 'Export job is not completed yet.' })
-  async download(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<ExportEntity> {
+  @Header('Content-Type', 'application/pdf')
+  async download(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Res() res: Response,
+  ): Promise<void> {
     const exportJob = await this.service.findJobStatus(id, user.id);
     if (!exportJob) {
       throw new NotFoundException('Export job not found');
@@ -59,6 +68,11 @@ export class ExportController {
       throw new ConflictException('Export job is not completed yet');
     }
 
-    return exportJob;
+    if (!existsSync(exportJob.downloadPath)) {
+      throw new ConflictException('Export file has not been generated yet');
+    }
+
+    res.setHeader('Content-Disposition', `attachment; filename="${exportJob.fileName}"`);
+    res.sendFile(exportJob.downloadPath);
   }
 }

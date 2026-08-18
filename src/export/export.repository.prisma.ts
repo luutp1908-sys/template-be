@@ -35,14 +35,26 @@ export class ExportRepository {
     return exportJob as unknown as ExportEntity;
   }
 
-  async findById(id: string, userId: string): Promise<ExportEntity | null> {
+  async findById(id: string, userId?: string): Promise<ExportEntity | null> {
     const exportJob = await this.prisma.export.findFirst({
-      where: {
-        id,
-        requestedByUserId: userId,
-      },
+      where: userId ? { id, requestedByUserId: userId } : { id },
     });
 
     return (exportJob as ExportEntity | null) ?? null;
+  }
+
+  async updateStatus(id: string, status: string, data: Partial<ExportEntity> = {}): Promise<ExportEntity | null> {
+    const exportJob = await this.prisma.export.update({
+      where: { id },
+      data: {
+        status,
+        ...(data.downloadPath !== undefined ? { downloadPath: data.downloadPath } : {}),
+        ...(data.fileName !== undefined ? { fileName: data.fileName } : {}),
+        ...(data.errorMessage !== undefined ? { errorMessage: data.errorMessage } : {}),
+        ...(data.completedAt !== undefined ? { completedAt: data.completedAt } : {}),
+      },
+    });
+
+    return exportJob as unknown as ExportEntity;
   }
 }

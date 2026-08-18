@@ -1,14 +1,14 @@
 ## Plan: Async PDF Export From Editor
 
 **Progress Checker**
-- Current step: `Step 2 - Backend persistence + security`
-- Last completed: `Step 1 - API contract and flow definition`
+- Current step: `Step 4 - Frontend editor integration`
+- Last completed: `Step 3 - Queue + PDF generation worker`
 - Status legend: `[x] done`, `[>] in progress`, `[ ] pending`
 
 **Checklist**
 - [x] Step 1 - API contract and flow definition
 - [x] Step 2 - Backend persistence + security
-- [ ] Step 3 - Queue + PDF generation worker
+- [x] Step 3 - Queue + PDF generation worker
 - [ ] Step 4 - Frontend editor integration
 - [ ] Step 5 - Verification and hardening
 
