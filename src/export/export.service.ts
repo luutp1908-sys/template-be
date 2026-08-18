@@ -7,11 +7,11 @@ import { ExportRepository } from './export.repository';
 export class ExportService {
   constructor(private readonly repository: ExportRepository) {}
 
-  async create(payload: CreateExportDto): Promise<ExportEntity> {
-    return this.repository.create(payload);
+  async createJob(payload: CreateExportDto, userId: string): Promise<ExportEntity> {
+    return this.repository.create(payload, userId);
   }
 
-  async findById(id: string): Promise<ExportEntity | null> {
-    return this.repository.findById(id);
+  async findJobStatus(id: string, userId: string): Promise<ExportEntity | null> {
+    return this.repository.findById(id, userId);
   }
 }
