@@ -1,13 +1,15 @@
+import { Inject } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { ExportStatus } from './export.entity';
-import { ExportRepository } from './export.repository';
+import { IExportRepository } from './interfaces/export.repository.interface';
+import { EXPORT_REPOSITORY } from './export.tokens';
 
 @Processor('pdf-export')
 export class ExportProcessor extends WorkerHost {
-  constructor(private readonly repository: ExportRepository) {
+  constructor(@Inject(EXPORT_REPOSITORY) private readonly repository: IExportRepository) {
     super();
   }
 

@@ -4,11 +4,12 @@ import { Queue } from 'bullmq';
 import { CreateExportDto } from './dto/create-export.dto';
 import { ExportEntity } from './export.entity';
 import { IExportRepository } from './interfaces/export.repository.interface';
+import { EXPORT_REPOSITORY } from './export.tokens';
 
 @Injectable()
 export class ExportService {
   constructor(
-    @Inject('EXPORT_REPOSITORY') private readonly repository: IExportRepository,
+    @Inject(EXPORT_REPOSITORY) private readonly repository: IExportRepository,
     @InjectQueue('pdf-export') private readonly exportQueue: Queue,
   ) {}
 

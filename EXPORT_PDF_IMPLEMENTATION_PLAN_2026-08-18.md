@@ -1,15 +1,15 @@
 ## Plan: Async PDF Export From Editor
 
 **Progress Checker**
-- Current step: `Step 4 - Frontend editor integration`
-- Last completed: `Step 3 - Queue + PDF generation worker`
+- Current step: `Step 5 - Verification and hardening`
+- Last completed: `Step 4 - Frontend editor integration`
 - Status legend: `[x] done`, `[>] in progress`, `[ ] pending`
 
 **Checklist**
 - [x] Step 1 - API contract and flow definition
 - [x] Step 2 - Backend persistence + security
 - [x] Step 3 - Queue + PDF generation worker
-- [ ] Step 4 - Frontend editor integration
+- [x] Step 4 - Frontend editor integration
 - [ ] Step 5 - Verification and hardening
 
 Implement an async export flow where the editor sends the current unsaved canvas to backend, backend generates PDF in a queue job, and frontend polls until ready then downloads template-name.pdf. This matches your chosen behavior: no forced save-first, and a Download button next to Save Draft.

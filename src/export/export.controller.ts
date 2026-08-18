@@ -30,7 +30,7 @@ export class ExportController {
   @Post('jobs')
   @ApiOperation({ summary: 'Create an async export job' })
   @ApiOkResponse({ type: Object })
-  createJob(
+  async createJob(
     @Body() payload: CreateExportDto,
     @CurrentUser() user: AuthUser,
   ): Promise<ExportEntity> {
