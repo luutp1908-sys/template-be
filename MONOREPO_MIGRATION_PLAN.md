@@ -44,6 +44,31 @@ Migrate the current backend project into a monorepo and extract the Export modul
 - BullMQ queue backed by Redis
 - Local PDF output path under `tmp/exports`
 
+## Best-Practice Gate (Run After Every Implementation Step)
+Use this gate after each completed implementation task before marking it done.
+
+1. Architecture isolation
+- No cross-app deep imports from monolith app paths into service app implementation (for example, avoid long relative imports from `apps/export-service` into `src/*` except temporary transitional wiring explicitly documented).
+- Service ownership is clear: export code lives under export-service scope, shared code lives in shared libs.
+
+2. API surface control
+- Only intended controllers are exposed by export-service.
+- No accidental exposure of unrelated monolith endpoints.
+
+3. Security parity
+- JWT validation, ownership checks, and guard behavior remain equivalent to the original export flow.
+- Sensitive headers/tokens remain redacted in logs.
+
+4. Runtime and infra parity
+- Queue name and job lifecycle remain consistent.
+- Prisma model usage and env contract remain backward compatible.
+- CORS, versioning, and response envelope behavior stay aligned.
+
+5. Verification
+- Build passes for both monolith and export-service.
+- Relevant unit/integration checks pass for touched functionality.
+- Any known deviations are documented in this file under Notes.
+
 ## Files to Watch
 - `be/src/export/export.controller.ts`
 - `be/src/export/export.service.ts`
@@ -65,7 +90,8 @@ Migrate the current backend project into a monorepo and extract the Export modul
 - [x] Monorepo tool decision made
 - [x] API compatibility approach chosen
 - [x] Nx workspace scaffolded
-- [ ] Export service extracted
+- [x] Export service extracted
+- [x] Best-practice gate passed for latest implementation step
 - [ ] Proxy layer implemented in the current backend
 - [ ] Shared libs created
 - [ ] Contract and end-to-end tests passing
@@ -74,3 +100,4 @@ Migrate the current backend project into a monorepo and extract the Export modul
 ## Notes
 - This plan should be updated as each phase is completed.
 - Keep the checklist current so it can be used as a migration tracker.
+- Current transitional caveat: export-service now has local copies of shared concerns (auth/config/common/database/queue) to preserve isolation quickly; these should be moved into shared libs in Phase 3 to reduce duplication.

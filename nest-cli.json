@@ -3,5 +3,27 @@
   "sourceRoot": "src",
   "compilerOptions": {
     "deleteOutDir": true
+  },
+  "monorepo": true,
+  "root": ".",
+  "projects": {
+    "be": {
+      "type": "application",
+      "root": ".",
+      "entryFile": "main",
+      "sourceRoot": "src",
+      "compilerOptions": {
+        "tsConfigPath": "tsconfig.build.json"
+      }
+    },
+    "export-service": {
+      "type": "application",
+      "root": "apps/export-service",
+      "entryFile": "main",
+      "sourceRoot": "apps/export-service/src",
+      "compilerOptions": {
+        "tsConfigPath": "apps/export-service/tsconfig.app.json"
+      }
+    }
   }
 }
