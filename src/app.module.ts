@@ -16,6 +16,7 @@ import { AssetModule } from './asset/asset.module';
 import { TagModule } from './tag/tag.module';
 import { SearchModule } from './search/search.module';
 import { ExportModule } from './export/export.module';
+import { ExportProxyModule } from './export-proxy/export-proxy.module';
 import { AiModule } from './ai/ai.module';
 import { HealthModule } from './common/health/health.module';
 import { CacheModule } from './cache/cache.module';
@@ -25,6 +26,8 @@ import { DatabaseModule } from './database/database.module';
 import { QueueModule } from './queue/queue.module';
 import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
 import { AuthenticationMiddleware } from './auth/middleware/authentication.middleware';
+
+const useExportProxy = Boolean(process.env.EXPORT_SERVICE_URL?.trim());
 
 @Module({
   imports: [
@@ -80,7 +83,7 @@ import { AuthenticationMiddleware } from './auth/middleware/authentication.middl
     AssetModule,
     TagModule,
     SearchModule,
-    ExportModule,
+    ...(useExportProxy ? [ExportProxyModule] : [ExportModule]),
     AiModule,
   ],
   providers: [

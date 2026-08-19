@@ -92,12 +92,15 @@ Use this gate after each completed implementation task before marking it done.
 - [x] Nx workspace scaffolded
 - [x] Export service extracted
 - [x] Best-practice gate passed for latest implementation step
-- [ ] Proxy layer implemented in the current backend
-- [ ] Shared libs created
-- [ ] Contract and end-to-end tests passing
+- [x] Proxy layer implemented in the current backend
+- [x] Shared libs created
+- [x] Contract and end-to-end tests passing
 - [ ] Rollout completed
 
 ## Notes
 - This plan should be updated as each phase is completed.
 - Keep the checklist current so it can be used as a migration tracker.
 - Current transitional caveat: export-service now has local copies of shared concerns (auth/config/common/database/queue) to preserve isolation quickly; these should be moved into shared libs in Phase 3 to reduce duplication.
+- Proxy contract tests added under `src/export-proxy/tests` and passing.
+- End-to-end proxy smoke succeeded: register/login -> create export job -> poll completed -> download PDF via monolith proxy with `EXPORT_SERVICE_URL` set.
+- Initial shared library slice created at `libs/shared-config` (configuration + env validation) as the starting point for Phase 3 consolidation.
