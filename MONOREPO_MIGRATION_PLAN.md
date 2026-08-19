@@ -64,7 +64,7 @@ Migrate the current backend project into a monorepo and extract the Export modul
 - [x] Export module identified as the first extraction candidate
 - [x] Monorepo tool decision made
 - [x] API compatibility approach chosen
-- [ ] Nx workspace scaffolded
+- [x] Nx workspace scaffolded
 - [ ] Export service extracted
 - [ ] Proxy layer implemented in the current backend
 - [ ] Shared libs created

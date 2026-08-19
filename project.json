@@ -1,0 +1,50 @@
+{
+  "$schema": "./node_modules/nx/schemas/project-schema.json",
+  "name": "be",
+  "projectType": "application",
+  "sourceRoot": "src",
+  "targets": {
+    "build": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nest build"
+      }
+    },
+    "start": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "nest start"
+      }
+    },
+    "start-dev": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "npx kill-port 4000 || true && LOG_LEVEL=warn nest start --watch"
+      }
+    },
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "eslint \"{src,test}/**/*.ts\" --fix"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "jest"
+      }
+    },
+    "test-e2e": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "jest --config ./test/jest-e2e.json"
+      }
+    },
+    "prisma-generate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "prisma generate"
+      }
+    }
+  }
+}
