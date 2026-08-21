@@ -58,11 +58,11 @@ Phase 1 validation notes (2026-08-21):
   - `prisma migrate status` confirms `Database schema is up to date!`.
 
 ### Phase 2: AWS Foundation
-- [ ] Create VPC and subnets in one region.
-- [ ] Create Security Groups with least-privilege rules.
-- [ ] Create ECR repositories:
-  - [ ] `be-monolith`
-  - [ ] `be-export-service` (optional initial deploy)
+- [x] Create VPC and subnets in one region.
+- [x] Create Security Groups with least-privilege rules.
+- [x] Create ECR repositories:
+  - [x] `be-monolith`
+  - [x] `be-export-service` (optional initial deploy)
 - [ ] Create ACM certificate for HTTPS domain.
 
 Phase 2 implementation notes (2026-08-22):
@@ -77,10 +77,26 @@ Phase 2 implementation notes (2026-08-22):
   - `terraform fmt -recursive infra` succeeded.
   - `terraform init` succeeded and generated `.terraform.lock.hcl`.
   - `terraform validate` succeeded for `infra/environments/prod`.
-- Current blocker:
-  - `terraform plan` failed with `No valid credential sources found` for AWS provider.
-  - Next required action: configure AWS credentials/profile, then rerun `terraform plan` and `terraform apply`.
-- Checklist remains open until Terraform `plan/apply` succeeds in AWS account.
+- Credential status:
+  - Previously blocked on missing AWS credentials; resolved after configuring AWS profile.
+- Provisioning execution (2026-08-22):
+  - `aws sts get-caller-identity` succeeded for account `764800440966`.
+  - `terraform plan -var-file=terraform.tfvars.example -out=tfplan` succeeded.
+  - `terraform apply tfplan` succeeded.
+  - Apply summary: `Resources: 23 added, 0 changed, 0 destroyed`.
+  - Outputs captured:
+    - `vpc_id`: `vpc-0fd403204cadfd886`
+    - `public_subnet_ids`: `subnet-0aa814ed43e444712`, `subnet-028592f5bf170ef55`
+    - `private_subnet_ids`: `subnet-034e44aa73334c817`, `subnet-0d94d183613763391`
+    - `security_group_ids.alb`: `sg-0d021f56a03714682`
+    - `security_group_ids.ecs`: `sg-00c0dc5fff0f5148c`
+    - `security_group_ids.rds`: `sg-0eae545a6b4f873df`
+    - `security_group_ids.redis`: `sg-07d5fa01db367d527`
+    - `ecr_repository_urls.be-monolith`: `764800440966.dkr.ecr.ap-southeast-1.amazonaws.com/be-monolith`
+    - `ecr_repository_urls.be-export-service`: `764800440966.dkr.ecr.ap-southeast-1.amazonaws.com/be-export-service`
+- Remaining Phase 2 item:
+  - ACM certificate is intentionally pending until production domain is ready.
+- Checklist remains partially open because ACM depends on domain readiness.
 
 ### Phase 3: Data Services
 - [ ] Provision RDS PostgreSQL (Single-AZ, small instance class).
