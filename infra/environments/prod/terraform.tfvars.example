@@ -1,0 +1,29 @@
+aws_region   = "ap-southeast-1"
+project_name = "template-saas"
+environment  = "prod"
+
+# Keep az_count at 2 for baseline redundancy.
+az_count = 2
+
+# Cost-aware baseline: no NAT gateways in Phase 2.
+vpc_cidr             = "10.40.0.0/16"
+public_subnet_cidrs  = ["10.40.0.0/20", "10.40.16.0/20"]
+private_subnet_cidrs = ["10.40.128.0/20", "10.40.144.0/20"]
+
+# Replace with office/VPN CIDRs before public exposure.
+allowed_ingress_cidrs = ["0.0.0.0/0"]
+app_port              = 4000
+
+repository_names               = ["be-monolith", "be-export-service"]
+ecr_lifecycle_keep_image_count = 30
+
+# Domain is not ready yet, keep ACM disabled.
+enable_acm                        = false
+domain_name                       = ""
+subject_alternative_names         = []
+route53_zone_id                   = ""
+create_route53_validation_records = false
+
+extra_tags = {
+  Owner = "backend-team"
+}

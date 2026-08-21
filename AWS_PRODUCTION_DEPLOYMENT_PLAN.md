@@ -65,6 +65,23 @@ Phase 1 validation notes (2026-08-21):
   - [ ] `be-export-service` (optional initial deploy)
 - [ ] Create ACM certificate for HTTPS domain.
 
+Phase 2 implementation notes (2026-08-22):
+- Terraform scaffold created under `infra/`:
+  - `infra/environments/prod` (entrypoint, variables, outputs, tfvars example)
+  - `infra/modules/network` (VPC/subnets/route tables/IGW)
+  - `infra/modules/security` (ALB/ECS/RDS/Redis security groups)
+  - `infra/modules/ecr` (ECR repos + lifecycle policy)
+  - `infra/modules/acm` (optional ACM cert with conditional DNS validation)
+- Runbook added: `infra/README.md`.
+- Terraform validation run completed locally:
+  - `terraform fmt -recursive infra` succeeded.
+  - `terraform init` succeeded and generated `.terraform.lock.hcl`.
+  - `terraform validate` succeeded for `infra/environments/prod`.
+- Current blocker:
+  - `terraform plan` failed with `No valid credential sources found` for AWS provider.
+  - Next required action: configure AWS credentials/profile, then rerun `terraform plan` and `terraform apply`.
+- Checklist remains open until Terraform `plan/apply` succeeds in AWS account.
+
 ### Phase 3: Data Services
 - [ ] Provision RDS PostgreSQL (Single-AZ, small instance class).
 - [ ] Provision ElastiCache Redis (single node).

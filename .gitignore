@@ -11,3 +11,10 @@ prisma/dev.db
 # Nx local cache/workspace state
 .nx/cache
 .nx/workspace-data
+
+# Terraform local state
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
