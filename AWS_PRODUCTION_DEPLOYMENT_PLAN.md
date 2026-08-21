@@ -37,10 +37,25 @@ Deploy the backend to a real production-like AWS environment with minimal cost o
 ## Detailed Implementation Plan
 
 ### Phase 1: Prerequisites and Packaging
-- [ ] Confirm backend build output path and runtime command are correct for production image.
-- [ ] Validate Docker image build locally.
-- [ ] Ensure required env vars are present and documented from `.env.example`.
-- [ ] Confirm Prisma migration command is ready for non-interactive pipeline use.
+- [x] Confirm backend build output path and runtime command are correct for production image.
+- [x] Validate Docker image build locally.
+- [x] Ensure required env vars are present and documented from `.env.example`.
+- [x] Confirm Prisma migration command is ready for non-interactive pipeline use.
+
+Phase 1 validation notes (2026-08-21):
+- Verified runtime entrypoint alignment:
+  - `package.json` `start:prod` -> `node dist/src/main.js`
+  - `Dockerfile` CMD -> `node dist/src/main.js`
+- Local image build succeeded:
+  - `docker build -t template-saas-backend:local .`
+  - Result: `Successfully tagged template-saas-backend:local`
+- Environment contract checked in `.env.example`:
+  - Contains required production keys including `DATABASE_URL`, `REDIS_HOST`, `REDIS_PORT`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `EXPORT_SERVICE_URL`.
+- Prisma pipeline readiness check (2026-08-22):
+  - Baseline completed on existing non-empty local database by resolving existing migrations as applied.
+  - Restored missing migration file in `prisma/migrations/20260816000000_add_template_editor_type_status_index/migration.sql`.
+  - `npm run prisma:deploy` now succeeds with `No pending migrations to apply`.
+  - `prisma migrate status` confirms `Database schema is up to date!`.
 
 ### Phase 2: AWS Foundation
 - [ ] Create VPC and subnets in one region.

@@ -12,7 +12,7 @@
     "start:debug": "nest start --debug --watch",
     "start:export": "nx start export-service",
     "start:export:dev": "nx start-dev export-service",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main.js",
     "lint": "nx lint be",
     "test": "nx test be",
     "test:watch": "jest --watch",
