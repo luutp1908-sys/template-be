@@ -79,6 +79,96 @@ variable "ecr_lifecycle_keep_image_count" {
   default     = 30
 }
 
+variable "enable_data_services" {
+  description = "Whether to provision Phase 3 data services"
+  type        = bool
+  default     = true
+}
+
+variable "db_name" {
+  description = "Application database name"
+  type        = string
+  default     = "template_saas"
+}
+
+variable "db_username" {
+  description = "Master username for RDS"
+  type        = string
+  default     = "template_admin"
+}
+
+variable "db_instance_class" {
+  description = "RDS instance class"
+  type        = string
+  default     = "db.t4g.micro"
+}
+
+variable "db_allocated_storage" {
+  description = "RDS allocated storage (GiB)"
+  type        = number
+  default     = 20
+}
+
+variable "db_max_allocated_storage" {
+  description = "RDS max autoscaled storage (GiB)"
+  type        = number
+  default     = 100
+}
+
+variable "db_engine_version" {
+  description = "PostgreSQL engine version"
+  type        = string
+  default     = "16.15"
+}
+
+variable "db_backup_retention_period" {
+  description = "RDS backup retention in days"
+  type        = number
+  default     = 7
+}
+
+variable "db_multi_az" {
+  description = "Enable RDS Multi-AZ"
+  type        = bool
+  default     = false
+}
+
+variable "db_deletion_protection" {
+  description = "Enable RDS deletion protection"
+  type        = bool
+  default     = false
+}
+
+variable "redis_node_type" {
+  description = "ElastiCache node type"
+  type        = string
+  default     = "cache.t4g.micro"
+}
+
+variable "redis_engine_version" {
+  description = "Redis engine version"
+  type        = string
+  default     = "7.1"
+}
+
+variable "redis_port" {
+  description = "Redis port"
+  type        = number
+  default     = 6379
+}
+
+variable "redis_automatic_failover_enabled" {
+  description = "Enable Redis automatic failover"
+  type        = bool
+  default     = false
+}
+
+variable "secret_recovery_window_in_days" {
+  description = "Secrets Manager recovery window"
+  type        = number
+  default     = 7
+}
+
 variable "enable_acm" {
   description = "Whether to create ACM certificate resources"
   type        = bool

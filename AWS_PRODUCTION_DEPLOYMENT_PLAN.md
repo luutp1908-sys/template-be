@@ -99,10 +99,28 @@ Phase 2 implementation notes (2026-08-22):
 - Checklist remains partially open because ACM depends on domain readiness.
 
 ### Phase 3: Data Services
-- [ ] Provision RDS PostgreSQL (Single-AZ, small instance class).
-- [ ] Provision ElastiCache Redis (single node).
-- [ ] Store DB and Redis credentials in Secrets Manager.
-- [ ] Validate ECS network access to RDS and Redis.
+- [x] Provision RDS PostgreSQL (Single-AZ, small instance class).
+- [x] Provision ElastiCache Redis (single node).
+- [x] Store DB and Redis credentials in Secrets Manager.
+- [x] Validate ECS network access to RDS and Redis.
+
+Phase 3 implementation notes (2026-08-22):
+- Added Terraform module `infra/modules/data-services` and wired it in `infra/environments/prod`.
+- Initial apply delay and failure root cause:
+  - ElastiCache creation took ~7m40s (managed service provisioning latency).
+  - RDS failed initially because `db_engine_version=16.3` is unavailable in `ap-southeast-1`.
+  - Fixed by updating RDS engine version to `16.15`.
+- Final validation:
+  - `terraform plan` now reports `No changes. Your infrastructure matches the configuration.`
+- Provisioned outputs:
+  - `db_instance_id`: `db-4S5WPKCKFLIUXLZAC4QGJU53EU`
+  - `db_endpoint`: `template-saas-prod-postgres.cdsi6yue03d8.ap-southeast-1.rds.amazonaws.com`
+  - `db_port`: `5432`
+  - `redis_replication_group_id`: `template-saas-prod-redis`
+  - `redis_primary_endpoint`: `master.template-saas-prod-redis.6peln2.apse1.cache.amazonaws.com`
+  - `redis_port`: `6379`
+  - `db_secret_arn`: `arn:aws:secretsmanager:ap-southeast-1:764800440966:secret:template-saas-prod/database-n6b9Ri`
+  - `redis_secret_arn`: `arn:aws:secretsmanager:ap-southeast-1:764800440966:secret:template-saas-prod/redis-K44BXi`
 
 ### Phase 4: ECS Services
 - [ ] Create ECS cluster (Fargate).

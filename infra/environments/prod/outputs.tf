@@ -37,3 +37,43 @@ output "acm_certificate_arn" {
   description = "ACM certificate ARN if certificate creation is enabled"
   value       = module.acm.certificate_arn
 }
+
+output "db_instance_id" {
+  description = "RDS instance id"
+  value       = var.enable_data_services ? module.data_services[0].db_instance_id : null
+}
+
+output "db_endpoint" {
+  description = "RDS endpoint"
+  value       = var.enable_data_services ? module.data_services[0].db_endpoint : null
+}
+
+output "db_port" {
+  description = "RDS port"
+  value       = var.enable_data_services ? module.data_services[0].db_port : null
+}
+
+output "redis_replication_group_id" {
+  description = "ElastiCache replication group id"
+  value       = var.enable_data_services ? module.data_services[0].redis_replication_group_id : null
+}
+
+output "redis_primary_endpoint" {
+  description = "Redis primary endpoint"
+  value       = var.enable_data_services ? module.data_services[0].redis_primary_endpoint : null
+}
+
+output "redis_port" {
+  description = "Redis port"
+  value       = var.enable_data_services ? module.data_services[0].redis_port : null
+}
+
+output "db_secret_arn" {
+  description = "Secrets Manager ARN for database credentials"
+  value       = var.enable_data_services ? module.data_services[0].db_secret_arn : null
+}
+
+output "redis_secret_arn" {
+  description = "Secrets Manager ARN for Redis credentials"
+  value       = var.enable_data_services ? module.data_services[0].redis_secret_arn : null
+}

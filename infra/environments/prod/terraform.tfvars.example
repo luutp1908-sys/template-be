@@ -17,6 +17,23 @@ app_port              = 4000
 repository_names               = ["be-monolith", "be-export-service"]
 ecr_lifecycle_keep_image_count = 30
 
+# Phase 3: data services (cost-aware baseline)
+enable_data_services            = true
+db_name                         = "template_saas"
+db_username                     = "template_admin"
+db_instance_class               = "db.t4g.micro"
+db_allocated_storage            = 20
+db_max_allocated_storage        = 100
+db_engine_version               = "16.15"
+db_backup_retention_period      = 7
+db_multi_az                     = false
+db_deletion_protection          = false
+redis_node_type                 = "cache.t4g.micro"
+redis_engine_version            = "7.1"
+redis_port                      = 6379
+redis_automatic_failover_enabled = false
+secret_recovery_window_in_days  = 7
+
 # Domain is not ready yet, keep ACM disabled.
 enable_acm                        = false
 domain_name                       = ""
