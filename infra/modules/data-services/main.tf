@@ -88,6 +88,20 @@ resource "aws_secretsmanager_secret" "db" {
   })
 }
 
+resource "aws_secretsmanager_secret" "db_url" {
+  name                    = "${var.name_prefix}/database-url"
+  recovery_window_in_days = var.secret_recovery_window_in_days
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-db-url-secret"
+  })
+}
+
+resource "aws_secretsmanager_secret_version" "db_url" {
+  secret_id     = aws_secretsmanager_secret.db_url.id
+  secret_string = "postgresql://${var.db_username}:${urlencode(random_password.db_password.result)}@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.db_name}?schema=public"
+}
+
 resource "aws_secretsmanager_secret_version" "db" {
   secret_id = aws_secretsmanager_secret.db.id
   secret_string = jsonencode({
@@ -97,7 +111,7 @@ resource "aws_secretsmanager_secret_version" "db" {
     dbname   = var.db_name
     username = var.db_username
     password = random_password.db_password.result
-    url      = "postgresql://${var.db_username}:${random_password.db_password.result}@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.db_name}?schema=public"
+    url      = "postgresql://${var.db_username}:${urlencode(random_password.db_password.result)}@${aws_db_instance.this.address}:${aws_db_instance.this.port}/${var.db_name}?schema=public"
   })
 }
 

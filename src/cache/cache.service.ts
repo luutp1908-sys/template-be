@@ -20,6 +20,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
     const host = this.configService.get<string>('redis.host', 'localhost');
     const port = this.configService.get<number>('redis.port', 6379);
+    const tls = this.configService.get<boolean>('redis.tls', false);
     const password = this.configService.get<string>('redis.password') || undefined;
     const connectTimeout = this.configService.get<number>('cache.connectTimeoutMs', 2000);
 
@@ -28,6 +29,7 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
         host,
         port,
         connectTimeout,
+        ...(tls ? { tls: true as const } : {}),
       },
       password,
     });

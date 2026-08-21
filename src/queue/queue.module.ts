@@ -7,13 +7,18 @@ import { BullModule } from '@nestjs/bullmq';
   imports: [
     BullModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>('redis.host', 'localhost'),
-          port: configService.get<number>('redis.port', 6379),
-          password: configService.get<string>('redis.password') || undefined,
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const tls = configService.get<boolean>('redis.tls', false);
+
+        return {
+          connection: {
+            host: configService.get<string>('redis.host', 'localhost'),
+            port: configService.get<number>('redis.port', 6379),
+            password: configService.get<string>('redis.password') || undefined,
+            tls: tls ? {} : undefined,
+          },
+        };
+      },
     }),
   ],
   exports: [BullModule],

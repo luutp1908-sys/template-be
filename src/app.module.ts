@@ -28,6 +28,7 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
 import { AuthenticationMiddleware } from './auth/middleware/authentication.middleware';
 
 const useExportProxy = Boolean(process.env.EXPORT_SERVICE_URL?.trim());
+const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
 
 @Module({
   imports: [
@@ -70,7 +71,7 @@ const useExportProxy = Boolean(process.env.EXPORT_SERVICE_URL?.trim());
     }),
     CacheModule,
     DatabaseModule,
-    ...(process.env.MOCK_MODE === 'true' ? [] : [QueueModule]),
+    ...(process.env.MOCK_MODE === 'true' || !queueEnabled ? [] : [QueueModule]),
     HealthModule,
     AuthModule,
     UserModule,

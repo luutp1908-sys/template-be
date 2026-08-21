@@ -169,6 +169,179 @@ variable "secret_recovery_window_in_days" {
   default     = 7
 }
 
+variable "enable_vpc_endpoints" {
+  description = "Create VPC endpoints for private subnet ECS access without NAT"
+  type        = bool
+  default     = true
+}
+
+variable "enable_ecs" {
+  description = "Enable monolith ECS deployment"
+  type        = bool
+  default     = true
+
+  validation {
+    condition     = var.enable_ecs == false || var.enable_data_services == true
+    error_message = "enable_data_services must be true when enable_ecs is true."
+  }
+}
+
+variable "container_port" {
+  description = "Monolith container port"
+  type        = number
+  default     = 4000
+}
+
+variable "health_check_path" {
+  description = "ALB target health check path"
+  type        = string
+  default     = "/api/v1/health"
+}
+
+variable "ecs_task_cpu" {
+  description = "ECS task CPU units"
+  type        = number
+  default     = 512
+}
+
+variable "ecs_task_memory" {
+  description = "ECS task memory in MiB"
+  type        = number
+  default     = 1024
+}
+
+variable "ecs_desired_count" {
+  description = "Desired ECS task count for monolith"
+  type        = number
+  default     = 1
+}
+
+variable "ecs_health_check_grace_period_seconds" {
+  description = "ECS service health check grace period"
+  type        = number
+  default     = 90
+}
+
+variable "log_retention_days" {
+  description = "CloudWatch log retention days for ECS services"
+  type        = number
+  default     = 14
+}
+
+variable "ecs_execution_role_arn" {
+  description = "Optional existing ECS execution role ARN"
+  type        = string
+  default     = null
+}
+
+variable "ecs_task_role_arn" {
+  description = "Optional existing ECS task role ARN"
+  type        = string
+  default     = null
+}
+
+variable "monolith_image_tag" {
+  description = "Container image tag for monolith deployment"
+  type        = string
+  default     = "latest"
+}
+
+variable "enable_https_listener" {
+  description = "Enable ALB HTTPS listener when certificate is available"
+  type        = bool
+  default     = false
+}
+
+variable "certificate_arn_override" {
+  description = "Optional ACM certificate ARN override for HTTPS listener"
+  type        = string
+  default     = null
+}
+
+variable "frontend_origin" {
+  description = "Allowed frontend origin(s) for CORS in production"
+  type        = string
+  default     = "http://localhost:3000"
+}
+
+variable "api_prefix" {
+  description = "API route prefix"
+  type        = string
+  default     = "api"
+}
+
+variable "swagger_path" {
+  description = "Swagger route path"
+  type        = string
+  default     = "docs"
+}
+
+variable "trust_proxy" {
+  description = "Express trust proxy setting"
+  type        = number
+  default     = 1
+}
+
+variable "node_env" {
+  description = "Node environment"
+  type        = string
+  default     = "production"
+}
+
+variable "log_level" {
+  description = "Application log level"
+  type        = string
+  default     = "info"
+}
+
+variable "database_startup_mode" {
+  description = "Database startup mode"
+  type        = string
+  default     = "fail-fast"
+}
+
+variable "cache_enabled" {
+  description = "Enable cache"
+  type        = bool
+  default     = true
+}
+
+variable "cache_key_prefix" {
+  description = "Cache key prefix"
+  type        = string
+  default     = "template-saas"
+}
+
+variable "export_service_url" {
+  description = "Optional export service URL for proxy mode"
+  type        = string
+  default     = ""
+}
+
+variable "jwt_access_expires_in" {
+  description = "JWT access token lifetime"
+  type        = string
+  default     = "15m"
+}
+
+variable "jwt_refresh_expires_in" {
+  description = "JWT refresh token lifetime"
+  type        = string
+  default     = "7d"
+}
+
+variable "bcrypt_salt_rounds" {
+  description = "Bcrypt salt rounds"
+  type        = number
+  default     = 12
+}
+
+variable "enable_request_logs" {
+  description = "Enable verbose request logs"
+  type        = bool
+  default     = false
+}
+
 variable "enable_acm" {
   description = "Whether to create ACM certificate resources"
   type        = bool

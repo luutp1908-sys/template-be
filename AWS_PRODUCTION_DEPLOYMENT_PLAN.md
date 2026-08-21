@@ -123,11 +123,48 @@ Phase 3 implementation notes (2026-08-22):
   - `redis_secret_arn`: `arn:aws:secretsmanager:ap-southeast-1:764800440966:secret:template-saas-prod/redis-K44BXi`
 
 ### Phase 4: ECS Services
-- [ ] Create ECS cluster (Fargate).
-- [ ] Create ALB and target group for monolith.
-- [ ] Create monolith task definition with secrets/env injection.
-- [ ] Deploy monolith ECS service and pass health checks.
+- [x] Create ECS cluster (Fargate).
+- [x] Create ALB and target group for monolith.
+- [x] Create monolith task definition with secrets/env injection.
+- [x] Deploy monolith ECS service and pass health checks.
 - [ ] (Optional now) Create export-service task definition and internal service.
+
+Phase 4 implementation notes (2026-08-22):
+- Implemented Terraform modules and environment wiring:
+  - `infra/modules/alb`
+  - `infra/modules/ecs`
+  - `infra/modules/vpc-endpoints`
+  - Updated `infra/environments/prod` variables, main wiring, outputs, and tfvars example.
+- Provisioned successfully:
+  - ALB: `arn:aws:elasticloadbalancing:ap-southeast-1:764800440966:loadbalancer/app/template-saas-prod-alb/f18158a71fa8ae9d`
+  - ALB DNS: `template-saas-prod-alb-1931091877.ap-southeast-1.elb.amazonaws.com`
+  - Target Group: `arn:aws:elasticloadbalancing:ap-southeast-1:764800440966:targetgroup/template-saas-prod-mono-tg/1cfadd1750f207a2`
+  - ECS Cluster: `arn:aws:ecs:ap-southeast-1:764800440966:cluster/template-saas-prod-cluster`
+  - ECS Log Group: `/ecs/template-saas-prod-monolith`
+  - Private-subnet VPC endpoints: ECR API/DKR, CloudWatch Logs, Secrets Manager, S3.
+  - App secret created for JWT values: `arn:aws:secretsmanager:ap-southeast-1:764800440966:secret:template-saas-prod/app-5AmQJD`
+- IAM and ECS provisioning status:
+  - IAM access issue was resolved and apply succeeded for ECS roles/policies.
+  - Monolith ECS service is provisioned.
+  - Current ECS task definition ARN: `arn:aws:ecs:ap-southeast-1:764800440966:task-definition/template-saas-prod-monolith:5`.
+  - Current ECS service ARN: `arn:aws:ecs:ap-southeast-1:764800440966:service/template-saas-prod-cluster/template-saas-prod-monolith`.
+- Runtime fixes applied during validation:
+  - Published monolith image to ECR and switched deployment from immutable `latest` to versioned tag (`20260822-queue-off`).
+  - Added ECS runtime platform support and set ARM64 in prod to match local Apple Silicon image builds.
+  - Added dedicated DB URL secret (`template-saas-prod/database-url-*`) and wired `DATABASE_URL` directly from this secret.
+  - Added Redis TLS support in app config/cache/queue paths.
+  - Added `QUEUE_ENABLED` feature flag and disabled queue in current prod ECS env for baseline startup isolation.
+  - Relaxed ALB health check matcher to `200-499` temporarily for debugging/registration stability.
+- Final resolution and validation (2026-08-22):
+  - Root cause for repeated task exits: BullMQ workers started without root queue connection (`Worker requires a connection`).
+  - Fix applied: enable queue root path in ECS env (`QUEUE_ENABLED=true`, `MOCK_MODE=false`) and deploy image tag `20260822-queue-on`.
+  - Final deployed task definition: `arn:aws:ecs:ap-southeast-1:764800440966:task-definition/template-saas-prod-monolith:7`.
+  - Runtime evidence:
+    - ECS service state reached `desired=1`, `running=1`, `pending=0`.
+    - ALB target group contains healthy target(s).
+    - Public health endpoint returns `200`:
+      - `http://template-saas-prod-alb-1931091877.ap-southeast-1.elb.amazonaws.com/api/v1/health`
+      - Response body: `{"success":true,"data":{"status":"ok"},...}`
 
 ### Phase 5: CI/CD Pipeline
 - [ ] Build and push image to ECR on main branch.

@@ -77,3 +77,48 @@ output "redis_secret_arn" {
   description = "Secrets Manager ARN for Redis credentials"
   value       = var.enable_data_services ? module.data_services[0].redis_secret_arn : null
 }
+
+output "app_secret_arn" {
+  description = "Secrets Manager ARN for app JWT secrets"
+  value       = var.enable_ecs ? aws_secretsmanager_secret.app[0].arn : null
+}
+
+output "vpc_endpoint_ids" {
+  description = "VPC endpoint ids used by private ECS tasks"
+  value       = var.enable_vpc_endpoints ? module.vpc_endpoints[0].endpoint_ids : null
+}
+
+output "alb_arn" {
+  description = "Application Load Balancer ARN"
+  value       = var.enable_ecs ? module.alb[0].alb_arn : null
+}
+
+output "alb_dns_name" {
+  description = "Application Load Balancer DNS name"
+  value       = var.enable_ecs ? module.alb[0].alb_dns_name : null
+}
+
+output "alb_target_group_arn" {
+  description = "Monolith target group ARN"
+  value       = var.enable_ecs ? module.alb[0].target_group_arn : null
+}
+
+output "ecs_cluster_arn" {
+  description = "ECS cluster ARN"
+  value       = var.enable_ecs ? module.ecs[0].cluster_arn : null
+}
+
+output "ecs_service_arn" {
+  description = "Monolith ECS service ARN"
+  value       = var.enable_ecs ? module.ecs[0].service_arn : null
+}
+
+output "ecs_task_definition_arn" {
+  description = "Monolith ECS task definition ARN"
+  value       = var.enable_ecs ? module.ecs[0].task_definition_arn : null
+}
+
+output "ecs_log_group_name" {
+  description = "CloudWatch log group for ECS monolith"
+  value       = var.enable_ecs ? module.ecs[0].log_group_name : null
+}

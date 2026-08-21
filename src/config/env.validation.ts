@@ -50,6 +50,7 @@ const envSchema = Joi.object({
     then: Joi.number().port().optional(),
     otherwise: Joi.number().port().required(),
   }),
+  REDIS_TLS: Joi.boolean().truthy('true').falsy('false').default(true),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
   CACHE_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   CACHE_KEY_PREFIX: Joi.string().default('template-saas'),
