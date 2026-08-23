@@ -176,7 +176,7 @@ export class AuthController {
           })
         }
       } catch (error) {
-        this.logger.warn({ err: error }, 'Failed to write refresh token cookie during refresh')
+        this.logger.warn({ err: error }, 'Failed to write refresh token cookie during refresh!')
       }
       delete (auth as any).refreshToken
       return auth
