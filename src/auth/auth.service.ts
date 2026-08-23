@@ -1,4 +1,11 @@
-import { ConflictException, Injectable, UnauthorizedException, Inject } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  UnauthorizedException,
+  Inject,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -12,6 +19,7 @@ import { AuthUser, JwtClaims } from './types/auth-user.type';
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
   private readonly accessTokenExpiresIn: string;
   private readonly refreshTokenExpiresIn: string;
   private readonly accessSecret: string;
@@ -41,10 +49,18 @@ export class AuthService {
     const authUser = await this.repository.findAuthUserById(user.id);
 
     if (!authUser) {
-      throw new UnauthorizedException('Could not load user context');
+      this.logger.error(`REGISTRATION_CONTEXT_LOAD_FAILED userId=${user.id}`);
+      throw new InternalServerErrorException('Account created but failed to load user profile');
     }
 
-    return this.issueTokens(authUser);
+    try {
+      return await this.issueTokens(authUser);
+    } catch (error) {
+      this.logger.error(
+        `REGISTRATION_TOKEN_ISSUE_FAILED userId=${authUser.id} reason=${(error as Error).message}`,
+      );
+      throw new InternalServerErrorException('Account created but failed to complete sign-in');
+    }
   }
 
   async validateUser(payload: LoginDto): Promise<AuthUser> {
