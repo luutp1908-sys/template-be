@@ -10,6 +10,7 @@ output "endpoint_ids" {
     ecr_dkr        = aws_vpc_endpoint.ecr_dkr.id
     logs           = aws_vpc_endpoint.logs.id
     secretsmanager = aws_vpc_endpoint.secretsmanager.id
+    ssmmessages    = aws_vpc_endpoint.ssmmessages.id
     s3             = aws_vpc_endpoint.s3.id
   }
 }

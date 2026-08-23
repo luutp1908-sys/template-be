@@ -88,6 +88,25 @@ resource "aws_iam_role_policy" "execution_extra" {
   policy = data.aws_iam_policy_document.execution_extra.json
 }
 
+data "aws_iam_policy_document" "task_exec" {
+  statement {
+    actions = [
+      "ssmmessages:CreateControlChannel",
+      "ssmmessages:CreateDataChannel",
+      "ssmmessages:OpenControlChannel",
+      "ssmmessages:OpenDataChannel",
+    ]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "task_exec" {
+  count  = var.task_role_arn == null ? 1 : 0
+  name   = "${var.name_prefix}-ecs-task-exec"
+  role   = aws_iam_role.task[0].id
+  policy = data.aws_iam_policy_document.task_exec.json
+}
+
 resource "aws_ecs_task_definition" "monolith" {
   family                   = "${var.name_prefix}-monolith"
   requires_compatibilities = ["FARGATE"]
@@ -133,11 +152,12 @@ resource "aws_ecs_task_definition" "monolith" {
 }
 
 resource "aws_ecs_service" "monolith" {
-  name            = "${var.name_prefix}-monolith"
-  cluster         = aws_ecs_cluster.this.id
-  task_definition = aws_ecs_task_definition.monolith.arn
-  desired_count   = var.desired_count
-  launch_type     = "FARGATE"
+  name                   = "${var.name_prefix}-monolith"
+  cluster                = aws_ecs_cluster.this.id
+  task_definition        = aws_ecs_task_definition.monolith.arn
+  desired_count          = var.desired_count
+  launch_type            = "FARGATE"
+  enable_execute_command = true
 
   deployment_controller {
     type = "ECS"

@@ -76,6 +76,19 @@ resource "aws_vpc_endpoint" "secretsmanager" {
   })
 }
 
+resource "aws_vpc_endpoint" "ssmmessages" {
+  vpc_id              = var.vpc_id
+  service_name        = "com.amazonaws.${var.region}.ssmmessages"
+  vpc_endpoint_type   = "Interface"
+  private_dns_enabled = true
+  subnet_ids          = var.private_subnet_ids
+  security_group_ids  = [aws_security_group.endpoints.id]
+
+  tags = merge(var.tags, {
+    Name = "${var.name_prefix}-vpce-ssmmessages"
+  })
+}
+
 resource "aws_vpc_endpoint" "s3" {
   vpc_id            = var.vpc_id
   service_name      = "com.amazonaws.${var.region}.s3"
