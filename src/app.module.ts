@@ -26,6 +26,7 @@ import { DatabaseModule } from './database/database.module';
 import { QueueModule } from './queue/queue.module';
 import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
 import { AuthenticationMiddleware } from './auth/middleware/authentication.middleware';
+import { MetricsModule } from './common/metrics/metrics.module';
 
 const useExportProxy = Boolean(process.env.EXPORT_SERVICE_URL?.trim());
 const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
@@ -71,6 +72,7 @@ const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
     }),
     CacheModule,
     DatabaseModule,
+    MetricsModule,
     ...(process.env.MOCK_MODE === 'true' || !queueEnabled ? [] : [QueueModule]),
     HealthModule,
     AuthModule,
@@ -97,10 +99,6 @@ const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer): void {
     consumer.apply(AuthenticationMiddleware).forRoutes('*');
-
-    const enableRequestLogs = process.env.ENABLE_REQUEST_LOGS === 'true';
-    if (enableRequestLogs) {
-      consumer.apply(RequestLoggingMiddleware).forRoutes('*');
-    }
+    consumer.apply(RequestLoggingMiddleware).forRoutes('*');
   }
 }

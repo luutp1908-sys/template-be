@@ -10,6 +10,14 @@ Create a 90-day roadmap that improves reliability, security, scalability, and de
 
 ### 1) Reliability and Observability First
 - Add request correlation IDs, structured logging, metrics, and tracing at app bootstrap.
+  - [x] request ID middleware + response header propagation
+  - [x] structured log payloads with request metadata
+  - [x] authorization-header redaction remains intact
+  - [x] basic request latency and error metrics
+  - [x] health/metrics endpoint exposed
+  - [ ] bootstrap tracing hook + trace-to-log correlation (full tracing platform still pending)
+  - [x] local smoke validation for public and protected routes
+  - [x] review and close within sprint tracker
 - Standardize API error shape across modules.
 - Establish baseline SLO metrics (latency, error rate, saturation).
 
@@ -99,11 +107,12 @@ Use this table to convert the plan into execution tickets:
 
 | Item | Owner | Effort (S/M/L) | Risk (Low/Med/High) | Dependencies | Target Date | Status |
 |---|---|---|---|---|---|---|
-| Observability baseline |  |  |  |  |  |  |
-| Authz guard rollout |  |  |  |  |  |  |
-| Critical integration tests |  |  |  |  |  |  |
-| Migration preflight CI |  |  |  |  |  |  |
-| API contract governance |  |  |  |  |  |  |
+| Observability baseline | Backend | M | Medium | Nest bootstrap, logger config, health endpoints | 2026-08-31 | Not started |
+| Authz guard rollout | Backend | M | High | Workspace membership model, guard patterns | 2026-09-07 | Not started |
+| Critical integration tests | Backend | M | Medium | auth fixtures, DB test setup | 2026-09-10 | Not started |
+| Migration preflight CI | Backend | S | Medium | CI pipeline, prisma CLI | 2026-09-04 | Not started |
+| API contract governance | Backend + FE | S | Low | OpenAPI spec, review workflow | 2026-09-14 | Not started |
+
 
 ## Notes
 - Prioritize reliability and authz before broader refactors.
