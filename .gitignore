@@ -7,6 +7,7 @@ coverage
 *.log
 .DS_Store
 prisma/dev.db
+.gitignore
 
 # Nx local cache/workspace state
 .nx/cache
@@ -18,3 +19,4 @@ prisma/dev.db
 *.tfstate.*
 *.tfplan
 crash.log
+tfplan
