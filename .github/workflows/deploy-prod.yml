@@ -1,0 +1,121 @@
+name: Deploy Backend Prod
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ap-southeast-1
+  TF_DIR: infra/environments/prod
+  ECR_REPOSITORY: be-monolith
+  ECS_CLUSTER: template-saas-prod-cluster
+  ECS_SERVICE: template-saas-prod-monolith
+
+jobs:
+  deploy:
+    name: Build Push and Deploy
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Compute image tag
+        run: |
+          SHORT_SHA="${GITHUB_SHA::12}"
+          IMAGE_TAG="${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+          IMAGE_URI="${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${IMAGE_TAG}"
+
+          echo "IMAGE_TAG=${IMAGE_TAG}" >> "$GITHUB_ENV"
+          echo "IMAGE_URI=${IMAGE_URI}" >> "$GITHUB_ENV"
+
+          echo "Image tag: ${IMAGE_TAG}"
+          echo "Image URI: ${IMAGE_URI}"
+
+      - name: Build and push image
+        run: |
+          docker build -t "$IMAGE_URI" .
+          docker push "$IMAGE_URI"
+
+      - name: Terraform init
+        run: terraform -chdir="$TF_DIR" init -input=false
+
+      - name: Terraform fmt check
+        run: terraform -chdir="$TF_DIR" fmt -check
+
+      - name: Terraform validate
+        run: terraform -chdir="$TF_DIR" validate
+
+      - name: Terraform plan
+        run: |
+          terraform -chdir="$TF_DIR" plan \
+            -input=false \
+            -var-file=terraform.tfvars \
+            -var="monolith_image_tag=$IMAGE_TAG" \
+            -out=tfplan
+
+      - name: Terraform apply
+        run: terraform -chdir="$TF_DIR" apply -input=false -auto-approve tfplan
+
+      - name: Wait for ECS service to stabilize
+        run: |
+          aws ecs wait services-stable \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+
+          aws ecs describe-services \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].{desired:desiredCount,running:runningCount,pending:pendingCount,taskDef:taskDefinition,status:status}'
+
+      - name: Health check
+        run: |
+          ALB_DNS="$(terraform -chdir="$TF_DIR" output -raw alb_dns_name)"
+          HEALTH_URL="http://${ALB_DNS}/api/v1/health"
+
+          HTTP_CODE="$(curl -sS -o /tmp/health.json -w "%{http_code}" "$HEALTH_URL")"
+          cat /tmp/health.json
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "Health check failed: $HEALTH_URL returned HTTP $HTTP_CODE"
+            exit 1
+          fi
+
+          echo "Health check passed: $HEALTH_URL"
+
+      - name: Deployment summary
+        run: |
+          ALB_DNS="$(terraform -chdir="$TF_DIR" output -raw alb_dns_name)"
+          echo "## Deployment Succeeded" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Image: $IMAGE_URI" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Cluster: $ECS_CLUSTER" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Service: $ECS_SERVICE" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Health: http://${ALB_DNS}/api/v1/health" >> "$GITHUB_STEP_SUMMARY"
