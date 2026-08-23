@@ -19,6 +19,11 @@ Create a 90-day roadmap that improves reliability, security, scalability, and de
   - [x] local smoke validation for public and protected routes
   - [x] review and close within sprint tracker
 - Standardize API error shape across modules.
+  - [ ] define canonical error envelope (success, error.code, message, details, timestamp, path, requestId)
+  - [ ] align HttpExceptionFilter, validation errors, auth errors, and business-rule errors to one contract
+  - [ ] audit controllers/services for inconsistent exception payloads and normalize mapping
+  - [ ] add smoke tests for 400/401/403/404/500 responses to protect the API contract
+  - [ ] confirm FE/API consumers can handle the standard shape without breaking current flows
 - Establish baseline SLO metrics (latency, error rate, saturation).
 
 Expected outcome:
