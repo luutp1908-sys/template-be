@@ -17,6 +17,12 @@ Implement in slices rather than one large change.
 2. Slice 2: Template list caching for common query shapes. (implemented)
 3. Slice 3: Short-TTL auth user context caching.
 4. Slice 4: Metrics, cache bypass controls, and broader invalidation coverage.
+   - [ ] add cache hit/miss, set/delete, and Redis fallback metrics in the shared cache layer
+   - [ ] expose cache health/usage data through the existing metrics and health endpoints
+   - [ ] add config-driven cache bypass or force-refresh controls for operator safety during incidents
+   - [ ] expand invalidation coverage for the next write paths behind cached reads, starting with template and auth-related mutations
+   - [ ] verify cache correctness with focused tests for bypass, invalidation, and graceful fallback behavior
+   - [ ] keep the slice limited to monitoring and invalidation safety; do not broaden into tracing, warm-up, or unrelated performance work
 
 ## Why This Approach
 
