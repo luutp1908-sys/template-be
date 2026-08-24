@@ -1,10 +1,12 @@
 import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { WorkspaceMembershipGuard } from '../guards/workspace-membership.guard';
+import { WorkspaceAccessPolicy } from '../policies/workspace-access.policy';
 
 describe('WorkspaceMembershipGuard', () => {
   let guard: WorkspaceMembershipGuard;
   let prisma: any;
   let reflector: any;
+  let policy: WorkspaceAccessPolicy;
 
   const buildContext = (userId?: string, workspaceId?: string) => ({
     switchToHttp: () => ({
@@ -28,7 +30,8 @@ describe('WorkspaceMembershipGuard', () => {
       getAllAndOverride: jest.fn().mockReturnValue([]),
     };
 
-    guard = new WorkspaceMembershipGuard(prisma, reflector);
+    policy = new WorkspaceAccessPolicy(prisma as any);
+    guard = new WorkspaceMembershipGuard(policy, reflector);
   });
 
   it('requires authentication before checking workspace membership', async () => {

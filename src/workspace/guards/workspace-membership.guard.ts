@@ -1,19 +1,13 @@
-import {
-  CanActivate,
-  ExecutionContext,
-  ForbiddenException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { PrismaService } from '../../database/prisma.service';
 import { AuthUser } from '../../auth/types/auth-user.type';
 import { WORKSPACE_MEMBERSHIP_KEY } from '../decorators/workspace-membership.decorator';
+import { WorkspaceAccessPolicy } from '../policies/workspace-access.policy';
 
 @Injectable()
 export class WorkspaceMembershipGuard implements CanActivate {
   constructor(
-    private readonly prisma: PrismaService,
+    private readonly policy: WorkspaceAccessPolicy,
     private readonly reflector: Reflector,
   ) {}
 
@@ -27,35 +21,11 @@ export class WorkspaceMembershipGuard implements CanActivate {
     const user = request.user;
     const workspaceId = request.params?.id ?? request.params?.workspaceId;
 
-    if (!user?.id) {
-      throw new UnauthorizedException('Authentication required');
-    }
-
-    if (!workspaceId) {
-      throw new UnauthorizedException('Workspace identifier is required');
-    }
-
-    const membership = await this.prisma.workspaceMember.findFirst({
-      where: {
-        workspaceId,
-        userId: user.id,
-      },
-      select: {
-        role: true,
-      },
+    await this.policy.assertAccess({
+      userId: user?.id ?? '',
+      workspaceId: workspaceId ?? '',
+      requiredRoles: requiredRoles as Array<'OWNER' | 'ADMIN' | 'MEMBER'> | undefined,
     });
-
-    if (!membership) {
-      throw new ForbiddenException('You are not a member of this workspace');
-    }
-
-    if (!requiredRoles || requiredRoles.length === 0) {
-      return true;
-    }
-
-    if (!requiredRoles.includes(membership.role)) {
-      throw new ForbiddenException('You do not have permission to access this workspace');
-    }
 
     return true;
   }
