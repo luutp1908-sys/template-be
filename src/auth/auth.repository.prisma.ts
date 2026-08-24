@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
+import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../database/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { IAuthRepository } from './interfaces/auth.repository.interface';
@@ -11,10 +12,12 @@ import { AuthUser, AuthUserWithSecrets } from './types/auth-user.type';
 @Injectable()
 export class AuthRepository implements IAuthRepository {
   private readonly logger = new Logger(AuthRepository.name);
+  private readonly authUserCachePrefix = 'auth:user';
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly cacheService?: CacheService,
   ) {}
 
   async findUserByEmail(email: string): Promise<AuthUserWithSecrets | null> {
@@ -64,6 +67,12 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async findAuthUserById(id: string): Promise<AuthUser | null> {
+    const cacheKey = `${this.authUserCachePrefix}:${id}`;
+    const cached = await this.cacheService?.getJson<AuthUser>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const user = await this.prisma.user.findFirst({
       where: {
         id,
@@ -116,13 +125,18 @@ export class AuthRepository implements IAuthRepository {
       ),
     ];
 
-    return {
+    const authUser: AuthUser = {
       id: user.id,
       email: user.email,
       displayName: user.displayName,
       roles,
       permissions,
     };
+
+    const ttlMs = this.configService.get<number>('cache.ttlMs.authUser', 60000);
+    await this.cacheService?.setJson(cacheKey, authUser, ttlMs);
+
+    return authUser;
   }
 
   async createUser(payload: RegisterDto, passwordHash: string): Promise<AuthUserWithSecrets> {

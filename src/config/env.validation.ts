@@ -57,6 +57,7 @@ const envSchema = Joi.object({
   CACHE_CONNECT_TIMEOUT_MS: Joi.number().integer().min(100).default(2000),
   CACHE_CATEGORY_TREE_TTL_MS: Joi.number().integer().min(1000).default(3600000),
   CACHE_TEMPLATE_LIST_TTL_MS: Joi.number().integer().min(1000).default(300000),
+  CACHE_AUTH_USER_TTL_MS: Joi.number().integer().min(1000).default(60000),
   THROTTLE_DEFAULT_LIMIT: Joi.number().integer().min(1).default(120),
   THROTTLE_DEFAULT_TTL_MS: Joi.number().integer().min(1000).default(60000),
   THROTTLE_DEFAULT_BLOCK_DURATION_MS: Joi.number().integer().min(0).default(120000),
