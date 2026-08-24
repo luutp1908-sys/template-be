@@ -60,7 +60,37 @@ describe('CacheService metrics', () => {
 
     expect(result).toBeNull();
     expect(client.get).not.toHaveBeenCalled();
+    expect(client.del).not.toHaveBeenCalled();
     expect(service.snapshot().bypassEnabled).toBe(true);
+    expect(service.snapshot().misses).toBe(1);
+  });
+
+  it('evicts the stale key when a force refresh is requested', async () => {
+    const configService = {
+      get: jest.fn((key: string, defaultValue: unknown) => {
+        if (key === 'cache.bypass') return false;
+        if (key === 'cache.forceRefresh') return true;
+        return defaultValue;
+      }),
+    } as any;
+
+    const client = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn().mockResolvedValue(1),
+      scan: jest.fn(),
+      isOpen: true,
+    };
+
+    const service = new CacheService(configService);
+    (service as any).client = client;
+    (service as any).isAvailable = true;
+
+    const result = await service.getJson('user:1');
+
+    expect(result).toBeNull();
+    expect(client.del).toHaveBeenCalledWith('template-saas:user:1');
+    expect(service.snapshot().forceRefreshEnabled).toBe(true);
     expect(service.snapshot().misses).toBe(1);
   });
 });

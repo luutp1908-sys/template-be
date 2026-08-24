@@ -79,7 +79,16 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     const bypassEnabled = this.configService.get<boolean>('cache.bypass', false);
     const forceRefreshEnabled = this.configService.get<boolean>('cache.forceRefresh', false);
 
-    if (bypassEnabled || forceRefreshEnabled) {
+    if (bypassEnabled) {
+      this.misses += 1;
+      return null;
+    }
+
+    if (forceRefreshEnabled) {
+      if (this.client && this.isAvailable) {
+        await this.client.del(this.withPrefix(key));
+        this.deletes += 1;
+      }
       this.misses += 1;
       return null;
     }
