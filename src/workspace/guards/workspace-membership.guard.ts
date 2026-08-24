@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { PrismaService } from '../../database/prisma.service';
 import { AuthUser } from '../../auth/types/auth-user.type';
@@ -21,8 +27,12 @@ export class WorkspaceMembershipGuard implements CanActivate {
     const user = request.user;
     const workspaceId = request.params?.id ?? request.params?.workspaceId;
 
-    if (!user?.id || !workspaceId) {
-      throw new ForbiddenException('Workspace access denied');
+    if (!user?.id) {
+      throw new UnauthorizedException('Authentication required');
+    }
+
+    if (!workspaceId) {
+      throw new UnauthorizedException('Workspace identifier is required');
     }
 
     const membership = await this.prisma.workspaceMember.findFirst({
