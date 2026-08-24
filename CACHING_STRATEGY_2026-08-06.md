@@ -9,6 +9,11 @@ Reduce database load and improve p95 latency by adding Redis-backed caching for 
 Implement in slices rather than one large change.
 
 1. Slice 1: Cache foundation plus category tree caching.
+   - [x] add shared Redis-backed cache service with graceful fallback when cache is unavailable
+   - [x] add cache config and env validation for enabled flag, Redis host/port, key prefix, and category tree TTL
+   - [x] cache category tree reads using a single stable key and read-through pattern
+   - [x] invalidate the category tree cache on category create, update, delete, and move
+   - [x] validate with focused category tests and a clean build
 2. Slice 2: Template list caching for common query shapes. (implemented)
 3. Slice 3: Short-TTL auth user context caching.
 4. Slice 4: Metrics, cache bypass controls, and broader invalidation coverage.
