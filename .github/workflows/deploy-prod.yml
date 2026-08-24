@@ -63,6 +63,21 @@ jobs:
           docker build -t "$IMAGE_URI" .
           docker push "$IMAGE_URI"
 
+      - name: Migration gate
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "DATABASE_URL not set as workflow secret; fetching from AWS Secrets Manager."
+            export DATABASE_URL="$(aws secretsmanager get-secret-value --secret-id "template-saas-prod/database-url" --query 'SecretString' --output text)"
+          fi
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "Migration gate failed: DATABASE_URL is missing."
+            exit 1
+          fi
+
+          npm ci
+          npx prisma migrate status --schema=prisma/schema.prisma
+
       - name: Terraform init
         run: terraform -chdir="$TF_DIR" init -input=false
 

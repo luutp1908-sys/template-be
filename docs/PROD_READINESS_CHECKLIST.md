@@ -14,7 +14,12 @@ The backend has a working production deployment path and a baseline release work
 - [x] Terraform provisions core prod infrastructure (VPC, ALB, ECS, RDS, Redis, ECR, SGs).
 - [x] ECS service deploys successfully and health endpoint returns 200.
 - [x] Docker image is built and published to ECR.
-- [ ] Add explicit migration gate before app rollout.
+- [x] Add explicit migration gate before app rollout.
+  - Plan:
+    - add a pre-deploy migration validation step in the GitHub Actions workflow before Terraform apply and ECS rollout
+    - run Prisma migration status and fail fast if the database is not ready or if pending migrations are unsafe
+    - block production deployment until the app and migration contract are validated
+    - keep this strictly scoped to deployment safety and do not broaden into app refactors
 - [ ] Add rollback step to previous ECS task definition revision.
 - [ ] Add automated smoke checks for critical API routes after deployment.
 - [ ] Add deployment approval gate for production environment.
