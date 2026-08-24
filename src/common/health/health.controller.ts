@@ -18,9 +18,18 @@ export class HealthController {
 
   @Get('metrics')
   metrics() {
+    const metrics = this.metricsService.snapshot();
+    const cache = this.cacheService.snapshot();
+
     return {
-      ...this.metricsService.snapshot(),
-      cache: this.cacheService.snapshot(),
+      ...metrics,
+      cache,
+      saturation: {
+        backendAvailable: cache.backendAvailable,
+        fallbackEvents: cache.fallbackEvents,
+        bypassEnabled: cache.bypassEnabled,
+        forceRefreshEnabled: cache.forceRefreshEnabled,
+      },
     };
   }
 }
