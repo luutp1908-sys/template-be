@@ -126,11 +126,48 @@ jobs:
 
           echo "Health check passed: $HEALTH_URL"
 
+      - name: Rollback to previous ECS task definition
+        if: ${{ failure() }}
+        run: |
+          PREVIOUS_REVISION="$(aws ecs describe-services \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --query 'services[0].deployments[?status!=`PRIMARY`].taskDefinition | [0]' \
+            --output text)"
+
+          if [ -z "$PREVIOUS_REVISION" ] || [ "$PREVIOUS_REVISION" = "None" ]; then
+            echo "No previous ECS task definition found to rollback to."
+            exit 0
+          fi
+
+          echo "Rolling back ECS service to previous revision: $PREVIOUS_REVISION"
+          aws ecs update-service \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --service "$ECS_SERVICE" \
+            --task-definition "$PREVIOUS_REVISION" \
+            --force-new-deployment
+
+          aws ecs wait services-stable \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE"
+
+          echo "Rollback completed successfully."
+
       - name: Deployment summary
         run: |
           ALB_DNS="$(terraform -chdir="$TF_DIR" output -raw alb_dns_name)"
-          echo "## Deployment Succeeded" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Image: $IMAGE_URI" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Cluster: $ECS_CLUSTER" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Service: $ECS_SERVICE" >> "$GITHUB_STEP_SUMMARY"
-          echo "- Health: http://${ALB_DNS}/api/v1/health" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$GITHUB_RUN_ATTEMPT" -gt 0 ] && [ "${{ job.status }}" = "success" ]; then
+            echo "## Deployment Succeeded" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Image: $IMAGE_URI" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Cluster: $ECS_CLUSTER" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Service: $ECS_SERVICE" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Health: http://${ALB_DNS}/api/v1/health" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## Deployment Failed or Rolled Back" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Image: $IMAGE_URI" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Cluster: $ECS_CLUSTER" >> "$GITHUB_STEP_SUMMARY"
+            echo "- Service: $ECS_SERVICE" >> "$GITHUB_STEP_SUMMARY"
+          fi

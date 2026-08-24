@@ -20,7 +20,12 @@ The backend has a working production deployment path and a baseline release work
     - run Prisma migration status and fail fast if the database is not ready or if pending migrations are unsafe
     - block production deployment until the app and migration contract are validated
     - keep this strictly scoped to deployment safety and do not broaden into app refactors
-- [ ] Add rollback step to previous ECS task definition revision.
+- [x] Add rollback step to previous ECS task definition revision.
+  - Plan:
+    - add a rollback step in the production workflow that runs when the health check or deploy step fails
+    - fetch the previous ECS task definition revision from the running service deployment history
+    - update the service back to that revision and wait for a stable state
+    - keep this limited to deployment rollback safety and do not broaden into unrelated app changes
 - [ ] Add automated smoke checks for critical API routes after deployment.
 - [ ] Add deployment approval gate for production environment.
 
