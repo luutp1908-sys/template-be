@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../database/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangePasswordDto, UpdateProfileDto } from './dto/profile.dto';
@@ -15,6 +16,7 @@ export class UserRepository implements IUserRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly cacheService?: CacheService,
   ) {
     this.saltRounds = this.configService.get<number>('security.bcryptSaltRounds', 12);
   }
@@ -77,6 +79,8 @@ export class UserRepository implements IUserRepository {
         updatedAt: true,
       },
     });
+
+    await this.cacheService?.delete(`auth:user:${id}`);
 
     return user;
   }
