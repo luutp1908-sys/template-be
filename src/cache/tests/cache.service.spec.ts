@@ -34,4 +34,33 @@ describe('CacheService metrics', () => {
     expect(snapshot.sets).toBe(1);
     expect(snapshot.deletes).toBe(1);
   });
+
+  it('bypasses cache reads when the operator flag is enabled', async () => {
+    const configService = {
+      get: jest.fn((key: string, defaultValue: unknown) => {
+        if (key === 'cache.bypass') return true;
+        if (key === 'cache.forceRefresh') return false;
+        return defaultValue;
+      }),
+    } as any;
+
+    const client = {
+      get: jest.fn(),
+      set: jest.fn(),
+      del: jest.fn(),
+      scan: jest.fn(),
+      isOpen: true,
+    };
+
+    const service = new CacheService(configService);
+    (service as any).client = client;
+    (service as any).isAvailable = true;
+
+    const result = await service.getJson('user:1');
+
+    expect(result).toBeNull();
+    expect(client.get).not.toHaveBeenCalled();
+    expect(service.snapshot().bypassEnabled).toBe(true);
+    expect(service.snapshot().misses).toBe(1);
+  });
 });

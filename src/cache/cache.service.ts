@@ -9,6 +9,8 @@ export interface CacheMetricSnapshot {
   deletes: number;
   fallbackEvents: number;
   backendAvailable: boolean;
+  bypassEnabled: boolean;
+  forceRefreshEnabled: boolean;
 }
 
 @Injectable()
@@ -74,6 +76,14 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   }
 
   async getJson<T>(key: string): Promise<T | null> {
+    const bypassEnabled = this.configService.get<boolean>('cache.bypass', false);
+    const forceRefreshEnabled = this.configService.get<boolean>('cache.forceRefresh', false);
+
+    if (bypassEnabled || forceRefreshEnabled) {
+      this.misses += 1;
+      return null;
+    }
+
     if (!this.client || !this.isAvailable) {
       this.fallbackEvents += 1;
       this.misses += 1;
@@ -153,6 +163,8 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       deletes: this.deletes,
       fallbackEvents: this.fallbackEvents,
       backendAvailable: this.isAvailable,
+      bypassEnabled: this.configService.get<boolean>('cache.bypass', false),
+      forceRefreshEnabled: this.configService.get<boolean>('cache.forceRefresh', false),
     };
   }
 

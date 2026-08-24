@@ -30,6 +30,8 @@ export default () => ({
   },
   cache: {
     enabled: process.env.CACHE_ENABLED !== 'false',
+    bypass: process.env.CACHE_BYPASS === 'true',
+    forceRefresh: process.env.CACHE_FORCE_REFRESH === 'true',
     keyPrefix: process.env.CACHE_KEY_PREFIX ?? 'template-saas',
     connectTimeoutMs: Number(process.env.CACHE_CONNECT_TIMEOUT_MS ?? 2000),
     ttlMs: {

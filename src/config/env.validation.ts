@@ -53,6 +53,8 @@ const envSchema = Joi.object({
   REDIS_TLS: Joi.boolean().truthy('true').falsy('false').default(true),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
   CACHE_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+  CACHE_BYPASS: Joi.boolean().truthy('true').falsy('false').default(false),
+  CACHE_FORCE_REFRESH: Joi.boolean().truthy('true').falsy('false').default(false),
   CACHE_KEY_PREFIX: Joi.string().default('template-saas'),
   CACHE_CONNECT_TIMEOUT_MS: Joi.number().integer().min(100).default(2000),
   CACHE_CATEGORY_TREE_TTL_MS: Joi.number().integer().min(1000).default(3600000),
