@@ -25,6 +25,11 @@ Create a 90-day roadmap that improves reliability, security, scalability, and de
   - [x] add smoke tests for 400/401/403/404/500 responses to protect the API contract
   - [ ] confirm FE/API consumers can handle the standard shape without breaking current flows
 - Establish baseline SLO metrics (latency, error rate, saturation).
+  - [x] extend request metrics to track latency buckets, status counts, and error-rate baseline for recent traffic
+  - [ ] expose latency, error-rate, and saturation snapshot through the existing health/metrics endpoint
+  - [ ] include cache/backend availability and fallback counts as saturation signals without introducing a full APM system
+  - [ ] add focused tests covering latency math, error-rate calculation, and graceful fallback reporting
+  - [ ] keep this scoped to backend observability and baseline reporting; do not broaden into full tracing, dashboards, or external monitoring tooling
 
 Expected outcome:
 - Faster incident triage.
