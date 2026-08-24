@@ -93,4 +93,20 @@ describe('CacheService metrics', () => {
     expect(service.snapshot().forceRefreshEnabled).toBe(true);
     expect(service.snapshot().misses).toBe(1);
   });
+
+  it('falls back gracefully when the cache backend is unavailable', async () => {
+    const configService = {
+      get: jest.fn((key: string, defaultValue: unknown) => defaultValue),
+    } as any;
+
+    const service = new CacheService(configService);
+    (service as any).client = null;
+    (service as any).isAvailable = false;
+
+    const result = await service.getJson('user:1');
+
+    expect(result).toBeNull();
+    expect(service.snapshot().fallbackEvents).toBeGreaterThan(0);
+    expect(service.snapshot().misses).toBe(1);
+  });
 });

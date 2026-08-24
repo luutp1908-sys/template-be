@@ -21,8 +21,8 @@ Implement in slices rather than one large change.
    - [x] expose cache health/usage data through the existing metrics and health endpoints
    - [x] add config-driven cache bypass or force-refresh controls for operator safety during incidents
    - [x] expand invalidation coverage for the next write paths behind cached reads, starting with template and auth-related mutations
-   - [ ] verify cache correctness with focused tests for bypass, invalidation, and graceful fallback behavior
-   - [ ] keep the slice limited to monitoring and invalidation safety; do not broaden into tracing, warm-up, or unrelated performance work
+   - [x] verify cache correctness with focused tests for bypass, invalidation, and graceful fallback behavior
+   - [x] keep the slice limited to monitoring and invalidation safety; do not broaden into tracing, warm-up, or unrelated performance work
 
 ## Why This Approach
 
