@@ -26,7 +26,11 @@ The backend has a working production deployment path and a baseline release work
     - fetch the previous ECS task definition revision from the running service deployment history
     - update the service back to that revision and wait for a stable state
     - keep this limited to deployment rollback safety and do not broaden into unrelated app changes
-- [ ] Add automated smoke checks for critical API routes after deployment.
+- [x] Add automated smoke checks for critical API routes after deployment.
+  - Plan:
+    - add a post-deploy smoke-check step that validates the health endpoint and public docs route after the ECS service is stable
+    - fail the workflow if the app health or public API surface is not serving successfully
+    - keep this limited to deployment validation and do not expand into broader runtime or feature testing
 - [ ] Add deployment approval gate for production environment.
 
 ### 2) Infrastructure and runtime configuration

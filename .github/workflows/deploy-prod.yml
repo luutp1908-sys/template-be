@@ -126,6 +126,30 @@ jobs:
 
           echo "Health check passed: $HEALTH_URL"
 
+      - name: Smoke checks for critical public routes
+        run: |
+          ALB_DNS="$(terraform -chdir="$TF_DIR" output -raw alb_dns_name)"
+          HEALTH_URL="http://${ALB_DNS}/api/v1/health"
+          DOCS_URL="http://${ALB_DNS}/docs"
+
+          HEALTH_CODE="$(curl -sS -o /tmp/health-smoke.json -w "%{http_code}" "$HEALTH_URL")"
+          DOCS_CODE="$(curl -sS -o /tmp/docs-smoke.html -w "%{http_code}" "$DOCS_URL")"
+
+          cat /tmp/health-smoke.json
+          echo "Docs status code: $DOCS_CODE"
+
+          if [ "$HEALTH_CODE" != "200" ]; then
+            echo "Smoke check failed: $HEALTH_URL returned HTTP $HEALTH_CODE"
+            exit 1
+          fi
+
+          if [ "$DOCS_CODE" != "200" ]; then
+            echo "Smoke check failed: $DOCS_URL returned HTTP $DOCS_CODE"
+            exit 1
+          fi
+
+          echo "Smoke checks passed for health and docs endpoints."
+
       - name: Rollback to previous ECS task definition
         if: ${{ failure() }}
         run: |
