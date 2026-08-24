@@ -27,7 +27,7 @@ Create a 90-day roadmap that improves reliability, security, scalability, and de
 - Establish baseline SLO metrics (latency, error rate, saturation).
   - [x] extend request metrics to track latency buckets, status counts, and error-rate baseline for recent traffic
   - [x] expose latency, error-rate, and saturation snapshot through the existing health/metrics endpoint
-  - [ ] include cache/backend availability and fallback counts as saturation signals without introducing a full APM system
+  - [x] include cache/backend availability and fallback counts as saturation signals without introducing a full APM system
   - [ ] add focused tests covering latency math, error-rate calculation, and graceful fallback reporting
   - [ ] keep this scoped to backend observability and baseline reporting; do not broaden into full tracing, dashboards, or external monitoring tooling
 

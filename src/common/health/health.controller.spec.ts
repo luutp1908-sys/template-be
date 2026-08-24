@@ -44,10 +44,11 @@ describe('HealthController', () => {
     expect(result.errorRate).toBe(0.5);
     expect(result.requestLatencyMs.p95).toBe(400);
     expect(result.saturation).toMatchObject({
-      backendAvailable: true,
-      fallbackEvents: 1,
-      bypassEnabled: false,
-      forceRefreshEnabled: false,
+      cacheBackendAvailable: true,
+      cacheFallbackEvents: 1,
+      cacheBypassEnabled: false,
+      cacheForceRefreshEnabled: false,
+      isSaturated: true,
     });
   });
 });

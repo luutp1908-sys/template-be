@@ -25,10 +25,11 @@ export class HealthController {
       ...metrics,
       cache,
       saturation: {
-        backendAvailable: cache.backendAvailable,
-        fallbackEvents: cache.fallbackEvents,
-        bypassEnabled: cache.bypassEnabled,
-        forceRefreshEnabled: cache.forceRefreshEnabled,
+        cacheBackendAvailable: cache.backendAvailable,
+        cacheFallbackEvents: cache.fallbackEvents,
+        cacheBypassEnabled: cache.bypassEnabled,
+        cacheForceRefreshEnabled: cache.forceRefreshEnabled,
+        isSaturated: !cache.backendAvailable || cache.fallbackEvents > 0,
       },
     };
   }
