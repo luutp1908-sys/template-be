@@ -6,6 +6,8 @@ import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
+import { WorkspaceMembership } from './decorators/workspace-membership.decorator';
+import { WorkspaceMembershipGuard } from './guards/workspace-membership.guard';
 import { WorkspaceEntity } from './workspace.entity';
 import { WorkspaceService } from './workspace.service';
 
@@ -26,26 +28,36 @@ export class WorkspaceController {
     return this.service.findMany(user);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id')
   findById(@Param('id') id: string): Promise<WorkspaceEntity | null> {
     return this.service.findById(id);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id/members')
   findMembers(@Param('id') id: string): Promise<unknown[]> {
     return this.service.findMembers(id);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id')
   update(@Param('id') id: string, @Body() payload: UpdateWorkspaceDto): Promise<WorkspaceEntity> {
     return this.service.update(id, payload);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id')
   remove(@Param('id') id: string): Promise<WorkspaceEntity> {
     return this.service.remove(id);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN')
   @Post(':id/invite-member')
   inviteMember(
     @Param('id') id: string,
@@ -55,6 +67,8 @@ export class WorkspaceController {
     return this.service.inviteMember(id, payload, user);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id/members/:memberId')
   updateMemberRole(
     @Param('id') id: string,
@@ -65,6 +79,8 @@ export class WorkspaceController {
     return this.service.updateMemberRole(id, memberId, role, user.id);
   }
 
+  @UseGuards(WorkspaceMembershipGuard)
+  @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id/members/:memberId')
   removeMember(
     @Param('id') id: string,

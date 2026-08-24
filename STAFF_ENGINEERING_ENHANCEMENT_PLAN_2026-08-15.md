@@ -38,6 +38,12 @@ Expected outcome:
 
 ### 2) Enforce Authorization Boundaries by Workspace
 - Centralize authorization logic so all workspace-scoped endpoints consistently validate membership and role.
+  - [ ] identify the high-risk workspace endpoints and apply a single membership/role check at the controller boundary
+  - [ ] extract a reusable workspace authorization helper or guard that validates current user + workspace membership + required role
+  - [ ] apply the guard only to workspace-scoped mutations and privileged reads, without widening into unrelated auth domains
+  - [ ] keep failure semantics aligned with the existing canonical 401/403 contract and avoid custom exception patterns
+  - [ ] add focused tests for allowed member, non-member denied, wrong-role denied, and owner/admin allowed paths
+  - [ ] keep this scoped to workspace authorization enforcement; do not broaden into a full auth system redesign or policy engine rollout
 - Introduce policy-level guards to avoid repeating logic in controllers/services.
 
 Expected outcome:
