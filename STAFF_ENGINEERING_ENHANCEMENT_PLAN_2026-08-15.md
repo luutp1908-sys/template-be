@@ -43,7 +43,7 @@ Expected outcome:
   - [x] apply the guard only to workspace-scoped mutations and privileged reads, without widening into unrelated auth domains
   - [x] keep failure semantics aligned with the existing canonical 401/403 contract and avoid custom exception patterns
   - [x] add focused tests for allowed member, non-member denied, wrong-role denied, and owner/admin allowed paths
-  - [ ] keep this scoped to workspace authorization enforcement; do not broaden into a full auth system redesign or policy engine rollout
+  - [x] keep this scoped to workspace authorization enforcement; do not broaden into a full auth system redesign or policy engine rollout
 - Introduce policy-level guards to avoid repeating logic in controllers/services.
 
 Expected outcome:
