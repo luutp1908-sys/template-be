@@ -72,18 +72,134 @@ jobs:
 
       - name: Migration gate
         run: |
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "DATABASE_URL not set as workflow secret; fetching from AWS Secrets Manager."
-            export DATABASE_URL="$(aws secretsmanager get-secret-value --secret-id "template-saas-prod/database-url" --query 'SecretString' --output text)"
-          fi
+          SERVICE_JSON="$(aws ecs describe-services \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --services "$ECS_SERVICE" \
+            --output json)"
 
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "Migration gate failed: DATABASE_URL is missing."
+          CURRENT_TASK_DEFINITION="$(echo "$SERVICE_JSON" | jq -r '.services[0].taskDefinition')"
+          SUBNETS="$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.subnets | join(",")')"
+          SECURITY_GROUPS="$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.securityGroups | join(",")')"
+          ASSIGN_PUBLIC_IP="$(echo "$SERVICE_JSON" | jq -r '.services[0].networkConfiguration.awsvpcConfiguration.assignPublicIp')"
+
+          if [ -z "$CURRENT_TASK_DEFINITION" ] || [ "$CURRENT_TASK_DEFINITION" = "null" ]; then
+            echo "Migration gate failed: unable to determine current task definition."
             exit 1
           fi
 
-          npm ci
-          npx prisma migrate status --schema=prisma/schema.prisma
+          TASK_DEFINITION_JSON="$(aws ecs describe-task-definition \
+            --region "$AWS_REGION" \
+            --task-definition "$CURRENT_TASK_DEFINITION" \
+            --output json)"
+
+          TASK_FAMILY="$(echo "$TASK_DEFINITION_JSON" | jq -r '.taskDefinition.family')"
+          MIGRATION_FAMILY="migration-${TASK_FAMILY}"
+
+          echo "$TASK_DEFINITION_JSON" | jq \
+            --arg family "$MIGRATION_FAMILY" \
+            --arg image "$IMAGE_URI" \
+            '.taskDefinition
+            | {
+                family: $family,
+                taskRoleArn,
+                executionRoleArn,
+                networkMode,
+                containerDefinitions: (
+                  .containerDefinitions
+                  | map(
+                      if .name == "be-monolith" then
+                        .image = $image
+                        | .command = ["node", "node_modules/prisma/build/index.js", "migrate", "deploy", "--schema=prisma/schema.prisma"]
+                      else
+                        .
+                      end
+                    )
+                ),
+                volumes,
+                placementConstraints,
+                requiresCompatibilities,
+                cpu,
+                memory,
+                runtimePlatform,
+                ephemeralStorage,
+                pidMode,
+                ipcMode,
+                proxyConfiguration
+              }
+            | with_entries(select(.value != null and .value != []))' > migration-task-def.json
+
+          MIGRATION_TASK_DEFINITION="$(aws ecs register-task-definition \
+            --region "$AWS_REGION" \
+            --cli-input-json file://migration-task-def.json \
+            --query 'taskDefinition.taskDefinitionArn' \
+            --output text)"
+
+          cleanup() {
+            if [ -n "${MIGRATION_TASK_DEFINITION:-}" ] && [ "$MIGRATION_TASK_DEFINITION" != "None" ]; then
+              aws ecs deregister-task-definition \
+                --region "$AWS_REGION" \
+                --task-definition "$MIGRATION_TASK_DEFINITION" >/dev/null || true
+            fi
+          }
+          trap cleanup EXIT
+
+          echo "Registered migration task definition: $MIGRATION_TASK_DEFINITION"
+
+          RUN_TASK_OUTPUT="$(aws ecs run-task \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --launch-type FARGATE \
+            --task-definition "$MIGRATION_TASK_DEFINITION" \
+            --network-configuration "awsvpcConfiguration={subnets=[$SUBNETS],securityGroups=[$SECURITY_GROUPS],assignPublicIp=$ASSIGN_PUBLIC_IP}" \
+            --query '{taskArn:tasks[0].taskArn, failures:failures}' \
+            --output json)"
+
+          MIGRATION_TASK_ARN="$(echo "$RUN_TASK_OUTPUT" | jq -r '.taskArn')"
+          RUN_FAILURES="$(echo "$RUN_TASK_OUTPUT" | jq -c '.failures')"
+
+          if [ -z "$MIGRATION_TASK_ARN" ] || [ "$MIGRATION_TASK_ARN" = "null" ]; then
+            echo "Migration gate failed: could not start migration task."
+            echo "$RUN_FAILURES"
+            exit 1
+          fi
+
+          echo "Started migration task: $MIGRATION_TASK_ARN"
+          aws ecs wait tasks-stopped \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$MIGRATION_TASK_ARN"
+
+          TASK_DETAILS="$(aws ecs describe-tasks \
+            --region "$AWS_REGION" \
+            --cluster "$ECS_CLUSTER" \
+            --tasks "$MIGRATION_TASK_ARN" \
+            --output json)"
+
+          MIGRATION_EXIT_CODE="$(echo "$TASK_DETAILS" | jq -r '.tasks[0].containers[] | select(.name == "be-monolith") | .exitCode // empty')"
+          MIGRATION_STOPPED_REASON="$(echo "$TASK_DETAILS" | jq -r '.tasks[0].stoppedReason // ""')"
+          MIGRATION_TASK_ID="${MIGRATION_TASK_ARN##*/}"
+          MIGRATION_LOG_GROUP="$(echo "$TASK_DEFINITION_JSON" | jq -r '.taskDefinition.containerDefinitions[] | select(.name == "be-monolith") | .logConfiguration.options["awslogs-group"]')"
+          MIGRATION_LOG_STREAM="ecs/be-monolith/${MIGRATION_TASK_ID}"
+
+          if [ -n "$MIGRATION_LOG_GROUP" ] && [ "$MIGRATION_LOG_GROUP" != "null" ]; then
+            aws logs get-log-events \
+              --region "$AWS_REGION" \
+              --log-group-name "$MIGRATION_LOG_GROUP" \
+              --log-stream-name "$MIGRATION_LOG_STREAM" \
+              --limit 200 \
+              --query 'events[*].message' \
+              --output text || true
+          fi
+
+          if [ -z "$MIGRATION_EXIT_CODE" ] || [ "$MIGRATION_EXIT_CODE" != "0" ]; then
+            echo "Migration gate failed: migration task exited unsuccessfully."
+            echo "Stopped reason: $MIGRATION_STOPPED_REASON"
+            echo "$TASK_DETAILS" | jq '.tasks[0]'
+            exit 1
+          fi
+
+          echo "Migration gate passed."
 
       - name: Terraform init
         run: terraform -chdir="$TF_DIR" init -input=false
@@ -160,19 +276,39 @@ jobs:
       - name: Rollback to previous ECS task definition
         if: ${{ failure() }}
         run: |
-          PREVIOUS_REVISION="$(aws ecs describe-services \
+          CURRENT_TASK_DEFINITION="$(aws ecs describe-services \
             --region "$AWS_REGION" \
             --cluster "$ECS_CLUSTER" \
             --services "$ECS_SERVICE" \
-            --query 'services[0].deployments[?status!=`PRIMARY`].taskDefinition | [0]' \
+            --query 'services[0].taskDefinition' \
             --output text)"
 
+          if [ -z "$CURRENT_TASK_DEFINITION" ] || [ "$CURRENT_TASK_DEFINITION" = "None" ]; then
+            echo "Unable to determine current ECS task definition."
+            exit 1
+          fi
+
+          TASK_FAMILY="$(aws ecs describe-task-definition \
+            --region "$AWS_REGION" \
+            --task-definition "$CURRENT_TASK_DEFINITION" \
+            --query 'taskDefinition.family' \
+            --output text)"
+
+          PREVIOUS_REVISION="$(aws ecs list-task-definitions \
+            --region "$AWS_REGION" \
+            --family-prefix "$TASK_FAMILY" \
+            --status ACTIVE \
+            --sort DESC \
+            --query 'taskDefinitionArns' \
+            --output text | tr '\t' '\n' | grep -Fxv "$CURRENT_TASK_DEFINITION" | head -n 1)"
+
           if [ -z "$PREVIOUS_REVISION" ] || [ "$PREVIOUS_REVISION" = "None" ]; then
-            echo "No previous ECS task definition found to rollback to."
+            echo "No previous ACTIVE ECS task definition found to rollback to."
             exit 0
           fi
 
-          echo "Rolling back ECS service to previous revision: $PREVIOUS_REVISION"
+          echo "Current task definition: $CURRENT_TASK_DEFINITION"
+          echo "Rolling back ECS service to previous ACTIVE revision: $PREVIOUS_REVISION"
           aws ecs update-service \
             --region "$AWS_REGION" \
             --cluster "$ECS_CLUSTER" \
