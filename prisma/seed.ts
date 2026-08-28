@@ -4,10 +4,15 @@ import { randomUUID } from 'crypto';
 const prisma = new PrismaClient();
 
 async function main() {
-  const editor = await prisma.editorType.findFirst({ where: { key: 'graphic' } });
-  if (!editor) {
-    throw new Error("No EditorType with key 'graphic' found. Please ensure an EditorType exists in the DB.");
-  }
+  const editor = await prisma.editorType.upsert({
+    where: { key: 'graphic' },
+    update: { name: 'Graphic', deletedAt: null },
+    create: {
+      id: randomUUID(),
+      key: 'graphic',
+      name: 'Graphic',
+    },
+  });
   const editorTypeId = editor.id;
 
   let userId: string = randomUUID();
@@ -28,32 +33,52 @@ async function main() {
   });
   userId = upsertedUser.id;
 
-  // Some deployed DBs still have a non-nullable workspaceId on Category.
-  // Find or create a Workspace and insert categories via raw SQL to avoid Prisma client schema mismatch.
-  let workspace = await prisma.workspace.findFirst();
-  let workspaceId: string;
-  if (!workspace) {
-    workspaceId = randomUUID();
+  const existingWorkspace = await prisma.workspace.findFirst({
+    where: { slug: 'demo-workspace' },
+    select: { id: true },
+  });
+
+  if (existingWorkspace) {
+    await prisma.workspace.update({
+      where: { id: existingWorkspace.id },
+      data: { name: 'Demo Workspace', isArchived: false, deletedAt: null },
+    });
+  } else {
     await prisma.workspace.create({
       data: {
-        id: workspaceId,
+        id: randomUUID(),
         name: 'Demo Workspace',
         slug: 'demo-workspace',
       },
     });
-  } else {
-    workspaceId = workspace.id;
   }
 
-  // Insert categories with workspaceId using raw SQL
-  await prisma.$executeRaw`
-    INSERT INTO "Category" (id, "editorTypeId", "parentId", name, slug, "workspaceId", "createdAt", "updatedAt")
-    VALUES
-      (${rootCatId}::uuid, ${editorTypeId}::uuid, NULL, ${'Marketing Graphics'}, ${`marketing-graphics-${Date.now()}`}, ${workspaceId}::uuid, now(), now()),
-      (${childCat1}::uuid, ${editorTypeId}::uuid, ${rootCatId}::uuid, ${'Social Post'}, ${`social-post-${Date.now()}`}, ${workspaceId}::uuid, now(), now()),
-      (${childCat2}::uuid, ${editorTypeId}::uuid, ${rootCatId}::uuid, ${'Banner / Ad'}, ${`banner-ad-${Date.now()}`}, ${workspaceId}::uuid, now(), now())
-    ON CONFLICT (id) DO NOTHING;
-  `;
+  await prisma.category.createMany({
+    data: [
+      {
+        id: rootCatId,
+        editorTypeId,
+        parentId: null,
+        name: 'Marketing Graphics',
+        slug: `marketing-graphics-${Date.now()}`,
+      },
+      {
+        id: childCat1,
+        editorTypeId,
+        parentId: rootCatId,
+        name: 'Social Post',
+        slug: `social-post-${Date.now()}`,
+      },
+      {
+        id: childCat2,
+        editorTypeId,
+        parentId: rootCatId,
+        name: 'Banner / Ad',
+        slug: `banner-ad-${Date.now()}`,
+      },
+    ],
+    skipDuplicates: true,
+  });
 
   function makeContent(bgColor: string, text: string) {
     return {
