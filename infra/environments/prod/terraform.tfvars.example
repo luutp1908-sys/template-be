@@ -73,6 +73,13 @@ subject_alternative_names         = []
 route53_zone_id                   = ""
 create_route53_validation_records = false
 
+# Editor static hosting (S3 + CloudFront + OAC + DNS)
+enable_editor_static_site         = false
+editor_site_domain_name           = "editor.example.com"
+editor_site_route53_zone_id       = "Z1234567890ABC"
+editor_site_create_acm_certificate = true
+editor_site_certificate_arn       = null
+
 extra_tags = {
   Owner = "backend-team"
 }

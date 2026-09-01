@@ -122,3 +122,23 @@ output "ecs_log_group_name" {
   description = "CloudWatch log group for ECS monolith"
   value       = var.enable_ecs ? module.ecs[0].log_group_name : null
 }
+
+output "editor_static_site_bucket_name" {
+  description = "S3 bucket name for editor static site artifacts"
+  value       = var.enable_editor_static_site ? module.editor_static_site.bucket_name : null
+}
+
+output "editor_static_site_distribution_id" {
+  description = "CloudFront distribution id for editor static site"
+  value       = var.enable_editor_static_site ? module.editor_static_site.distribution_id : null
+}
+
+output "editor_static_site_distribution_domain_name" {
+  description = "CloudFront distribution domain name for editor static site"
+  value       = var.enable_editor_static_site ? module.editor_static_site.distribution_domain_name : null
+}
+
+output "editor_static_site_url" {
+  description = "Primary URL for editor static site"
+  value       = var.enable_editor_static_site ? module.editor_static_site.site_url : null
+}

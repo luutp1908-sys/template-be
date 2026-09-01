@@ -2,6 +2,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+provider "aws" {
+  alias  = "us_east_1"
+  region = "us-east-1"
+}
+
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -206,4 +211,22 @@ module "acm" {
   route53_zone_id                   = var.route53_zone_id
   create_route53_validation_records = var.create_route53_validation_records
   tags                              = local.common_tags
+}
+
+module "editor_static_site" {
+  source = "../../modules/static-site"
+
+  providers = {
+    aws           = aws
+    aws.us_east_1 = aws.us_east_1
+  }
+
+  enabled                = var.enable_editor_static_site
+  name_prefix            = local.name_prefix
+  site_name              = "editor"
+  domain_name            = var.editor_site_domain_name
+  route53_zone_id        = var.editor_site_route53_zone_id
+  create_acm_certificate = var.editor_site_create_acm_certificate
+  certificate_arn        = var.editor_site_certificate_arn
+  tags                   = local.common_tags
 }

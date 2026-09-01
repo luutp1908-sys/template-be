@@ -22,6 +22,8 @@
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
+    "db:dump:s3": "bash scripts/dump-local-db-to-s3.sh",
+    "db:restore:s3": "bash scripts/restore-rds-from-s3.sh",
     "build:export": "nx build export-service",
     "lint:export": "nx lint export-service",
     "nx": "nx"

@@ -372,6 +372,55 @@ variable "create_route53_validation_records" {
   default     = false
 }
 
+variable "enable_editor_static_site" {
+  description = "Whether to provision S3 + CloudFront + OAC + DNS for editor static assets"
+  type        = bool
+  default     = false
+}
+
+variable "editor_site_domain_name" {
+  description = "Custom domain name for the editor static site"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.enable_editor_static_site == false || var.editor_site_create_acm_certificate == false || length(trimspace(var.editor_site_domain_name)) > 0
+    error_message = "editor_site_domain_name must be provided when editor_site_create_acm_certificate is true and enable_editor_static_site is true."
+  }
+}
+
+variable "editor_site_route53_zone_id" {
+  description = "Route53 hosted zone id for editor site DNS alias and ACM validation records"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.enable_editor_static_site == false || length(trimspace(var.editor_site_domain_name)) == 0 || length(trimspace(var.editor_site_route53_zone_id)) > 0
+    error_message = "editor_site_route53_zone_id must be provided when editor_site_domain_name is set and enable_editor_static_site is true."
+  }
+}
+
+variable "editor_site_create_acm_certificate" {
+  description = "Create a new ACM certificate in us-east-1 for CloudFront"
+  type        = bool
+  default     = true
+}
+
+variable "editor_site_certificate_arn" {
+  description = "Optional existing ACM certificate ARN in us-east-1 when not creating a new certificate"
+  type        = string
+  default     = null
+
+  validation {
+    condition = var.enable_editor_static_site == false || (
+      length(trimspace(var.editor_site_domain_name)) == 0 ||
+      var.editor_site_create_acm_certificate ||
+      (!var.editor_site_create_acm_certificate && var.editor_site_certificate_arn != null && length(trimspace(var.editor_site_certificate_arn)) > 0)
+    )
+    error_message = "editor_site_certificate_arn must be provided when editor_site_domain_name is set, enable_editor_static_site is true, and editor_site_create_acm_certificate is false."
+  }
+}
+
 variable "extra_tags" {
   description = "Additional tags appended to all resources"
   type        = map(string)
