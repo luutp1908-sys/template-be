@@ -8,3 +8,6 @@ editor_site_domain_name            = ""
 editor_site_route53_zone_id        = ""
 editor_site_create_acm_certificate = false
 editor_site_certificate_arn        = null
+
+# Backend CORS allowlist for production browser requests
+frontend_origin = "https://dv3a184duo0ff.cloudfront.net"
