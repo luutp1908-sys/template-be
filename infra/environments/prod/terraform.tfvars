@@ -10,4 +10,4 @@ editor_site_create_acm_certificate = false
 editor_site_certificate_arn        = null
 
 # Backend CORS allowlist for production browser requests
-frontend_origin = "https://dv3a184duo0ff.cloudfront.net"
+frontend_origin = "https://dv3a184duo0ff.cloudfront.net,http://localhost:3000,http://localhost:5173,http://localhost:5174"
