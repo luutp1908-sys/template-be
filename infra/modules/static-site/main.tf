@@ -68,6 +68,27 @@ resource "aws_cloudfront_origin_access_control" "site" {
   signing_protocol                  = "sigv4"
 }
 
+resource "aws_cloudfront_response_headers_policy" "cors_allow_all" {
+  count = var.enabled ? 1 : 0
+
+  name    = "${var.name_prefix}-${var.site_name}-cors-allow-all"
+  comment = "Permissive CORS policy for ${var.site_name} static assets"
+
+  cors_config {
+    access_control_allow_credentials = false
+    access_control_allow_headers {
+      items = ["*"]
+    }
+    access_control_allow_methods {
+      items = ["GET", "HEAD", "OPTIONS"]
+    }
+    access_control_allow_origins {
+      items = ["*"]
+    }
+    origin_override = true
+  }
+}
+
 resource "aws_acm_certificate" "this" {
   count    = local.create_cert ? 1 : 0
   provider = aws.us_east_1
@@ -136,6 +157,7 @@ resource "aws_cloudfront_distribution" "site" {
     target_origin_id       = "${var.site_name}-s3-origin"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_allow_all[0].id
 
     forwarded_values {
       query_string = false
@@ -152,6 +174,7 @@ resource "aws_cloudfront_distribution" "site" {
     target_origin_id       = "${var.site_name}-s3-origin"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_allow_all[0].id
 
     min_ttl     = 0
     default_ttl = 0
@@ -172,6 +195,7 @@ resource "aws_cloudfront_distribution" "site" {
     target_origin_id       = "${var.site_name}-s3-origin"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_allow_all[0].id
 
     min_ttl     = 0
     default_ttl = 0
@@ -192,6 +216,7 @@ resource "aws_cloudfront_distribution" "site" {
     target_origin_id       = "${var.site_name}-s3-origin"
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
+    response_headers_policy_id = aws_cloudfront_response_headers_policy.cors_allow_all[0].id
 
     min_ttl     = 86400
     default_ttl = 31536000
