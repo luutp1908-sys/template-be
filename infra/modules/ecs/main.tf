@@ -75,6 +75,8 @@ resource "aws_iam_role" "task" {
 }
 
 data "aws_iam_policy_document" "execution_extra" {
+  count = var.execution_role_arn == null && length(var.task_secret_arns) > 0 ? 1 : 0
+
   statement {
     actions   = ["secretsmanager:GetSecretValue", "kms:Decrypt"]
     resources = var.task_secret_arns
@@ -82,10 +84,10 @@ data "aws_iam_policy_document" "execution_extra" {
 }
 
 resource "aws_iam_role_policy" "execution_extra" {
-  count  = var.execution_role_arn == null ? 1 : 0
+  count  = var.execution_role_arn == null && length(var.task_secret_arns) > 0 ? 1 : 0
   name   = "${var.name_prefix}-ecs-exec-extra"
   role   = aws_iam_role.execution[0].id
-  policy = data.aws_iam_policy_document.execution_extra.json
+  policy = data.aws_iam_policy_document.execution_extra[0].json
 }
 
 data "aws_iam_policy_document" "task_exec" {

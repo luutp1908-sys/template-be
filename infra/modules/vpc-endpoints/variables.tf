@@ -23,9 +23,9 @@ variable "private_route_table_ids" {
   type        = list(string)
 }
 
-variable "ecs_security_group_id" {
-  description = "ECS security group id allowed to reach interface endpoints"
-  type        = string
+variable "ecs_security_group_ids" {
+  description = "ECS security group ids allowed to reach interface endpoints"
+  type        = list(string)
 }
 
 variable "tags" {

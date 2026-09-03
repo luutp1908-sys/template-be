@@ -14,8 +14,8 @@ private_subnet_cidrs = ["10.40.128.0/20", "10.40.144.0/20"]
 allowed_ingress_cidrs = ["0.0.0.0/0"]
 app_port              = 4000
 
-repository_names               = ["be-monolith", "be-export-service"]
-ecr_lifecycle_keep_image_count = 30
+repository_names                = ["be-monolith", "be-export-service", "homepage"]
+ecr_lifecycle_keep_image_count  = 30
 
 # Phase 3: data services (cost-aware baseline)
 enable_data_services            = true
@@ -35,20 +35,33 @@ redis_automatic_failover_enabled = false
 secret_recovery_window_in_days  = 7
 
 # Phase 4: ECS services
-enable_vpc_endpoints                = true
-enable_ecs                          = true
-container_port                      = 4000
-health_check_path                   = "/api/v1/health"
-ecs_task_cpu                        = 512
-ecs_task_memory                     = 1024
-ecs_desired_count                   = 1
+enable_vpc_endpoints                 = true
+enable_ecs                           = true
+enable_homepage_service              = true
+container_port                       = 4000
+health_check_path                    = "/api/v1/health"
+ecs_task_cpu                         = 512
+ecs_task_memory                      = 1024
+ecs_desired_count                    = 1
 ecs_health_check_grace_period_seconds = 90
-log_retention_days                  = 14
-monolith_image_tag                  = "latest"
-enable_https_listener               = false
-certificate_arn_override            = null
-ecs_execution_role_arn              = null
-ecs_task_role_arn                   = null
+log_retention_days                   = 14
+monolith_image_tag                   = "latest"
+homepage_container_port              = 3000
+homepage_health_check_path           = "/"
+homepage_ecs_task_cpu                = 512
+homepage_ecs_task_memory             = 1024
+homepage_ecs_desired_count           = 1
+homepage_health_check_grace_period_seconds = 90
+homepage_log_retention_days          = 14
+homepage_image_tag                   = "latest"
+homepage_enable_https_listener       = false
+homepage_certificate_arn_override    = null
+homepage_execution_role_arn          = null
+homepage_task_role_arn               = null
+enable_https_listener                = false
+certificate_arn_override             = null
+ecs_execution_role_arn               = null
+ecs_task_role_arn                    = null
 
 # Runtime env for monolith
 frontend_origin       = "https://example.com"
@@ -74,9 +87,9 @@ route53_zone_id                   = ""
 create_route53_validation_records = false
 
 # Editor static hosting (S3 + CloudFront + OAC + DNS)
-enable_editor_static_site         = false
-editor_site_domain_name           = "editor.example.com"
-editor_site_route53_zone_id       = "Z1234567890ABC"
+enable_editor_static_site          = false
+editor_site_domain_name            = "editor.example.com"
+editor_site_route53_zone_id        = "Z1234567890ABC"
 editor_site_create_acm_certificate = true
 editor_site_certificate_arn       = null
 

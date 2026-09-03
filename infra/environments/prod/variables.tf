@@ -70,7 +70,7 @@ variable "app_port" {
 variable "repository_names" {
   description = "ECR repositories to create"
   type        = list(string)
-  default     = ["be-monolith", "be-export-service"]
+  default     = ["be-monolith", "be-export-service", "homepage"]
 }
 
 variable "ecr_lifecycle_keep_image_count" {
@@ -184,6 +184,84 @@ variable "enable_ecs" {
     condition     = var.enable_ecs == false || var.enable_data_services == true
     error_message = "enable_data_services must be true when enable_ecs is true."
   }
+}
+
+variable "enable_homepage_service" {
+  description = "Enable homepage ECS deployment"
+  type        = bool
+  default     = true
+}
+
+variable "homepage_container_port" {
+  description = "Homepage container port"
+  type        = number
+  default     = 3000
+}
+
+variable "homepage_health_check_path" {
+  description = "Homepage ALB target health check path"
+  type        = string
+  default     = "/"
+}
+
+variable "homepage_ecs_task_cpu" {
+  description = "Homepage ECS task CPU units"
+  type        = number
+  default     = 512
+}
+
+variable "homepage_ecs_task_memory" {
+  description = "Homepage ECS task memory in MiB"
+  type        = number
+  default     = 1024
+}
+
+variable "homepage_ecs_desired_count" {
+  description = "Desired homepage ECS task count"
+  type        = number
+  default     = 1
+}
+
+variable "homepage_health_check_grace_period_seconds" {
+  description = "Homepage ECS service health check grace period"
+  type        = number
+  default     = 90
+}
+
+variable "homepage_log_retention_days" {
+  description = "CloudWatch log retention days for homepage ECS"
+  type        = number
+  default     = 14
+}
+
+variable "homepage_image_tag" {
+  description = "Container image tag for homepage deployment"
+  type        = string
+  default     = "latest"
+}
+
+variable "homepage_enable_https_listener" {
+  description = "Enable ALB HTTPS listener for homepage when a certificate is available"
+  type        = bool
+  default     = false
+}
+
+variable "homepage_certificate_arn_override" {
+  description = "Optional ACM certificate ARN override for homepage HTTPS listener"
+  type        = string
+  default     = null
+}
+
+variable "homepage_execution_role_arn" {
+  description = "Optional existing homepage ECS execution role ARN"
+  type        = string
+  default     = null
+}
+
+variable "homepage_task_role_arn" {
+  description = "Optional existing homepage ECS task role ARN"
+  type        = string
+  default     = null
 }
 
 variable "container_port" {

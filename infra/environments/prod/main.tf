@@ -14,6 +14,8 @@ data "aws_availability_zones" "available" {
 locals {
   name_prefix               = "${var.project_name}-${var.environment}"
   monolith_image_uri        = "${module.ecr.repository_urls["be-monolith"]}:${var.monolith_image_tag}"
+  homepage_name_prefix      = "${local.name_prefix}-homepage"
+  homepage_image_uri        = "${module.ecr.repository_urls["homepage"]}:${var.homepage_image_tag}"
   effective_certificate_arn = var.certificate_arn_override != null ? var.certificate_arn_override : module.acm.certificate_arn
   common_tags = merge(
     {
@@ -44,6 +46,17 @@ module "security" {
   vpc_id                = module.network.vpc_id
   allowed_ingress_cidrs = var.allowed_ingress_cidrs
   app_port              = var.app_port
+  tags                  = local.common_tags
+}
+
+module "homepage_security" {
+  source = "../../modules/security"
+  count  = var.enable_homepage_service ? 1 : 0
+
+  name_prefix           = local.homepage_name_prefix
+  vpc_id                = module.network.vpc_id
+  allowed_ingress_cidrs = var.allowed_ingress_cidrs
+  app_port              = var.homepage_container_port
   tags                  = local.common_tags
 }
 
@@ -122,7 +135,7 @@ module "vpc_endpoints" {
   region                  = var.aws_region
   private_subnet_ids      = module.network.private_subnet_ids
   private_route_table_ids = [module.network.private_route_table_id]
-  ecs_security_group_id   = module.security.ecs_security_group_id
+  ecs_security_group_ids  = var.enable_homepage_service ? [module.security.ecs_security_group_id, module.homepage_security[0].ecs_security_group_id] : [module.security.ecs_security_group_id]
   tags                    = local.common_tags
 }
 
@@ -229,4 +242,56 @@ module "editor_static_site" {
   create_acm_certificate = var.editor_site_create_acm_certificate
   certificate_arn        = var.editor_site_certificate_arn
   tags                   = local.common_tags
+}
+
+module "homepage_alb" {
+  source = "../../modules/alb"
+  count  = var.enable_homepage_service ? 1 : 0
+
+  name_prefix           = local.homepage_name_prefix
+  vpc_id                = module.network.vpc_id
+  public_subnet_ids     = module.network.public_subnet_ids
+  security_group_id     = module.homepage_security[0].alb_security_group_id
+  health_check_path     = var.homepage_health_check_path
+  health_check_matcher  = "200-499"
+  target_port           = var.homepage_container_port
+  enable_https_listener = var.homepage_enable_https_listener
+  certificate_arn       = var.homepage_certificate_arn_override
+  tags                  = local.common_tags
+}
+
+module "homepage_ecs" {
+  source = "../../modules/ecs"
+  count  = var.enable_homepage_service ? 1 : 0
+
+  name_prefix                       = local.homepage_name_prefix
+  region                            = var.aws_region
+  private_subnet_ids                = module.network.private_subnet_ids
+  security_group_id                 = module.homepage_security[0].ecs_security_group_id
+  target_group_arn                  = module.homepage_alb[0].target_group_arn
+  container_name                    = "homepage"
+  container_image                   = local.homepage_image_uri
+  container_port                    = var.homepage_container_port
+  task_cpu                          = var.homepage_ecs_task_cpu
+  task_memory                       = var.homepage_ecs_task_memory
+  desired_count                     = var.homepage_ecs_desired_count
+  health_check_grace_period_seconds = var.homepage_health_check_grace_period_seconds
+  log_retention_days                = var.homepage_log_retention_days
+  environment = {
+    NODE_ENV                           = "production"
+    PORT                               = tostring(var.homepage_container_port)
+    HOSTNAME                           = "0.0.0.0"
+    BE_URL                             = "http://${module.alb[0].alb_dns_name}"
+    NEXT_PUBLIC_BASE_URL               = "http://${module.homepage_alb[0].alb_dns_name}"
+    NEXT_PUBLIC_EDITOR_REMOTE_URL_PROD = module.editor_static_site.site_url
+  }
+  secrets            = {}
+  task_secret_arns   = []
+  execution_role_arn = var.homepage_execution_role_arn
+  task_role_arn      = var.homepage_task_role_arn
+  tags               = local.common_tags
+
+  depends_on = [
+    module.vpc_endpoints,
+  ]
 }

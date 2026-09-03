@@ -33,6 +33,11 @@ output "ecr_repository_urls" {
   value       = module.ecr.repository_urls
 }
 
+output "homepage_ecr_repository_url" {
+  description = "ECR repository URL for homepage"
+  value       = var.enable_homepage_service ? module.ecr.repository_urls["homepage"] : null
+}
+
 output "acm_certificate_arn" {
   description = "ACM certificate ARN if certificate creation is enabled"
   value       = module.acm.certificate_arn
@@ -121,6 +126,26 @@ output "ecs_task_definition_arn" {
 output "ecs_log_group_name" {
   description = "CloudWatch log group for ECS monolith"
   value       = var.enable_ecs ? module.ecs[0].log_group_name : null
+}
+
+output "homepage_alb_dns_name" {
+  description = "Homepage Application Load Balancer DNS name"
+  value       = var.enable_homepage_service ? module.homepage_alb[0].alb_dns_name : null
+}
+
+output "homepage_ecs_service_arn" {
+  description = "Homepage ECS service ARN"
+  value       = var.enable_homepage_service ? module.homepage_ecs[0].service_arn : null
+}
+
+output "homepage_ecs_task_definition_arn" {
+  description = "Homepage ECS task definition ARN"
+  value       = var.enable_homepage_service ? module.homepage_ecs[0].task_definition_arn : null
+}
+
+output "homepage_ecs_log_group_name" {
+  description = "CloudWatch log group for homepage ECS"
+  value       = var.enable_homepage_service ? module.homepage_ecs[0].log_group_name : null
 }
 
 output "editor_static_site_bucket_name" {
