@@ -281,6 +281,7 @@ module "homepage_ecs" {
     NODE_ENV                           = "production"
     PORT                               = tostring(var.homepage_container_port)
     HOSTNAME                           = "0.0.0.0"
+    HOMEPAGE_INTERNAL_URL              = "http://127.0.0.1:${var.homepage_container_port}"
     BE_URL                             = "http://${module.alb[0].alb_dns_name}"
     NEXT_PUBLIC_BASE_URL               = "http://${module.homepage_alb[0].alb_dns_name}"
     NEXT_PUBLIC_EDITOR_REMOTE_URL_PROD = module.editor_static_site.site_url
