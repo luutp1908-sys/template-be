@@ -18,6 +18,12 @@ variable "security_group_id" {
   type        = string
 }
 
+variable "internal" {
+  description = "Whether the ALB is internal"
+  type        = bool
+  default     = false
+}
+
 variable "health_check_path" {
   description = "Health check path for target group"
   type        = string

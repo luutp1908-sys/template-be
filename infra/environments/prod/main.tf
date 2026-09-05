@@ -155,6 +155,23 @@ module "alb" {
   tags                  = local.common_tags
 }
 
+module "backend_internal_alb" {
+  source = "../../modules/alb"
+  count  = var.enable_homepage_service && var.enable_ecs ? 1 : 0
+
+  name_prefix           = "${local.name_prefix}-int"
+  vpc_id                = module.network.vpc_id
+  public_subnet_ids     = module.network.private_subnet_ids
+  security_group_id     = module.security.alb_security_group_id
+  internal              = true
+  health_check_path     = var.health_check_path
+  health_check_matcher  = "200-499"
+  target_port           = var.container_port
+  enable_https_listener = false
+  certificate_arn       = null
+  tags                  = local.common_tags
+}
+
 module "ecs" {
   source = "../../modules/ecs"
   count  = var.enable_ecs ? 1 : 0
@@ -164,6 +181,7 @@ module "ecs" {
   private_subnet_ids                = module.network.private_subnet_ids
   security_group_id                 = module.security.ecs_security_group_id
   target_group_arn                  = module.alb[0].target_group_arn
+  additional_target_group_arns      = var.enable_homepage_service ? [module.backend_internal_alb[0].target_group_arn] : []
   container_name                    = "be-monolith"
   container_image                   = local.monolith_image_uri
   container_port                    = var.container_port
@@ -282,7 +300,7 @@ module "homepage_ecs" {
     PORT                               = tostring(var.homepage_container_port)
     HOSTNAME                           = "0.0.0.0"
     HOMEPAGE_INTERNAL_URL              = "http://127.0.0.1:${var.homepage_container_port}"
-    BE_URL                             = "http://${module.alb[0].alb_dns_name}"
+    BE_URL                             = "http://${module.backend_internal_alb[0].alb_dns_name}"
     NEXT_PUBLIC_BASE_URL               = "http://${module.homepage_alb[0].alb_dns_name}"
     NEXT_PUBLIC_EDITOR_REMOTE_URL_PROD = module.editor_static_site.site_url
   }

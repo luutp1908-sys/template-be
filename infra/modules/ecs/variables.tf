@@ -23,6 +23,12 @@ variable "target_group_arn" {
   type        = string
 }
 
+variable "additional_target_group_arns" {
+  description = "Additional ALB target group ARNs for the same container"
+  type        = list(string)
+  default     = []
+}
+
 variable "container_name" {
   description = "Container name"
   type        = string

@@ -148,6 +148,11 @@ output "homepage_ecs_log_group_name" {
   value       = var.enable_homepage_service ? module.homepage_ecs[0].log_group_name : null
 }
 
+output "backend_internal_alb_dns_name" {
+  description = "Internal backend ALB DNS name for private VPC callers"
+  value       = var.enable_homepage_service && var.enable_ecs ? module.backend_internal_alb[0].alb_dns_name : null
+}
+
 output "editor_static_site_bucket_name" {
   description = "S3 bucket name for editor static site artifacts"
   value       = var.enable_editor_static_site ? module.editor_static_site.bucket_name : null

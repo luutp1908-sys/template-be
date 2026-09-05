@@ -1,6 +1,6 @@
 resource "aws_lb" "this" {
   name               = substr(replace("${var.name_prefix}-alb", "_", "-"), 0, 32)
-  internal           = false
+  internal           = var.internal
   load_balancer_type = "application"
   security_groups    = [var.security_group_id]
   subnets            = var.public_subnet_ids

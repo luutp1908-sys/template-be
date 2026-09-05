@@ -181,6 +181,15 @@ resource "aws_ecs_service" "monolith" {
     container_port   = var.container_port
   }
 
+  dynamic "load_balancer" {
+    for_each = var.additional_target_group_arns
+    content {
+      target_group_arn = load_balancer.value
+      container_name   = var.container_name
+      container_port   = var.container_port
+    }
+  }
+
   depends_on = [
     aws_iam_role_policy_attachment.execution_managed,
     aws_iam_role_policy.execution_extra,
