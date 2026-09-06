@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { WorkspaceService } from '../workspace/workspace.service';
 import { CreateUserDraftDto } from './dto/create-user-draft.dto';
 import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
 import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
@@ -10,36 +8,14 @@ import { UserDraftEntity, UserDraftListEntity } from './user-draft.entity';
 
 @Injectable()
 export class UserDraftRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly configService: ConfigService,
-    private readonly workspaceService: WorkspaceService,
-  ) {}
-
-  private async resolveWorkspaceId(userId: string, requestedWorkspaceId?: string): Promise<string | null> {
-    if (requestedWorkspaceId) {
-      return this.workspaceService.findMemberWorkspaceId(userId, requestedWorkspaceId);
-    }
-
-    return this.workspaceService.findFirstWorkspaceIdByUserId(userId);
-  }
-
-  private async getAccessibleWorkspaceIds(userId: string): Promise<string[]> {
-    return this.workspaceService.findWorkspaceIdsByUserId(userId);
-  }
+  constructor(private readonly prisma: PrismaService) {}
 
   private async buildAccessibleDraftWhere(
     userId: string,
+    workspaceIds: string[],
     extraWhere: Prisma.UserDraftWhereInput = {},
-    requestedWorkspaceId?: string,
   ): Promise<Prisma.UserDraftWhereInput> {
-    const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
-
     if (workspaceIds.length === 0) {
-      return { id: { in: [] } };
-    }
-
-    if (requestedWorkspaceId && !workspaceIds.includes(requestedWorkspaceId)) {
       return { id: { in: [] } };
     }
 
@@ -53,9 +29,7 @@ export class UserDraftRepository {
     };
   }
 
-  async create(payload: CreateUserDraftDto, userId: string): Promise<UserDraftEntity> {
-    const workspaceId = await this.resolveWorkspaceId(userId, payload.workspaceId);
-
+  async create(payload: CreateUserDraftDto, userId: string, workspaceId: string | null): Promise<UserDraftEntity> {
     return this.prisma.userDraft.create({
       data: {
         userId,
@@ -69,15 +43,15 @@ export class UserDraftRepository {
     });
   }
 
-  async findById(id: string, userId: string): Promise<UserDraftEntity | null> {
-    const where = await this.buildAccessibleDraftWhere(userId, { id });
+  async findById(id: string, userId: string, workspaceIds: string[]): Promise<UserDraftEntity | null> {
+    const where = await this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
 
     return this.prisma.userDraft.findFirst({
       where,
     });
   }
 
-  async findMany(query: UserDraftListQueryDto, userId: string): Promise<UserDraftListEntity> {
+  async findMany(query: UserDraftListQueryDto, userId: string, workspaceIds: string[]): Promise<UserDraftListEntity> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'updatedAt';
@@ -85,11 +59,11 @@ export class UserDraftRepository {
 
     const where = await this.buildAccessibleDraftWhere(
       userId,
+      workspaceIds,
       {
         ...(query.workspaceId ? { workspaceId: query.workspaceId } : {}),
         ...(query.templateId ? { templateId: query.templateId } : {}),
       },
-      query.workspaceId,
     );
 
     const [total, items] = await this.prisma.$transaction([
@@ -112,9 +86,14 @@ export class UserDraftRepository {
     };
   }
 
-  async update(id: string, payload: UpdateUserDraftDto, userId: string): Promise<UserDraftEntity | null> {
+  async update(
+    id: string,
+    payload: UpdateUserDraftDto,
+    userId: string,
+    workspaceIds: string[],
+  ): Promise<UserDraftEntity | null> {
     const found = await this.prisma.userDraft.findFirst({
-      where: await this.buildAccessibleDraftWhere(userId, { id }),
+      where: await this.buildAccessibleDraftWhere(userId, workspaceIds, { id }),
       select: { id: true },
     });
 
@@ -134,9 +113,9 @@ export class UserDraftRepository {
     });
   }
 
-  async touch(id: string, userId: string): Promise<UserDraftEntity | null> {
+  async touch(id: string, userId: string, workspaceIds: string[]): Promise<UserDraftEntity | null> {
     const found = await this.prisma.userDraft.findFirst({
-      where: await this.buildAccessibleDraftWhere(userId, { id }),
+      where: await this.buildAccessibleDraftWhere(userId, workspaceIds, { id }),
       select: { id: true },
     });
 
@@ -152,9 +131,9 @@ export class UserDraftRepository {
     });
   }
 
-  async remove(id: string, userId: string): Promise<boolean> {
+  async remove(id: string, userId: string, workspaceIds: string[]): Promise<boolean> {
     const result = await this.prisma.userDraft.deleteMany({
-      where: await this.buildAccessibleDraftWhere(userId, { id }),
+      where: await this.buildAccessibleDraftWhere(userId, workspaceIds, { id }),
     });
 
     return result.count > 0;

@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { CreateUserDraftDto } from './dto/create-user-draft.dto';
@@ -14,7 +13,7 @@ export class UserDraftRepository {
   private readonly mockStore = new Map<string, UserDraftEntity>();
   private readonly mockFilePath: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor() {
     const srcMockPath = join(process.cwd(), 'src', 'common', 'testing', 'mock-user-drafts.json')
     this.mockFilePath = srcMockPath
     try {
@@ -57,12 +56,16 @@ export class UserDraftRepository {
     }
   }
 
-  async create(payload: CreateUserDraftDto, userId: string): Promise<UserDraftEntity> {
+  async create(
+    payload: CreateUserDraftDto,
+    userId: string,
+    workspaceId: string | null,
+  ): Promise<UserDraftEntity> {
     const now = new Date();
     const entity: UserDraftEntity = {
       id: randomUUID(),
       userId,
-      workspaceId: payload.workspaceId ?? null,
+      workspaceId,
       templateId: payload.templateId ?? null,
       name: payload.name,
       thumbnail: payload.thumbnail ?? null,
@@ -77,23 +80,27 @@ export class UserDraftRepository {
     return entity;
   }
 
-  async findById(id: string, userId: string): Promise<UserDraftEntity | null> {
+  async findById(id: string, userId: string, workspaceIds: string[]): Promise<UserDraftEntity | null> {
     const entity = this.mockStore.get(id);
-    if (!entity || entity.userId !== userId) {
+    if (!entity) {
       return null;
     }
+
+    const hasAccess = entity.userId === userId || (entity.workspaceId ? workspaceIds.includes(entity.workspaceId) : false);
+    if (!hasAccess) return null;
 
     return entity;
   }
 
-  async findMany(query: UserDraftListQueryDto, userId: string): Promise<UserDraftListEntity> {
+  async findMany(query: UserDraftListQueryDto, userId: string, workspaceIds: string[]): Promise<UserDraftListEntity> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'updatedAt';
     const sortOrder = query.sortOrder ?? 'desc';
 
     const filtered = [...this.mockStore.values()].filter((entity) => {
-      if (entity.userId !== userId) return false;
+      const hasAccess = entity.userId === userId || (entity.workspaceId ? workspaceIds.includes(entity.workspaceId) : false);
+      if (!hasAccess) return false;
       if (query.workspaceId && entity.workspaceId !== query.workspaceId) return false;
       if (query.templateId && entity.templateId !== query.templateId) return false;
       return true;
@@ -120,9 +127,16 @@ export class UserDraftRepository {
     };
   }
 
-  async update(id: string, payload: UpdateUserDraftDto, userId: string): Promise<UserDraftEntity | null> {
+  async update(
+    id: string,
+    payload: UpdateUserDraftDto,
+    userId: string,
+    workspaceIds: string[],
+  ): Promise<UserDraftEntity | null> {
     const current = this.mockStore.get(id);
-    if (!current || current.userId !== userId) return null;
+    if (!current) return null;
+    const hasAccess = current.userId === userId || (current.workspaceId ? workspaceIds.includes(current.workspaceId) : false);
+    if (!hasAccess) return null;
 
     current.templateId = payload.templateId ?? current.templateId;
     current.workspaceId = payload.workspaceId ?? current.workspaceId;
@@ -136,9 +150,11 @@ export class UserDraftRepository {
     return current;
   }
 
-  async touch(id: string, userId: string): Promise<UserDraftEntity | null> {
+  async touch(id: string, userId: string, workspaceIds: string[]): Promise<UserDraftEntity | null> {
     const current = this.mockStore.get(id);
-    if (!current || current.userId !== userId) return null;
+    if (!current) return null;
+    const hasAccess = current.userId === userId || (current.workspaceId ? workspaceIds.includes(current.workspaceId) : false);
+    if (!hasAccess) return null;
 
     current.lastOpenedAt = new Date();
     current.updatedAt = new Date();
@@ -147,9 +163,11 @@ export class UserDraftRepository {
     return current;
   }
 
-  async remove(id: string, userId: string): Promise<boolean> {
+  async remove(id: string, userId: string, workspaceIds: string[]): Promise<boolean> {
     const current = this.mockStore.get(id);
-    if (!current || current.userId !== userId) return false;
+    if (!current) return false;
+    const hasAccess = current.userId === userId || (current.workspaceId ? workspaceIds.includes(current.workspaceId) : false);
+    if (!hasAccess) return false;
 
     const deleted = this.mockStore.delete(id);
     this.persistMockStore()
