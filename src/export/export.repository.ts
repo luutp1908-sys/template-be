@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InMemoryStore } from '../common/testing/in-memory-store';
-import { CreateExportDto } from './dto/create-export.dto';
 import { ExportEntity, ExportStatus } from './export.entity';
 import { IExportRepository } from './interfaces/export.repository.interface';
+import { CreateExportRecord } from './interfaces/export.repository.interface';
 import { ExportMapper } from './export.mapper';
 
 @Injectable()
@@ -20,7 +20,7 @@ export class ExportRepository implements IExportRepository {
     return `${normalized}.pdf`;
   }
 
-  async create(payload: CreateExportDto, userId: string): Promise<ExportEntity> {
+  async create(payload: CreateExportRecord, userId: string): Promise<ExportEntity> {
     return this.store.create((base) =>
       ExportMapper.toEntity({
         ...base,

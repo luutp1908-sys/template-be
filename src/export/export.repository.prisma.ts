@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { CreateExportDto } from './dto/create-export.dto';
 import { ExportEntity, ExportStatus } from './export.entity';
+import { CreateExportRecord } from './interfaces/export.repository.interface';
 
 @Injectable()
 export class ExportRepository {
@@ -18,7 +18,7 @@ export class ExportRepository {
     return `${base || 'template'}.pdf`;
   }
 
-  async create(payload: CreateExportDto, userId: string): Promise<ExportEntity> {
+  async create(payload: CreateExportRecord, userId: string): Promise<ExportEntity> {
     const exportJob = await this.prisma.export.create({
       data: {
         requestedByUserId: userId,

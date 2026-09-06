@@ -1,5 +1,4 @@
 import { WorkspaceRepository } from '../workspace.repository';
-import { WorkspaceTypeDto } from '../dto/update-workspace.dto';
 
 describe('WorkspaceRepository', () => {
   let repository: WorkspaceRepository;
@@ -31,7 +30,7 @@ describe('WorkspaceRepository', () => {
       id: 'workspace-1',
       name: 'My Workspace',
       slug: 'my-workspace',
-      type: WorkspaceTypeDto.PERSONAL,
+      type: 'PERSONAL',
       description: null,
       avatarUrl: null,
       isArchived: false,
@@ -166,7 +165,7 @@ describe('WorkspaceRepository', () => {
 
     const result = await repository.update('workspace-1', {
       name: 'New Name',
-      type: WorkspaceTypeDto.TEAM,
+      type: 'TEAM',
       description: 'desc',
       avatarUrl: 'http://example.com/a.png',
       isArchived: true,
@@ -189,7 +188,7 @@ describe('WorkspaceRepository', () => {
   });
 
   it('returns findById result when no supported fields provided', async () => {
-    prisma.workspace.findFirst.mockResolvedValue({ id: 'workspace-1', name: 'Old', slug: 'old', type: WorkspaceTypeDto.PERSONAL, description: null, avatarUrl: null, isArchived: false, deletedAt: null, createdAt: new Date(), updatedAt: new Date() });
+    prisma.workspace.findFirst.mockResolvedValue({ id: 'workspace-1', name: 'Old', slug: 'old', type: 'PERSONAL', description: null, avatarUrl: null, isArchived: false, deletedAt: null, createdAt: new Date(), updatedAt: new Date() });
 
     const result = await repository.update('workspace-1', {} as any);
 

@@ -4,8 +4,7 @@ import { randomUUID } from 'crypto';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../database/prisma.service';
-import { RegisterDto } from './dto/register.dto';
-import { IAuthRepository } from './interfaces/auth.repository.interface';
+import { CreateAuthUserRecord, IAuthRepository } from './interfaces/auth.repository.interface';
 import { AuthUser, AuthUserWithSecrets } from './types/auth-user.type';
 
 @Injectable()
@@ -137,7 +136,7 @@ export class AuthRepository implements IAuthRepository {
     return authUser;
   }
 
-  async createUser(payload: RegisterDto, passwordHash: string): Promise<AuthUserWithSecrets> {
+  async createUser(payload: CreateAuthUserRecord, passwordHash: string): Promise<AuthUserWithSecrets> {
     return this.prisma.$transaction(async (tx) => {
       const createdUser = await tx.user.create({
         data: {

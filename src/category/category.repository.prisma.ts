@@ -1,11 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { EditorTypeService } from '../editor-type/editor-type.service';
-import { CategoryListQueryDto } from './dto/category-list-query.dto';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
-import { ICategoryRepository } from './interfaces/category.repository.interface';
+import {
+  CategoryListQuery,
+  CreateCategoryRecord,
+  ICategoryRepository,
+  UpdateCategoryRecord,
+} from './interfaces/category.repository.interface';
 import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
 
 @Injectable()
@@ -43,7 +45,7 @@ export class CategoryRepository implements ICategoryRepository {
     return getEditorTypeByCode(key ?? '')?.id ?? 0;
   }
 
-  async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {
+  async findMany(query: CategoryListQuery): Promise<CategoryEntity[]> {
     const where: any = { deletedAt: null };
 
     if (query.editorTypeId !== undefined) {
@@ -97,8 +99,7 @@ export class CategoryRepository implements ICategoryRepository {
     }));
   }
 
-  async create(_payload: CreateCategoryDto): Promise<CategoryEntity> {
-    const payload = _payload as CreateCategoryDto;
+  async create(payload: CreateCategoryRecord): Promise<CategoryEntity> {
 
     const slug = payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180);
 
@@ -284,7 +285,7 @@ export class CategoryRepository implements ICategoryRepository {
     return ancestors.reverse();
   }
 
-  async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
+  async update(id: string, payload: UpdateCategoryRecord): Promise<CategoryEntity> {
     const data: any = { ...payload };
     if ((payload as any).editorTypeId !== undefined) {
       data.editorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId((payload as any).editorTypeId);

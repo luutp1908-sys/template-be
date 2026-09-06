@@ -1,10 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { UpdateProfileDto } from './dto/profile.dto';
 import { UserEntity } from './user.entity';
 import {
   CreateUserRecord,
   IUserRepository,
+  UpdateUserProfileRecord,
   UserCredentialsEntity,
 } from './interfaces/user.repository.interface';
 import { UserMapper } from './user.mapper';
@@ -79,7 +79,7 @@ export class UserRepository implements IUserRepository {
     return user;
   }
 
-  async updateProfile(id: string, payload: UpdateProfileDto): Promise<Partial<UserEntity> | null> {
+  async updateProfile(id: string, payload: UpdateUserProfileRecord): Promise<Partial<UserEntity> | null> {
     const user = await this.prisma.user.update({
       where: { id },
       data: {

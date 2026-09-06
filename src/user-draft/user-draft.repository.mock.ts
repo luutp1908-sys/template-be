@@ -1,12 +1,31 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { CreateUserDraftDto } from './dto/create-user-draft.dto';
-import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
-import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
 import { UserDraftEntity, UserDraftListEntity } from './user-draft.entity';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
+
+interface CreateUserDraftRecord {
+  templateId?: string;
+  name: string;
+  content: Prisma.InputJsonValue;
+  thumbnail?: string;
+}
+
+interface UpdateUserDraftRecord {
+  workspaceId?: string;
+  templateId?: string;
+  name?: string;
+  content?: Prisma.InputJsonValue;
+  thumbnail?: string;
+}
+
+interface UserDraftListQuery {
+  page?: number;
+  pageSize?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'lastOpenedAt' | 'name';
+  sortOrder?: 'asc' | 'desc';
+}
 
 @Injectable()
 export class UserDraftRepository {
@@ -57,7 +76,7 @@ export class UserDraftRepository {
   }
 
   async create(
-    payload: CreateUserDraftDto,
+    payload: CreateUserDraftRecord,
     userId: string,
     workspaceId: string | null,
   ): Promise<UserDraftEntity> {
@@ -162,7 +181,7 @@ export class UserDraftRepository {
     return entity;
   }
 
-  async findMany(query: UserDraftListQueryDto, where: Prisma.UserDraftWhereInput): Promise<UserDraftListEntity> {
+  async findMany(query: UserDraftListQuery, where: Prisma.UserDraftWhereInput): Promise<UserDraftListEntity> {
     const normalized = this.normalizeWhere(where);
     if (!normalized.userId) {
       return { items: [], total: 0, page: query.page ?? 1, pageSize: query.pageSize ?? 10 };
@@ -204,7 +223,7 @@ export class UserDraftRepository {
 
   async update(
     id: string,
-    payload: UpdateUserDraftDto,
+    payload: UpdateUserDraftRecord,
     where: Prisma.UserDraftWhereInput,
   ): Promise<UserDraftEntity | null> {
     const normalized = this.normalizeWhere(where);

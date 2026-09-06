@@ -3,15 +3,14 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { EditorTypeService } from '../editor-type/editor-type.service';
 import { getEditorTypeById } from '../common/constants/editor-types.constant';
-import { SearchQueryDto } from './dto/search-query.dto';
 import { SearchEntity, SearchListEntity } from './search.entity';
-import { ISearchRepository } from './interfaces/search.repository.interface';
+import { ISearchRepository, SearchQuery } from './interfaces/search.repository.interface';
 
 @Injectable()
 export class SearchRepository implements ISearchRepository {
   constructor(private readonly prisma: PrismaService, private readonly editorTypeService: EditorTypeService) {}
 
-  async search(query: SearchQueryDto): Promise<SearchListEntity> {
+  async search(query: SearchQuery): Promise<SearchListEntity> {
     const q = (query.q ?? '').trim();
     const page = Math.max(1, query.page ?? 1);
     const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 10));

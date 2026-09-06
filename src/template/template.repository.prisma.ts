@@ -3,10 +3,12 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { EditorTypeService } from '../editor-type/editor-type.service';
 import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
-import { CreateTemplateDto } from './dto/create-template.dto';
-import { TemplateListQueryDto } from './dto/template-list-query.dto';
-import { UpdateTemplateDto } from './dto/update-template.dto';
-import { ITemplateRepository } from './interfaces/template.repository.interface';
+import {
+  CreateTemplateRecord,
+  ITemplateRepository,
+  TemplateListQuery,
+  UpdateTemplateRecord,
+} from './interfaces/template.repository.interface';
 import { TemplateEntity, TemplateListEntity } from './template.entity';
 import { TemplateMapper } from './template.mapper';
 
@@ -54,7 +56,7 @@ export class TemplateRepository implements ITemplateRepository {
     });
   }
 
-  async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
+  async create(payload: CreateTemplateRecord, authorId: string): Promise<TemplateEntity> {
     const dbEditorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(payload.editorTypeId);
 
     const created = await this.prisma.template.create({
@@ -82,7 +84,7 @@ export class TemplateRepository implements ITemplateRepository {
     return template ? this.mapTemplateRow(template) : null;
   }
 
-  async findMany(query: TemplateListQueryDto): Promise<TemplateListEntity> {
+  async findMany(query: TemplateListQuery): Promise<TemplateListEntity> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'createdAt';
@@ -127,7 +129,7 @@ export class TemplateRepository implements ITemplateRepository {
     };
   }
 
-  async update(id: string, payload: UpdateTemplateDto): Promise<TemplateEntity | null> {
+  async update(id: string, payload: UpdateTemplateRecord): Promise<TemplateEntity | null> {
     const found = await this.prisma.template.findUnique({
       where: { id },
       select: { id: true },

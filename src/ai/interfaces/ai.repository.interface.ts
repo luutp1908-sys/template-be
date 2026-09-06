@@ -1,7 +1,10 @@
-import { CreateAiDto } from '../dto/create-ai.dto';
 import { AiEntity } from '../ai.entity';
 
+export interface CreateAiRecord {
+  name?: string;
+}
+
 export interface IAiRepository {
-  create(_payload: CreateAiDto): Promise<AiEntity>;
+  create(_payload: CreateAiRecord): Promise<AiEntity>;
   findById(_id: string): Promise<AiEntity | null>;
 }

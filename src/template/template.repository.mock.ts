@@ -4,10 +4,12 @@ import { randomUUID } from 'crypto';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
 import { getEditorTypeById } from '../common/constants/editor-types.constant';
-import { CreateTemplateDto } from './dto/create-template.dto';
-import { TemplateListQueryDto } from './dto/template-list-query.dto';
-import { UpdateTemplateDto } from './dto/update-template.dto';
-import { ITemplateRepository } from './interfaces/template.repository.interface';
+import {
+  CreateTemplateRecord,
+  ITemplateRepository,
+  TemplateListQuery,
+  UpdateTemplateRecord,
+} from './interfaces/template.repository.interface';
 import { TemplateEntity, TemplateListEntity } from './template.entity';
 import { TemplateMapper } from './template.mapper';
 
@@ -72,7 +74,7 @@ export class TemplateRepository implements ITemplateRepository {
     }
   }
 
-  async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
+  async create(payload: CreateTemplateRecord, authorId: string): Promise<TemplateEntity> {
     const now = new Date();
     const record: MockTemplateRecord = {
       id: randomUUID(),
@@ -136,7 +138,7 @@ export class TemplateRepository implements ITemplateRepository {
     });
   }
 
-  async findMany(query: TemplateListQueryDto): Promise<TemplateListEntity> {
+  async findMany(query: TemplateListQuery): Promise<TemplateListEntity> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'createdAt';
@@ -204,7 +206,7 @@ export class TemplateRepository implements ITemplateRepository {
     };
   }
 
-  async update(id: string, payload: UpdateTemplateDto): Promise<TemplateEntity | null> {
+  async update(id: string, payload: UpdateTemplateRecord): Promise<TemplateEntity | null> {
     const current = this.mockStore.get(id);
     if (!current) return null;
 

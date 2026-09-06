@@ -2,9 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { CreateTemplateContentDto } from './dto/create-template-content.dto';
-import { UpdateTemplateContentDto } from './dto/update-template-content.dto';
 import { TemplateContentEntity } from './template-content.entity';
+
+interface CreateTemplateContentRecord {
+  content: Prisma.InputJsonValue;
+}
+
+interface UpdateTemplateContentRecord {
+  content?: Prisma.InputJsonValue;
+}
 
 @Injectable()
 export class TemplateContentRepository {
@@ -13,7 +19,7 @@ export class TemplateContentRepository {
     private readonly configService: ConfigService,
   ) {}
 
-  async upsert(templateId: string, payload: CreateTemplateContentDto): Promise<TemplateContentEntity> {
+  async upsert(templateId: string, payload: CreateTemplateContentRecord): Promise<TemplateContentEntity> {
     return this.prisma.templateContent.upsert({
       where: { templateId },
       create: {
@@ -32,7 +38,7 @@ export class TemplateContentRepository {
 
   async update(
     templateId: string,
-    payload: UpdateTemplateContentDto,
+    payload: UpdateTemplateContentRecord,
   ): Promise<TemplateContentEntity | null> {
     const existing = await this.prisma.templateContent.findUnique({ where: { templateId } });
     if (!existing) {

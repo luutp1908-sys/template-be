@@ -3,9 +3,15 @@ import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
-import { CreateTemplateContentDto } from './dto/create-template-content.dto';
-import { UpdateTemplateContentDto } from './dto/update-template-content.dto';
 import { TemplateContentEntity } from './template-content.entity';
+
+interface CreateTemplateContentRecord {
+  content: Prisma.InputJsonValue;
+}
+
+interface UpdateTemplateContentRecord {
+  content?: Prisma.InputJsonValue;
+}
 
 @Injectable()
 export class TemplateContentRepository {
@@ -49,7 +55,7 @@ export class TemplateContentRepository {
     }
   }
 
-  async upsert(templateId: string, payload: CreateTemplateContentDto): Promise<TemplateContentEntity> {
+  async upsert(templateId: string, payload: CreateTemplateContentRecord): Promise<TemplateContentEntity> {
     const record: TemplateContentEntity = {
       templateId,
       content: payload.content as Prisma.JsonValue,
@@ -66,7 +72,7 @@ export class TemplateContentRepository {
 
   async update(
     templateId: string,
-    payload: UpdateTemplateContentDto,
+    payload: UpdateTemplateContentRecord,
   ): Promise<TemplateContentEntity | null> {
     const current = this.mockStore.get(templateId);
     if (!current) {

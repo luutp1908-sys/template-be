@@ -1,16 +1,35 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { CreateUserDraftDto } from './dto/create-user-draft.dto';
-import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
-import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
 import { UserDraftEntity, UserDraftListEntity } from './user-draft.entity';
+
+interface CreateUserDraftRecord {
+  templateId?: string;
+  name: string;
+  content: Prisma.InputJsonValue;
+  thumbnail?: string;
+}
+
+interface UpdateUserDraftRecord {
+  workspaceId?: string;
+  templateId?: string;
+  name?: string;
+  content?: Prisma.InputJsonValue;
+  thumbnail?: string;
+}
+
+interface UserDraftListQuery {
+  page?: number;
+  pageSize?: number;
+  sortBy?: 'createdAt' | 'updatedAt' | 'lastOpenedAt' | 'name';
+  sortOrder?: 'asc' | 'desc';
+}
 
 @Injectable()
 export class UserDraftRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(payload: CreateUserDraftDto, userId: string, workspaceId: string | null): Promise<UserDraftEntity> {
+  async create(payload: CreateUserDraftRecord, userId: string, workspaceId: string | null): Promise<UserDraftEntity> {
     return this.prisma.userDraft.create({
       data: {
         userId,
@@ -30,7 +49,7 @@ export class UserDraftRepository {
     });
   }
 
-  async findMany(query: UserDraftListQueryDto, where: Prisma.UserDraftWhereInput): Promise<UserDraftListEntity> {
+  async findMany(query: UserDraftListQuery, where: Prisma.UserDraftWhereInput): Promise<UserDraftListEntity> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'updatedAt';
@@ -58,7 +77,7 @@ export class UserDraftRepository {
 
   async update(
     id: string,
-    payload: UpdateUserDraftDto,
+    payload: UpdateUserDraftRecord,
     where: Prisma.UserDraftWhereInput,
   ): Promise<UserDraftEntity | null> {
     const found = await this.prisma.userDraft.findFirst({

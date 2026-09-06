@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { InMemoryStore } from '../common/testing/in-memory-store';
-import { CreateAiDto } from './dto/create-ai.dto';
 import { AiEntity } from './ai.entity';
-import { IAiRepository } from './interfaces/ai.repository.interface';
+import { CreateAiRecord, IAiRepository } from './interfaces/ai.repository.interface';
 import { AiMapper } from './ai.mapper';
 
 @Injectable()
 export class AiRepository implements IAiRepository {
   private readonly store = new InMemoryStore<AiEntity>();
 
-  async create(payload: CreateAiDto): Promise<AiEntity> {
+  async create(payload: CreateAiRecord): Promise<AiEntity> {
     return this.store.create((base) =>
       AiMapper.toEntity({
         ...base,

@@ -2,8 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
-import { RegisterDto } from './dto/register.dto';
-import { IAuthRepository } from './interfaces/auth.repository.interface';
+import { CreateAuthUserRecord, IAuthRepository } from './interfaces/auth.repository.interface';
 import { AuthUser, AuthUserWithSecrets } from './types/auth-user.type';
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs'
 import { dirname, join } from 'path'
@@ -91,7 +90,7 @@ export class AuthRepository implements IAuthRepository {
     };
   }
 
-  async createUser(payload: RegisterDto, passwordHash: string): Promise<AuthUserWithSecrets> {
+  async createUser(payload: CreateAuthUserRecord, passwordHash: string): Promise<AuthUserWithSecrets> {
     const normalizedEmail = payload.email.toLowerCase();
 
     const now = new Date();

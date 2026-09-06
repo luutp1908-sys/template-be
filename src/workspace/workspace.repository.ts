@@ -1,10 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
-import { CreateWorkspaceDto } from './dto/create-workspace.dto';
-import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceEntity } from './workspace.entity';
-import { IWorkspaceRepository, WorkspaceMembershipRole } from './interfaces/workspace.repository.interface';
+import {
+  CreateWorkspaceRecord,
+  IWorkspaceRepository,
+  UpdateWorkspaceRecord,
+  WorkspaceMembershipRole,
+} from './interfaces/workspace.repository.interface';
 import { WorkspaceMapper } from './workspace.mapper';
 
 function buildWorkspaceSlug(name: string): string {
@@ -102,7 +105,7 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     return result.count > 0;
   }
 
-  async create(payload: CreateWorkspaceDto, createdByUserId?: string): Promise<WorkspaceEntity> {
+  async create(payload: CreateWorkspaceRecord, createdByUserId?: string): Promise<WorkspaceEntity> {
     const name = payload.name?.trim() || 'Untitled Workspace';
 
     const workspace = await this.prisma.$transaction(async (tx) => {
@@ -221,7 +224,7 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     }));
   }
 
-  async update(id: string, payload: UpdateWorkspaceDto): Promise<WorkspaceEntity | null> {
+  async update(id: string, payload: UpdateWorkspaceRecord): Promise<WorkspaceEntity | null> {
     const data: Record<string, unknown> = {};
 
     if (payload.name !== undefined) data.name = payload.name.trim();

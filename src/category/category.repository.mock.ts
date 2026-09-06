@@ -1,11 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
-import { CategoryListQueryDto } from './dto/category-list-query.dto';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
-import { ICategoryRepository } from './interfaces/category.repository.interface';
+import {
+  CategoryListQuery,
+  CreateCategoryRecord,
+  ICategoryRepository,
+  UpdateCategoryRecord,
+} from './interfaces/category.repository.interface';
 import { randomUUID } from 'crypto';
 import { getEditorTypeById } from '../common/constants/editor-types.constant';
 
@@ -63,7 +65,7 @@ export class CategoryRepository implements ICategoryRepository {
     writeFileSync(this.mockFilePath, JSON.stringify(arr, null, 2), 'utf8');
   }
 
-  async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {
+  async findMany(query: CategoryListQuery): Promise<CategoryEntity[]> {
     const normalizedSearch = query.search?.trim().toLowerCase();
     return [...this.store.values()].filter((c) => {
       if (c.deletedAt) return false;
@@ -76,7 +78,7 @@ export class CategoryRepository implements ICategoryRepository {
     }));
   }
 
-  async create(payload: CreateCategoryDto): Promise<CategoryEntity> {
+  async create(payload: CreateCategoryRecord): Promise<CategoryEntity> {
     const now = new Date();
     const entity: CategoryEntity = {
       id: randomUUID(),
@@ -135,7 +137,7 @@ export class CategoryRepository implements ICategoryRepository {
     return ancestors.reverse();
   }
 
-  async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
+  async update(id: string, payload: UpdateCategoryRecord): Promise<CategoryEntity> {
     const existing = this.store.get(id);
     if (!existing || existing.deletedAt) throw new NotFoundException('Category not found');
     const updated: CategoryEntity = {

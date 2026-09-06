@@ -1,15 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { CreateEditorTypeDto } from './dto/create-editor-type.dto';
 import { EditorTypeEntity } from './editor-type.entity';
-import { IEditorTypeRepository } from './interfaces/editor-type.repository.interface';
+import { CreateEditorTypeRecord, IEditorTypeRepository } from './interfaces/editor-type.repository.interface';
 import { EditorTypeMapper } from './editor-type.mapper';
 
 @Injectable()
 export class EditorTypeRepository implements IEditorTypeRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(payload: CreateEditorTypeDto): Promise<EditorTypeEntity> {
+  async create(payload: CreateEditorTypeRecord): Promise<EditorTypeEntity> {
     const name = payload.name ?? 'Unknown';
     const key = name.toLowerCase().replace(/\s+/g, '-').slice(0, 60);
     const created = await this.prisma.editorType.create({ data: { key, name } });

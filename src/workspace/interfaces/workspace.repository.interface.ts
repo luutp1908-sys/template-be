@@ -1,11 +1,26 @@
-import { CreateWorkspaceDto } from '../dto/create-workspace.dto';
-import { UpdateWorkspaceDto } from '../dto/update-workspace.dto';
 import { WorkspaceEntity } from '../workspace.entity';
 
 export type WorkspaceMembershipRole = 'OWNER' | 'ADMIN' | 'MEMBER';
+export type WorkspaceType = 'PERSONAL' | 'TEAM';
+
+export interface CreateWorkspaceRecord {
+  name?: string;
+  type?: WorkspaceType;
+  description?: string;
+  avatarUrl?: string;
+  isArchived?: boolean;
+}
+
+export interface UpdateWorkspaceRecord {
+  name?: string;
+  type?: WorkspaceType;
+  description?: string;
+  avatarUrl?: string;
+  isArchived?: boolean;
+}
 
 export interface IWorkspaceRepository {
-  create(_payload: CreateWorkspaceDto, _createdByUserId?: string): Promise<WorkspaceEntity>;
+  create(_payload: CreateWorkspaceRecord, _createdByUserId?: string): Promise<WorkspaceEntity>;
   findMany(_userId: string): Promise<WorkspaceEntity[]>;
   findById(_id: string): Promise<WorkspaceEntity | null>;
   findMemberWorkspaceId(_userId: string, _workspaceId: string): Promise<string | null>;
@@ -17,6 +32,6 @@ export interface IWorkspaceRepository {
   updateMemberRoleById(_memberId: string, _role: WorkspaceMembershipRole): Promise<unknown>;
   removeMemberById(_memberId: string): Promise<boolean>;
   findMembers(_workspaceId: string): Promise<unknown[]>;
-  update(_id: string, _payload: UpdateWorkspaceDto): Promise<WorkspaceEntity | null>;
+  update(_id: string, _payload: UpdateWorkspaceRecord): Promise<WorkspaceEntity | null>;
   remove(_id: string): Promise<WorkspaceEntity | null>;
 }
