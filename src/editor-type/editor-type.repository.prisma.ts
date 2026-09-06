@@ -1,10 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { CreateEditorTypeDto } from './dto/create-editor-type.dto';
 import { EditorTypeEntity } from './editor-type.entity';
 import { IEditorTypeRepository } from './interfaces/editor-type.repository.interface';
 import { EditorTypeMapper } from './editor-type.mapper';
-import { getEditorTypeById } from '../common/constants/editor-types.constant';
 
 @Injectable()
 export class EditorTypeRepository implements IEditorTypeRepository {
@@ -22,18 +21,12 @@ export class EditorTypeRepository implements IEditorTypeRepository {
     return row ? EditorTypeMapper.toEntity(row as any) : null;
   }
 
-  async ensureByNumericId(editorTypeId: number, tx?: any): Promise<string> {
-    const editorType = getEditorTypeById(editorTypeId);
-    if (!editorType) {
-      throw new BadRequestException(`Unsupported editorTypeId: ${editorTypeId}`);
-    }
-
-    const name = `${editorType.type.charAt(0).toUpperCase()}${editorType.type.slice(1)}`;
+  async ensureByKey(key: string, name: string, tx?: any): Promise<string> {
     const client = tx ?? this.prisma;
 
     const dbEditorType = await client.editorType.upsert({
-      where: { key: editorType.type },
-      create: { key: editorType.type, name },
+      where: { key },
+      create: { key, name },
       update: { name, deletedAt: null },
       select: { id: true },
     });

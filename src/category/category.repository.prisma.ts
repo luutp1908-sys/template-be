@@ -1,21 +1,18 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { EditorTypeService } from '../editor-type/editor-type.service';
-import { TemplateService } from '../template/template.service';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
 import { ICategoryRepository } from './interfaces/category.repository.interface';
 import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
-import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly editorTypeService: EditorTypeService,
-    private readonly templateService: TemplateService,
   ) {}
 
   private async loadSeoMapByCategoryIds(categoryIds: string[]): Promise<Map<string, any>> {
@@ -254,7 +251,7 @@ export class CategoryRepository implements ICategoryRepository {
   async findAncestors(id: string): Promise<CategoryEntity[]> {
     const ancestors: CategoryEntity[] = [];
     let current = await this.prisma.category.findUnique({ where: { id }, select: { parentId: true } });
-    if (!current) throw new NotFoundException('Category not found');
+    if (!current) return [];
 
     while (current && current.parentId) {
       const parent: any = await this.prisma.category.findFirst({
@@ -320,18 +317,6 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async move(id: string, newParentId: string | null): Promise<CategoryEntity> {
-    if (newParentId === id) {
-      throw new BadRequestException('Cannot set parent to self');
-    }
-
-    // check cycles: ensure newParentId is not a descendant of id
-    if (newParentId) {
-      const descendants = await this.findDescendants(id);
-      if (descendants.some((d) => d.id === newParentId)) {
-        throw new BadRequestException('Cannot move category into its own descendant');
-      }
-    }
-
     const updated = await this.prisma.category.update({
       where: { id },
       data: { parentId: newParentId },
@@ -359,18 +344,6 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async softDeleteSafe(id: string): Promise<void> {
-    // refuse delete if children exist
-    const child = await this.prisma.category.findFirst({ where: { parentId: id, deletedAt: null }, select: { id: true } });
-    if (child) {
-      throw new BadRequestException('Category has child categories; delete aborted');
-    }
-
-    // refuse if templates exist in this category
-    const templateExists = await this.templateService.hasTemplatesInCategory(id);
-    if (templateExists) {
-      throw new BadRequestException('Category has templates; delete aborted');
-    }
-
     await this.prisma.category.update({ where: { id }, data: { deletedAt: new Date() } });
   }
 
@@ -400,11 +373,6 @@ export class CategoryRepository implements ICategoryRepository {
     }));
   }
 
-  async getTemplatesRecursive(id: string): Promise<any[]> {
-    const ids = [id, ...(await this.findDescendants(id)).map((d) => d.id)];
-    return this.templateService.findByCategoryIds(ids);
-  }
-
   async getHierarchyStats(id: string): Promise<any> {
     const category = await this.prisma.category.findFirst({
       where: { id, deletedAt: null },
@@ -412,7 +380,7 @@ export class CategoryRepository implements ICategoryRepository {
     });
 
     if (!category) {
-      throw new NotFoundException('Category not found');
+      return null;
     }
 
     const rows = await this.prisma.$queryRaw<Array<any>>`

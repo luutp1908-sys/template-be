@@ -22,9 +22,9 @@ export class EditorTypeRepository implements IEditorTypeRepository {
     return this.store.findById(id);
   }
 
-  async ensureByNumericId(_editorTypeId: number): Promise<string> {
-    // In mock mode, just return a deterministic id for tests
-    return 'mock-editor-type-' + (_editorTypeId ?? 0);
+  async ensureByKey(key: string): Promise<string> {
+    // In mock mode, return deterministic key-based id for tests.
+    return `mock-editor-type-${key}`;
   }
 }
 

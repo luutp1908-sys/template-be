@@ -1,40 +1,26 @@
-import { BadRequestException } from '@nestjs/common';
-import { ExportFormat } from '../dto/create-export.dto';
 import { ExportRepository } from '../export.repository.prisma';
 
 describe('ExportRepository', () => {
-  it('throws BadRequestException when workspaceId does not exist', async () => {
+  it('creates export job record', async () => {
     const prisma = {
-      export: { create: jest.fn() },
+      export: {
+        create: jest.fn().mockResolvedValue({ id: 'export-1' }),
+      },
     };
 
-    const workspaceService = {
-      findById: jest.fn().mockResolvedValue(null),
-    };
+    const repository = new ExportRepository(prisma as any);
 
-    const templateService = {
-      findById: jest.fn(),
-    };
-
-    const repository = new ExportRepository(
-      prisma as any,
-      workspaceService as any,
-      templateService as any,
+    const result = await repository.create(
+      {
+        format: 'pdf' as any,
+        content: { pages: [] },
+        workspaceId: 'workspace-1',
+        templateName: 'template',
+      },
+      'user-123',
     );
 
-    await expect(
-      repository.create(
-        {
-          format: ExportFormat.PDF,
-          content: { pages: [] },
-          workspaceId: 'invalid-workspace-id',
-          templateName: 'template',
-        },
-        'user-123',
-      ),
-    ).rejects.toThrow(BadRequestException);
-
-    expect(workspaceService.findById).toHaveBeenCalledWith('invalid-workspace-id');
-    expect(prisma.export.create).not.toHaveBeenCalled();
+    expect(result).toEqual(expect.objectContaining({ id: 'export-1' }));
+    expect(prisma.export.create).toHaveBeenCalledTimes(1);
   });
 });

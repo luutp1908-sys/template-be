@@ -14,7 +14,6 @@ export interface ICategoryRepository {
   move(_id: string, newParentId: string | null): Promise<CategoryEntity>;
   softDeleteSafe(_id: string): Promise<void>;
   getTree(): Promise<CategoryEntity[]>;
-  getTemplatesRecursive(_id: string): Promise<any[]>;
   getHierarchyStats(_id: string): Promise<any>;
   getOrphanedCategories(): Promise<any[]>;
 }

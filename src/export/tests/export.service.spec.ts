@@ -1,27 +1,40 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
+import { WorkspaceService } from '../../workspace/workspace.service';
+import { TemplateService } from '../../template/template.service';
 import { ExportService } from '../export.service';
+import { BadRequestException } from '@nestjs/common';
+import { ExportFormat } from '../dto/create-export.dto';
 
 describe('ExportService', () => {
   let service: ExportService;
+  let repository: { create: jest.Mock; findById: jest.Mock };
+  let queue: { add: jest.Mock };
+  let workspaceService: { findById: jest.Mock };
+  let templateService: { findById: jest.Mock };
 
   beforeEach(async () => {
+    repository = {
+      create: jest.fn(),
+      findById: jest.fn(),
+    };
+    queue = { add: jest.fn() };
+    workspaceService = { findById: jest.fn() };
+    templateService = { findById: jest.fn() };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExportService,
         {
           provide: 'EXPORT_REPOSITORY',
-          useValue: {
-            create: jest.fn(),
-            findById: jest.fn(),
-          },
+          useValue: repository,
         },
         {
           provide: getQueueToken('pdf-export'),
-          useValue: {
-            add: jest.fn(),
-          },
+          useValue: queue,
         },
+        { provide: WorkspaceService, useValue: workspaceService },
+        { provide: TemplateService, useValue: templateService },
       ],
     }).compile();
 
@@ -30,5 +43,22 @@ describe('ExportService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should reject invalid workspace id', async () => {
+    workspaceService.findById.mockResolvedValue(null);
+
+    await expect(
+      service.createJob(
+        {
+          format: ExportFormat.PDF,
+          content: { pages: [] },
+          workspaceId: 'invalid-workspace',
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow(BadRequestException);
+
+    expect(repository.create).not.toHaveBeenCalled();
   });
 });

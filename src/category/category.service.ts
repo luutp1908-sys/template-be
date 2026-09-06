@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
+import { TemplateService } from '../template/template.service';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -16,6 +17,7 @@ export class CategoryService {
     @Inject('CATEGORY_REPOSITORY') private readonly repository: any,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    private readonly templateService: TemplateService,
   ) {}
 
   async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {
@@ -39,6 +41,21 @@ export class CategoryService {
   }
 
   async delete(id: string): Promise<void> {
+    const category = await this.repository.findById(id);
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    const children = await this.repository.findChildren(id);
+    if (children.length > 0) {
+      throw new BadRequestException('Category has child categories; delete aborted');
+    }
+
+    const templateExists = await this.templateService.hasTemplatesInCategory(id);
+    if (templateExists) {
+      throw new BadRequestException('Category has templates; delete aborted');
+    }
+
     await this.repository.softDeleteSafe(id);
     await this.invalidateCategoryTreeCache();
   }
@@ -71,6 +88,22 @@ export class CategoryService {
   }
 
   async move(id: string, newParentId: string | null): Promise<CategoryEntity> {
+    const category = await this.repository.findById(id);
+    if (!category) {
+      throw new NotFoundException('Category not found');
+    }
+
+    if (newParentId === id) {
+      throw new BadRequestException('Cannot set parent to self');
+    }
+
+    if (newParentId) {
+      const descendants = await this.repository.findDescendants(id);
+      if (descendants.some((d: CategoryEntity) => d.id === newParentId)) {
+        throw new BadRequestException('Cannot move category into its own descendant');
+      }
+    }
+
     const moved = await this.repository.move(id, newParentId);
     await this.invalidateCategoryTreeCache();
     return moved;
@@ -88,11 +121,17 @@ export class CategoryService {
   }
 
   async getAncestors(id: string): Promise<CategoryEntity[]> {
+    const self = await this.repository.findById(id);
+    if (!self) throw new NotFoundException('Category not found');
     return this.repository.findAncestors(id);
   }
 
   async getTemplatesRecursive(id: string): Promise<any[]> {
-    return this.repository.getTemplatesRecursive(id);
+    const self = await this.repository.findById(id);
+    if (!self) throw new NotFoundException('Category not found');
+    const descendants = await this.repository.findDescendants(id);
+    const ids = [id, ...descendants.map((d: CategoryEntity) => d.id)];
+    return this.templateService.findByCategoryIds(ids);
   }
 
   async getHierarchyStats(id: string): Promise<any> {

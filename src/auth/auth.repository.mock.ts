@@ -1,4 +1,4 @@
-import { ConflictException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
@@ -93,9 +93,6 @@ export class AuthRepository implements IAuthRepository {
 
   async createUser(payload: RegisterDto, passwordHash: string): Promise<AuthUserWithSecrets> {
     const normalizedEmail = payload.email.toLowerCase();
-    if (this.mockUsersByEmail.has(normalizedEmail)) {
-      throw new ConflictException('Email already registered');
-    }
 
     const now = new Date();
     const mockUser: MockUserRecord = {

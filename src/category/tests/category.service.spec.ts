@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../../cache/cache.service';
+import { TemplateService } from '../../template/template.service';
 import { CategoryService } from '../category.service';
 import { CategoryRepository } from '../category.repository';
 
@@ -32,6 +33,10 @@ describe('CategoryService', () => {
       return fallback;
     }),
   };
+  const templateService = {
+    hasTemplatesInCategory: jest.fn(),
+    findByCategoryIds: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
@@ -49,6 +54,7 @@ describe('CategoryService', () => {
         },
         { provide: CacheService, useValue: cacheService },
         { provide: ConfigService, useValue: configService },
+        { provide: TemplateService, useValue: templateService },
       ],
     }).compile();
 

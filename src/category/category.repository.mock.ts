@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
@@ -125,7 +125,7 @@ export class CategoryRepository implements ICategoryRepository {
   async findAncestors(id: string): Promise<CategoryEntity[]> {
     const ancestors: CategoryEntity[] = [];
     let current = this.store.get(id);
-    if (!current || current.deletedAt) throw new NotFoundException('Category not found');
+    if (!current || current.deletedAt) return [];
     while (current && current.parentId) {
       const parent = this.store.get(current.parentId);
       if (!parent || parent.deletedAt) break;
@@ -151,9 +151,6 @@ export class CategoryRepository implements ICategoryRepository {
   }
 
   async move(id: string, newParentId: string | null): Promise<CategoryEntity> {
-    if (newParentId === id) throw new BadRequestException('Cannot set parent to self');
-    const descendants = await this.findDescendants(id);
-    if (newParentId && descendants.some((d) => d.id === newParentId)) throw new BadRequestException('Cannot move into its own descendant');
     const existing = this.store.get(id);
     if (!existing || existing.deletedAt) throw new NotFoundException('Category not found');
     existing.parentId = newParentId;
@@ -166,8 +163,6 @@ export class CategoryRepository implements ICategoryRepository {
   async softDeleteSafe(id: string): Promise<void> {
     const existing = this.store.get(id);
     if (!existing || existing.deletedAt) throw new NotFoundException('Category not found');
-    const hasChildren = [...this.store.values()].some((c) => c.parentId === id && !c.deletedAt);
-    if (hasChildren) throw new BadRequestException('Category has child categories; delete aborted');
     existing.deletedAt = new Date();
     existing.updatedAt = new Date();
     this.store.set(id, existing);
@@ -178,15 +173,10 @@ export class CategoryRepository implements ICategoryRepository {
     return [...this.store.values()].filter((c) => !c.deletedAt);
   }
 
-  async getTemplatesRecursive(_id: string): Promise<any[]> {
-    // mock has no templates store
-    return [];
-  }
-
   async getHierarchyStats(id: string): Promise<any> {
     const category = this.store.get(id);
     if (!category || category.deletedAt) {
-      throw new NotFoundException('Category not found');
+      return null;
     }
 
     const descendants = await this.findDescendants(id);

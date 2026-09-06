@@ -1,18 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
-import { WorkspaceService } from '../workspace/workspace.service';
-import { TemplateService } from '../template/template.service';
 import { CreateExportDto } from './dto/create-export.dto';
 import { ExportEntity, ExportStatus } from './export.entity';
 
 @Injectable()
 export class ExportRepository {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly workspaceService: WorkspaceService,
-    private readonly templateService: TemplateService,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   private toPdfFileName(templateName?: string): string {
     const base = (templateName ?? 'template')
@@ -25,22 +19,6 @@ export class ExportRepository {
   }
 
   async create(payload: CreateExportDto, userId: string): Promise<ExportEntity> {
-    if (payload.workspaceId) {
-      const workspace = await this.workspaceService.findById(payload.workspaceId);
-
-      if (!workspace) {
-        throw new BadRequestException(`Invalid workspaceId: ${payload.workspaceId}`);
-      }
-    }
-
-    if (payload.templateId) {
-      const template = await this.templateService.findById(payload.templateId).catch(() => null);
-
-      if (!template) {
-        throw new BadRequestException(`Invalid templateId: ${payload.templateId}`);
-      }
-    }
-
     const exportJob = await this.prisma.export.create({
       data: {
         requestedByUserId: userId,
