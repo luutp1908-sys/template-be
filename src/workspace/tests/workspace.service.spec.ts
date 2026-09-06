@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WorkspaceService } from '../workspace.service';
 import { WorkspaceRepository } from '../workspace.repository';
+import { WorkspaceTypeDto } from '../dto/update-workspace.dto';
 
 describe('WorkspaceService', () => {
   let service: WorkspaceService;
@@ -65,5 +66,25 @@ describe('WorkspaceService', () => {
 
     await expect(service.findById('workspace-1')).resolves.toEqual(expected);
     expect(repository.findById).toHaveBeenCalledWith('workspace-1');
+  });
+
+  it('should update a workspace and return the updated entity', async () => {
+    const expected = {
+      id: 'workspace-1',
+      name: 'Updated',
+      slug: 'updated',
+      type: WorkspaceTypeDto.TEAM,
+      description: 'd',
+      avatarUrl: null,
+      isArchived: false,
+      deletedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    repository.update.mockResolvedValue(expected);
+
+    await expect(service.update('workspace-1', { name: 'Updated' })).resolves.toEqual(expected);
+    expect(repository.update).toHaveBeenCalledWith('workspace-1', { name: 'Updated' });
   });
 });

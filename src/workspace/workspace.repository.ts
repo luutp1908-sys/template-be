@@ -100,6 +100,10 @@ export class WorkspaceRepository implements IWorkspaceRepository {
         id: true,
         name: true,
         slug: true,
+        type: true,
+        description: true,
+        avatarUrl: true,
+        isArchived: true,
         deletedAt: true,
         createdAt: true,
         updatedAt: true,
@@ -150,10 +154,10 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     const data: Record<string, unknown> = {};
 
     if (payload.name !== undefined) data.name = payload.name.trim();
-    void payload.type;
-    void payload.description;
-    void payload.avatarUrl;
-    void payload.isArchived;
+    if (payload.type !== undefined) data.type = payload.type;
+    if (payload.description !== undefined) data.description = payload.description;
+    if (payload.avatarUrl !== undefined) data.avatarUrl = payload.avatarUrl;
+    if (payload.isArchived !== undefined) data.isArchived = payload.isArchived;
 
     if (Object.keys(data).length === 0) {
       return this.findById(id);
@@ -166,6 +170,10 @@ export class WorkspaceRepository implements IWorkspaceRepository {
         id: true,
         name: true,
         slug: true,
+        type: true,
+        description: true,
+        avatarUrl: true,
+        isArchived: true,
         deletedAt: true,
         createdAt: true,
         updatedAt: true,

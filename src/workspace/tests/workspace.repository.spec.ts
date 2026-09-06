@@ -1,4 +1,5 @@
 import { WorkspaceRepository } from '../workspace.repository';
+import { WorkspaceTypeDto } from '../dto/update-workspace.dto';
 
 describe('WorkspaceRepository', () => {
   let repository: WorkspaceRepository;
@@ -10,6 +11,7 @@ describe('WorkspaceRepository', () => {
       workspace: {
         create: jest.fn(),
         findFirst: jest.fn(),
+        update: jest.fn(),
       },
       workspaceMember: {
         create: jest.fn(),
@@ -31,7 +33,7 @@ describe('WorkspaceRepository', () => {
       id: 'workspace-1',
       name: 'My Workspace',
       slug: 'my-workspace',
-      type: 'PERSONAL',
+      type: WorkspaceTypeDto.PERSONAL,
       description: null,
       avatarUrl: null,
       isArchived: false,
@@ -56,7 +58,7 @@ describe('WorkspaceRepository', () => {
   it('creates a workspace membership when an admin invites a user into a team workspace', async () => {
     prisma.workspace.findFirst.mockResolvedValue({
       id: 'workspace-1',
-      type: 'TEAM',
+      type: WorkspaceTypeDto.TEAM,
       deletedAt: null,
     });
     prisma.workspaceMember.findFirst
@@ -130,5 +132,54 @@ describe('WorkspaceRepository', () => {
 
     expect(result).toBe(true);
     expect(prisma.workspaceMember.delete).toHaveBeenCalledWith({ where: { id: 'membership-2' } });
+  });
+
+  it('updates workspace fields when provided', async () => {
+    const updated = {
+      id: 'workspace-1',
+      name: 'New Name',
+      slug: 'new-name',
+      type: 'TEAM',
+      description: 'desc',
+      avatarUrl: 'http://example.com/a.png',
+      isArchived: true,
+      deletedAt: null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+
+    prisma.workspace.update.mockResolvedValue(updated);
+
+    const result = await repository.update('workspace-1', {
+      name: 'New Name',
+      type: WorkspaceTypeDto.TEAM,
+      description: 'desc',
+      avatarUrl: 'http://example.com/a.png',
+      isArchived: true,
+    });
+
+    expect(prisma.workspace.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'workspace-1' },
+        data: expect.objectContaining({
+          name: 'New Name',
+          type: 'TEAM',
+          description: 'desc',
+          avatarUrl: 'http://example.com/a.png',
+          isArchived: true,
+        }),
+      }),
+    );
+
+    expect(result).toEqual(expect.objectContaining({ id: 'workspace-1', name: 'New Name', type: 'TEAM', description: 'desc', avatarUrl: 'http://example.com/a.png', isArchived: true }));
+  });
+
+  it('returns findById result when no supported fields provided', async () => {
+    prisma.workspace.findFirst.mockResolvedValue({ id: 'workspace-1', name: 'Old', slug: 'old', type: WorkspaceTypeDto.PERSONAL, description: null, avatarUrl: null, isArchived: false, deletedAt: null, createdAt: new Date(), updatedAt: new Date() });
+
+    const result = await repository.update('workspace-1', {} as any);
+
+    expect(prisma.workspace.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'workspace-1', deletedAt: null } }));
+    expect(result).toEqual(expect.objectContaining({ id: 'workspace-1', name: 'Old' }));
   });
 });
