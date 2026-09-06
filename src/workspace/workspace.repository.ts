@@ -1,12 +1,10 @@
-import { ConflictException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
-import { UserService } from '../user/user.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
-import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceEntity } from './workspace.entity';
-import { IWorkspaceRepository } from './interfaces/workspace.repository.interface';
+import { IWorkspaceRepository, WorkspaceMembershipRole } from './interfaces/workspace.repository.interface';
 import { WorkspaceMapper } from './workspace.mapper';
 
 function buildWorkspaceSlug(name: string): string {
@@ -21,7 +19,7 @@ function buildWorkspaceSlug(name: string): string {
 
 @Injectable()
 export class WorkspaceRepository implements IWorkspaceRepository {
-  constructor(private readonly prisma: PrismaService, private readonly userService: UserService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
   async findMemberWorkspaceId(userId: string, workspaceId: string): Promise<string | null> {
     const membership = await this.prisma.workspaceMember.findFirst({
@@ -52,6 +50,56 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     });
 
     return memberships.map((membership) => membership.workspaceId);
+  }
+
+  async findMemberRole(workspaceId: string, userId: string): Promise<string | null> {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { workspaceId, userId },
+      select: { role: true },
+    });
+
+    return membership?.role ?? null;
+  }
+
+  async findMembershipById(
+    workspaceId: string,
+    memberId: string,
+  ): Promise<{ id: string; role: string; userId: string; workspaceId: string } | null> {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { id: memberId, workspaceId },
+      select: { id: true, role: true, userId: true, workspaceId: true },
+    });
+
+    return membership ?? null;
+  }
+
+  async createMember(
+    workspaceId: string,
+    userId: string,
+    role: WorkspaceMembershipRole,
+    invitedByUserId: string,
+  ): Promise<unknown> {
+    return this.prisma.workspaceMember.create({
+      data: {
+        id: randomUUID(),
+        workspaceId,
+        userId,
+        role,
+        invitedBy: invitedByUserId,
+      },
+    });
+  }
+
+  async updateMemberRoleById(memberId: string, role: WorkspaceMembershipRole): Promise<unknown> {
+    return this.prisma.workspaceMember.update({
+      where: { id: memberId },
+      data: { role },
+    });
+  }
+
+  async removeMemberById(memberId: string): Promise<boolean> {
+    const result = await this.prisma.workspaceMember.deleteMany({ where: { id: memberId } });
+    return result.count > 0;
   }
 
   async create(payload: CreateWorkspaceDto, createdByUserId?: string): Promise<WorkspaceEntity> {
@@ -146,15 +194,6 @@ export class WorkspaceRepository implements IWorkspaceRepository {
   }
 
   async findMembers(workspaceId: string): Promise<unknown[]> {
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { id: workspaceId, deletedAt: null },
-      select: { id: true },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found');
-    }
-
     const members = await this.prisma.workspaceMember.findMany({
       where: { workspaceId },
       select: {
@@ -232,114 +271,4 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     return WorkspaceMapper.toEntity(row);
   }
 
-  async inviteMember(workspaceId: string, payload: InviteWorkspaceMemberDto, invitedByUserId: string): Promise<unknown> {
-    const workspace = await this.prisma.workspace.findFirst({
-      where: { id: workspaceId, deletedAt: null },
-      select: { id: true, type: true },
-    });
-
-    if (!workspace) {
-      throw new NotFoundException('Workspace not found');
-    }
-
-    if (workspace.type !== 'TEAM') {
-      throw new ForbiddenException('Invitations are only supported for team workspaces');
-    }
-
-    const inviterMembership = await this.prisma.workspaceMember.findFirst({
-      where: { workspaceId, userId: invitedByUserId },
-      select: { role: true },
-    });
-
-    if (!inviterMembership || !['OWNER', 'ADMIN'].includes(inviterMembership.role)) {
-      throw new ForbiddenException('Only workspace owners and admins can invite members');
-    }
-
-    const invitedUser = await this.userService.findByEmail(payload.email);
-
-    if (!invitedUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (invitedUser.id === invitedByUserId) {
-      throw new ConflictException('You cannot invite yourself');
-    }
-
-    const existingMembership = await this.prisma.workspaceMember.findFirst({
-      where: { workspaceId, userId: invitedUser.id },
-      select: { id: true },
-    });
-
-    if (existingMembership) {
-      throw new ConflictException('User is already a member of this workspace');
-    }
-
-    return this.prisma.workspaceMember.create({
-      data: {
-        id: randomUUID(),
-        workspaceId,
-        userId: invitedUser.id,
-        role: 'MEMBER',
-        invitedBy: invitedByUserId,
-      },
-    });
-  }
-
-  async updateMemberRole(workspaceId: string, memberId: string, role: string, actingUserId: string): Promise<unknown> {
-    const actorMembership = await this.prisma.workspaceMember.findFirst({
-      where: { workspaceId, userId: actingUserId },
-      select: { role: true },
-    });
-
-    if (!actorMembership || !['OWNER', 'ADMIN'].includes(actorMembership.role)) {
-      throw new ForbiddenException('Only workspace owners and admins can change member roles');
-    }
-
-    const targetMembership = await this.prisma.workspaceMember.findFirst({
-      where: { id: memberId, workspaceId },
-      select: { id: true, role: true },
-    });
-
-    if (!targetMembership) {
-      throw new NotFoundException('Workspace member not found');
-    }
-
-    if (targetMembership.role === 'OWNER') {
-      throw new ForbiddenException('The workspace owner role cannot be changed');
-    }
-
-    const normalizedRole = role === 'ADMIN' ? 'ADMIN' : 'MEMBER';
-
-    return this.prisma.workspaceMember.update({
-      where: { id: memberId },
-      data: { role: normalizedRole },
-    });
-  }
-
-  async removeMember(workspaceId: string, memberId: string, actingUserId: string): Promise<boolean> {
-    const actorMembership = await this.prisma.workspaceMember.findFirst({
-      where: { workspaceId, userId: actingUserId },
-      select: { role: true },
-    });
-
-    if (!actorMembership || !['OWNER', 'ADMIN'].includes(actorMembership.role)) {
-      throw new ForbiddenException('Only workspace owners and admins can remove members');
-    }
-
-    const targetMembership = await this.prisma.workspaceMember.findFirst({
-      where: { id: memberId, workspaceId },
-      select: { id: true, role: true },
-    });
-
-    if (!targetMembership) {
-      throw new NotFoundException('Workspace member not found');
-    }
-
-    if (targetMembership.role === 'OWNER') {
-      throw new ForbiddenException('The workspace owner cannot be removed');
-    }
-
-    await this.prisma.workspaceMember.delete({ where: { id: memberId } });
-    return true;
-  }
 }

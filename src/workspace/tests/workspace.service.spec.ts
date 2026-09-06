@@ -1,7 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { WorkspaceService } from '../workspace.service';
 import { WorkspaceRepository } from '../workspace.repository';
 import { WorkspaceTypeDto } from '../dto/update-workspace.dto';
+import { UserService } from '../../user/user.service';
 
 describe('WorkspaceService', () => {
   let service: WorkspaceService;
@@ -9,8 +11,18 @@ describe('WorkspaceService', () => {
     create: jest.Mock;
     findMany: jest.Mock;
     findById: jest.Mock;
+    findMemberRole: jest.Mock;
+    findMemberWorkspaceId: jest.Mock;
+    findMembershipById: jest.Mock;
+    createMember: jest.Mock;
+    updateMemberRoleById: jest.Mock;
+    removeMemberById: jest.Mock;
+    findMembers: jest.Mock;
     update: jest.Mock;
     remove: jest.Mock;
+  };
+  const userService = {
+    findByEmail: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -18,9 +30,18 @@ describe('WorkspaceService', () => {
       create: jest.fn(),
       findMany: jest.fn(),
       findById: jest.fn(),
+      findMemberRole: jest.fn(),
+      findMemberWorkspaceId: jest.fn(),
+      findMembershipById: jest.fn(),
+      createMember: jest.fn(),
+      updateMemberRoleById: jest.fn(),
+      removeMemberById: jest.fn(),
+      findMembers: jest.fn(),
       update: jest.fn(),
       remove: jest.fn(),
     };
+
+    userService.findByEmail.mockReset();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -28,6 +49,10 @@ describe('WorkspaceService', () => {
         {
           provide: WorkspaceRepository,
           useValue: repository,
+        },
+        {
+          provide: UserService,
+          useValue: userService,
         },
       ],
     }).compile();
@@ -86,5 +111,75 @@ describe('WorkspaceService', () => {
 
     await expect(service.update('workspace-1', { name: 'Updated' })).resolves.toEqual(expected);
     expect(repository.update).toHaveBeenCalledWith('workspace-1', { name: 'Updated' });
+  });
+
+  it('invites member when requester is workspace admin', async () => {
+    repository.findById.mockResolvedValue({ id: 'workspace-1', type: WorkspaceTypeDto.TEAM });
+    repository.findMemberRole.mockResolvedValue('ADMIN');
+    repository.findMemberWorkspaceId.mockResolvedValue(null);
+    userService.findByEmail.mockResolvedValue({ id: 'user-2' });
+    repository.createMember.mockResolvedValue({ id: 'membership-1' });
+
+    const result = await service.inviteMember(
+      'workspace-1',
+      { email: 'invitee@example.com' },
+      { id: 'user-1', email: 'owner@example.com', role: 'ADMIN' } as any,
+    );
+
+    expect(result).toEqual({ id: 'membership-1' });
+    expect(repository.createMember).toHaveBeenCalledWith('workspace-1', 'user-2', 'MEMBER', 'user-1');
+  });
+
+  it('rejects invite when actor has insufficient role', async () => {
+    repository.findById.mockResolvedValue({ id: 'workspace-1', type: WorkspaceTypeDto.TEAM });
+    repository.findMemberRole.mockResolvedValue('MEMBER');
+
+    await expect(
+      service.inviteMember(
+        'workspace-1',
+        { email: 'invitee@example.com' },
+        { id: 'user-1', email: 'member@example.com', role: 'MEMBER' } as any,
+      ),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
+  it('updates member role after permission checks', async () => {
+    repository.findMemberRole.mockResolvedValue('OWNER');
+    repository.findMembershipById.mockResolvedValue({ id: 'membership-1', role: 'MEMBER' });
+    repository.updateMemberRoleById.mockResolvedValue({ id: 'membership-1', role: 'ADMIN' });
+
+    const result = await service.updateMemberRole('workspace-1', 'membership-1', 'ADMIN', 'owner-1');
+
+    expect(result).toEqual({ id: 'membership-1', role: 'ADMIN' });
+    expect(repository.updateMemberRoleById).toHaveBeenCalledWith('membership-1', 'ADMIN');
+  });
+
+  it('prevents removing workspace owner', async () => {
+    repository.findMemberRole.mockResolvedValue('OWNER');
+    repository.findMembershipById.mockResolvedValue({ id: 'membership-1', role: 'OWNER' });
+
+    await expect(service.removeMember('workspace-1', 'membership-1', 'owner-1')).rejects.toThrow(
+      ForbiddenException,
+    );
+  });
+
+  it('throws when listing members for unknown workspace', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.findMembers('workspace-1')).rejects.toThrow(NotFoundException);
+  });
+
+  it('rejects self invite', async () => {
+    repository.findById.mockResolvedValue({ id: 'workspace-1', type: WorkspaceTypeDto.TEAM });
+    repository.findMemberRole.mockResolvedValue('OWNER');
+    userService.findByEmail.mockResolvedValue({ id: 'user-1' });
+
+    await expect(
+      service.inviteMember(
+        'workspace-1',
+        { email: 'owner@example.com' },
+        { id: 'user-1', email: 'owner@example.com', role: 'OWNER' } as any,
+      ),
+    ).rejects.toThrow(ConflictException);
   });
 });
