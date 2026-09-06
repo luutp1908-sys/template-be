@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { EditorTypeService } from '../editor-type/editor-type.service';
 import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
@@ -35,24 +36,8 @@ const templateInclude = {
 
 @Injectable()
 export class TemplateRepository implements ITemplateRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private async resolveDbEditorTypeId(editorTypeId: number): Promise<string> {
-    const editorType = getEditorTypeById(editorTypeId);
-    if (!editorType) {
-      throw new BadRequestException(`Unsupported editorTypeId: ${editorTypeId}`);
-    }
-
-    const name = `${editorType.type.charAt(0).toUpperCase()}${editorType.type.slice(1)}`;
-    const dbEditorType = await this.prisma.editorType.upsert({
-      where: { key: editorType.type },
-      create: { key: editorType.type, name },
-      update: { name, deletedAt: null },
-      select: { id: true },
-    });
-
-    return dbEditorType.id;
-  }
+  constructor(private readonly prisma: PrismaService, private readonly editorTypeService: EditorTypeService) {}
+  
 
   private mapEditorTypeKeyToValue(key?: string | null): TemplateEntity['editorType'] {
     const editorType = getEditorTypeByCode(key ?? '') ?? getEditorTypeById(0)!;
@@ -70,7 +55,7 @@ export class TemplateRepository implements ITemplateRepository {
   }
 
   async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
-    const dbEditorTypeId = await this.resolveDbEditorTypeId(payload.editorTypeId);
+    const dbEditorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(payload.editorTypeId);
 
     const created = await this.prisma.template.create({
       data: {
@@ -118,7 +103,7 @@ export class TemplateRepository implements ITemplateRepository {
     };
 
     if (query.editorTypeId !== undefined) {
-      where.editorTypeId = await this.resolveDbEditorTypeId(query.editorTypeId);
+      where.editorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(query.editorTypeId);
     }
 
     const [total, rows] = await this.prisma.$transaction([
@@ -163,7 +148,7 @@ export class TemplateRepository implements ITemplateRepository {
     if (payload.editorTypeId !== undefined) {
       updateData.editorType = {
         connect: {
-          id: await this.resolveDbEditorTypeId(payload.editorTypeId),
+          id: await this.editorTypeService.ensureEditorTypeByNumericId(payload.editorTypeId),
         },
       };
     }
@@ -198,7 +183,7 @@ export class TemplateRepository implements ITemplateRepository {
     const limit = Math.max(1, query.limit ?? 10);
     const where: Prisma.TemplateWhereInput = {
       ...(query.editorTypeId !== undefined
-        ? { editorTypeId: await this.resolveDbEditorTypeId(query.editorTypeId) }
+        ? { editorTypeId: await this.editorTypeService.ensureEditorTypeByNumericId(query.editorTypeId) }
         : {}),
       ...(query.status ? { status: query.status } : {}),
     };
@@ -246,7 +231,7 @@ export class TemplateRepository implements ITemplateRepository {
     const limit = Math.max(1, query.limit ?? 10);
     const where: Prisma.TemplateWhereInput = {
       ...(query.editorTypeId !== undefined
-        ? { editorTypeId: await this.resolveDbEditorTypeId(query.editorTypeId) }
+        ? { editorTypeId: await this.editorTypeService.ensureEditorTypeByNumericId(query.editorTypeId) }
         : {}),
       ...(query.status ? { status: query.status } : {}),
     };

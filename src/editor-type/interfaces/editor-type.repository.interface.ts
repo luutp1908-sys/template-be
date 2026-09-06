@@ -4,4 +4,5 @@ import { EditorTypeEntity } from '../editor-type.entity';
 export interface IEditorTypeRepository {
   create(_payload: CreateEditorTypeDto): Promise<EditorTypeEntity>;
   findById(_id: string): Promise<EditorTypeEntity | null>;
+  ensureByNumericId(_editorTypeId: number, _tx?: any): Promise<string>;
 }

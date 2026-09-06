@@ -1,24 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { InMemoryStore } from '../common/testing/in-memory-store';
-import { CreateEditorTypeDto } from './dto/create-editor-type.dto';
-import { EditorTypeEntity } from './editor-type.entity';
-import { IEditorTypeRepository } from './interfaces/editor-type.repository.interface';
-import { EditorTypeMapper } from './editor-type.mapper';
-
-@Injectable()
-export class EditorTypeRepository implements IEditorTypeRepository {
-  private readonly store = new InMemoryStore<EditorTypeEntity>();
-
-  async create(payload: CreateEditorTypeDto): Promise<EditorTypeEntity> {
-    return this.store.create((base) =>
-      EditorTypeMapper.toEntity({
-        ...base,
-        ...payload,
-      }),
-    );
-  }
-
-  async findById(id: string): Promise<EditorTypeEntity | null> {
-    return this.store.findById(id);
-  }
-}
+// runtime switch: choose implementation based on MOCK_MODE
+const isMock = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1';
+const impl = isMock ? require('./editor-type.repository.mock') : require('./editor-type.repository.prisma');
+export const EditorTypeRepository = impl.EditorTypeRepository;
+export default EditorTypeRepository;
+// Note: keep only runtime value export; do not export conflicting type alias

@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { EditorTypeService } from '../editor-type/editor-type.service';
 import { getEditorTypeById } from '../common/constants/editor-types.constant';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { SearchEntity, SearchListEntity } from './search.entity';
@@ -8,25 +9,7 @@ import { ISearchRepository } from './interfaces/search.repository.interface';
 
 @Injectable()
 export class SearchRepository implements ISearchRepository {
-  constructor(private readonly prisma: PrismaService) {}
-
-  private async resolveDbEditorTypeId(editorTypeId?: number): Promise<string | undefined> {
-    if (editorTypeId === undefined) return undefined;
-
-    const editorType = getEditorTypeById(editorTypeId);
-    if (!editorType) {
-      return undefined;
-    }
-
-    const dbEditorType = await this.prisma.editorType.upsert({
-      where: { key: editorType.type },
-      create: { key: editorType.type, name: editorType.type },
-      update: { name: editorType.type, deletedAt: null },
-      select: { id: true },
-    });
-
-    return dbEditorType.id;
-  }
+  constructor(private readonly prisma: PrismaService, private readonly editorTypeService: EditorTypeService) {}
 
   async search(query: SearchQueryDto): Promise<SearchListEntity> {
     const q = (query.q ?? '').trim();
@@ -39,9 +22,13 @@ export class SearchRepository implements ISearchRepository {
     };
 
     if (query.editorTypeId !== undefined) {
-      const editorTypeId = await this.resolveDbEditorTypeId(query.editorTypeId);
-      if (editorTypeId) {
-        where.editorTypeId = editorTypeId;
+      try {
+        const editorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(query.editorTypeId);
+        if (editorTypeId) {
+          where.editorTypeId = editorTypeId;
+        }
+      } catch (e) {
+        // ignore unsupported editorTypeId filter
       }
     }
 

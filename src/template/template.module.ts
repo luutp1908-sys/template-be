@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { EditorTypeModule } from '../editor-type/editor-type.module';
 import { TemplateController } from './template.controller';
 import { TemplateService } from './template.service';
 
@@ -8,6 +9,7 @@ console.log('[template.module] TemplateRepository type:', impl.TemplateRepositor
 const TEMPLATE_REPOSITORY = 'TEMPLATE_REPOSITORY';
 
 @Module({
+  imports: [EditorTypeModule],
   controllers: [TemplateController],
   providers: [
     TemplateService,

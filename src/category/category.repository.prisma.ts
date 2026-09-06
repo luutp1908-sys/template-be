@@ -1,5 +1,6 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { EditorTypeService } from '../editor-type/editor-type.service';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -10,7 +11,7 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly editorTypeService: EditorTypeService) {}
 
   private async loadSeoMapByCategoryIds(categoryIds: string[]): Promise<Map<string, any>> {
     if (!categoryIds.length) return new Map<string, any>();
@@ -34,22 +35,7 @@ export class CategoryRepository implements ICategoryRepository {
     return new Map<string, any>(rows.map((row) => [String(row.categoryId), row]));
   }
 
-  private async resolveDbEditorTypeId(editorTypeId: number): Promise<string> {
-    const editorType = getEditorTypeById(editorTypeId);
-    if (!editorType) {
-      throw new BadRequestException(`Unsupported editorTypeId: ${editorTypeId}`);
-    }
-
-    const name = `${editorType.type.charAt(0).toUpperCase()}${editorType.type.slice(1)}`;
-    const dbEditorType = await this.prisma.editorType.upsert({
-      where: { key: editorType.type },
-      create: { key: editorType.type, name },
-      update: { name, deletedAt: null },
-      select: { id: true },
-    });
-
-    return dbEditorType.id;
-  }
+  
 
   private mapEditorTypeKeyToId(key?: string | null): number {
     return getEditorTypeByCode(key ?? '')?.id ?? 0;
@@ -59,7 +45,7 @@ export class CategoryRepository implements ICategoryRepository {
     const where: any = { deletedAt: null };
 
     if (query.editorTypeId !== undefined) {
-      where.editorTypeId = await this.resolveDbEditorTypeId(query.editorTypeId);
+      where.editorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(query.editorTypeId);
     }
 
     if (query.search) {
@@ -114,7 +100,7 @@ export class CategoryRepository implements ICategoryRepository {
 
     const slug = payload.slug ?? payload.name.toLowerCase().replace(/\s+/g, '-').slice(0, 180);
 
-    const dbEditorTypeId = await this.resolveDbEditorTypeId(payload.editorTypeId ?? 0);
+    const dbEditorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(payload.editorTypeId ?? 0);
 
     const created = await this.prisma.category.create({
       data: {
@@ -299,7 +285,7 @@ export class CategoryRepository implements ICategoryRepository {
   async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
     const data: any = { ...payload };
     if ((payload as any).editorTypeId !== undefined) {
-      data.editorTypeId = await this.resolveDbEditorTypeId((payload as any).editorTypeId);
+      data.editorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId((payload as any).editorTypeId);
     }
 
     const updated = await this.prisma.category.update({
