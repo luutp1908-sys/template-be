@@ -80,29 +80,104 @@ export class UserDraftRepository {
     return entity;
   }
 
-  async findById(id: string, userId: string, workspaceIds: string[]): Promise<UserDraftEntity | null> {
-    const entity = this.mockStore.get(id);
+  private hasAccess(entity: UserDraftEntity, userId: string, workspaceIds: string[]): boolean {
+    return entity.userId === userId || (entity.workspaceId ? workspaceIds.includes(entity.workspaceId) : false);
+  }
+
+  private normalizeWhere(where: Prisma.UserDraftWhereInput): {
+    userId: string | null;
+    workspaceIds: string[];
+    id?: string;
+    workspaceId?: string;
+    templateId?: string;
+  } {
+    const clauses = Array.isArray(where.AND) ? where.AND : [where.AND].filter(Boolean);
+    const normalized = {
+      userId: null as string | null,
+      workspaceIds: [] as string[],
+      id: undefined as string | undefined,
+      workspaceId: undefined as string | undefined,
+      templateId: undefined as string | undefined,
+    };
+
+    for (const clause of clauses) {
+      if (!clause || typeof clause !== 'object') {
+        continue;
+      }
+
+      if ('id' in clause && clause.id && typeof clause.id === 'object' && 'in' in clause.id) {
+        const inValues = (clause.id as { in?: string[] }).in;
+        if (Array.isArray(inValues) && inValues.length === 0) {
+          return normalized;
+        }
+      }
+
+      if ('id' in clause && typeof clause.id === 'string') {
+        normalized.id = clause.id;
+      }
+
+      if ('workspaceId' in clause && typeof clause.workspaceId === 'string') {
+        normalized.workspaceId = clause.workspaceId;
+      }
+
+      if ('templateId' in clause && typeof clause.templateId === 'string') {
+        normalized.templateId = clause.templateId;
+      }
+
+      if ('OR' in clause && Array.isArray(clause.OR)) {
+        for (const orClause of clause.OR) {
+          if (!orClause || typeof orClause !== 'object') {
+            continue;
+          }
+          if ('userId' in orClause && typeof orClause.userId === 'string') {
+            normalized.userId = orClause.userId;
+          }
+          if ('workspaceId' in orClause && orClause.workspaceId && typeof orClause.workspaceId === 'object' && 'in' in orClause.workspaceId) {
+            const inValues = (orClause.workspaceId as { in?: string[] }).in;
+            if (Array.isArray(inValues)) {
+              normalized.workspaceIds = inValues;
+            }
+          }
+        }
+      }
+    }
+
+    return normalized;
+  }
+
+  async findById(where: Prisma.UserDraftWhereInput): Promise<UserDraftEntity | null> {
+    const normalized = this.normalizeWhere(where);
+    if (!normalized.id || !normalized.userId) {
+      return null;
+    }
+
+    const entity = this.mockStore.get(normalized.id);
     if (!entity) {
       return null;
     }
 
-    const hasAccess = entity.userId === userId || (entity.workspaceId ? workspaceIds.includes(entity.workspaceId) : false);
+    const hasAccess = this.hasAccess(entity, normalized.userId, normalized.workspaceIds);
     if (!hasAccess) return null;
 
     return entity;
   }
 
-  async findMany(query: UserDraftListQueryDto, userId: string, workspaceIds: string[]): Promise<UserDraftListEntity> {
+  async findMany(query: UserDraftListQueryDto, where: Prisma.UserDraftWhereInput): Promise<UserDraftListEntity> {
+    const normalized = this.normalizeWhere(where);
+    if (!normalized.userId) {
+      return { items: [], total: 0, page: query.page ?? 1, pageSize: query.pageSize ?? 10 };
+    }
+
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;
     const sortBy = query.sortBy ?? 'updatedAt';
     const sortOrder = query.sortOrder ?? 'desc';
 
     const filtered = [...this.mockStore.values()].filter((entity) => {
-      const hasAccess = entity.userId === userId || (entity.workspaceId ? workspaceIds.includes(entity.workspaceId) : false);
+      const hasAccess = this.hasAccess(entity, normalized.userId as string, normalized.workspaceIds);
       if (!hasAccess) return false;
-      if (query.workspaceId && entity.workspaceId !== query.workspaceId) return false;
-      if (query.templateId && entity.templateId !== query.templateId) return false;
+      if (normalized.workspaceId && entity.workspaceId !== normalized.workspaceId) return false;
+      if (normalized.templateId && entity.templateId !== normalized.templateId) return false;
       return true;
     });
 
@@ -130,12 +205,16 @@ export class UserDraftRepository {
   async update(
     id: string,
     payload: UpdateUserDraftDto,
-    userId: string,
-    workspaceIds: string[],
+    where: Prisma.UserDraftWhereInput,
   ): Promise<UserDraftEntity | null> {
+    const normalized = this.normalizeWhere(where);
+    if (!normalized.userId) {
+      return null;
+    }
+
     const current = this.mockStore.get(id);
     if (!current) return null;
-    const hasAccess = current.userId === userId || (current.workspaceId ? workspaceIds.includes(current.workspaceId) : false);
+    const hasAccess = this.hasAccess(current, normalized.userId, normalized.workspaceIds);
     if (!hasAccess) return null;
 
     current.templateId = payload.templateId ?? current.templateId;
@@ -150,10 +229,15 @@ export class UserDraftRepository {
     return current;
   }
 
-  async touch(id: string, userId: string, workspaceIds: string[]): Promise<UserDraftEntity | null> {
+  async touch(id: string, where: Prisma.UserDraftWhereInput): Promise<UserDraftEntity | null> {
+    const normalized = this.normalizeWhere(where);
+    if (!normalized.userId) {
+      return null;
+    }
+
     const current = this.mockStore.get(id);
     if (!current) return null;
-    const hasAccess = current.userId === userId || (current.workspaceId ? workspaceIds.includes(current.workspaceId) : false);
+    const hasAccess = this.hasAccess(current, normalized.userId, normalized.workspaceIds);
     if (!hasAccess) return null;
 
     current.lastOpenedAt = new Date();
@@ -163,13 +247,18 @@ export class UserDraftRepository {
     return current;
   }
 
-  async remove(id: string, userId: string, workspaceIds: string[]): Promise<boolean> {
-    const current = this.mockStore.get(id);
+  async remove(where: Prisma.UserDraftWhereInput): Promise<boolean> {
+    const normalized = this.normalizeWhere(where);
+    if (!normalized.userId || !normalized.id) {
+      return false;
+    }
+
+    const current = this.mockStore.get(normalized.id);
     if (!current) return false;
-    const hasAccess = current.userId === userId || (current.workspaceId ? workspaceIds.includes(current.workspaceId) : false);
+    const hasAccess = this.hasAccess(current, normalized.userId, normalized.workspaceIds);
     if (!hasAccess) return false;
 
-    const deleted = this.mockStore.delete(id);
+    const deleted = this.mockStore.delete(normalized.id);
     this.persistMockStore()
     return deleted;
   }
