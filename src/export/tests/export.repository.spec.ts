@@ -5,12 +5,22 @@ import { ExportRepository } from '../export.repository.prisma';
 describe('ExportRepository', () => {
   it('throws BadRequestException when workspaceId does not exist', async () => {
     const prisma = {
-      workspace: { findUnique: jest.fn().mockResolvedValue(null) },
-      template: { findUnique: jest.fn() },
       export: { create: jest.fn() },
     };
 
-    const repository = new ExportRepository(prisma as any);
+    const workspaceService = {
+      findById: jest.fn().mockResolvedValue(null),
+    };
+
+    const templateService = {
+      findById: jest.fn(),
+    };
+
+    const repository = new ExportRepository(
+      prisma as any,
+      workspaceService as any,
+      templateService as any,
+    );
 
     await expect(
       repository.create(
@@ -24,9 +34,7 @@ describe('ExportRepository', () => {
       ),
     ).rejects.toThrow(BadRequestException);
 
-    expect(prisma.workspace.findUnique).toHaveBeenCalledWith({
-      where: { id: 'invalid-workspace-id' },
-    });
+    expect(workspaceService.findById).toHaveBeenCalledWith('invalid-workspace-id');
     expect(prisma.export.create).not.toHaveBeenCalled();
   });
 });

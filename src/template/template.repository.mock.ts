@@ -354,4 +354,23 @@ export class TemplateRepository implements ITemplateRepository {
       .sort((a, b) => b.templateCount - a.templateCount || a.categoryId.localeCompare(b.categoryId))
       .slice(0, limit);
   }
+
+  async existsByCategoryId(categoryId: string): Promise<boolean> {
+    return [...this.mockStore.values()].some((item) => item.categoryId === categoryId);
+  }
+
+  async findByCategoryIds(categoryIds: string[]): Promise<any[]> {
+    const allowed = new Set(categoryIds);
+    return [...this.mockStore.values()]
+      .filter((item) => allowed.has(item.categoryId))
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        slug: item.slug,
+        authorId: item.authorId,
+        status: item.status,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      }));
+  }
 }

@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { EditorTypeService } from '../editor-type/editor-type.service';
+import { TemplateService } from '../template/template.service';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -11,7 +12,11 @@ import { randomUUID } from 'crypto';
 
 @Injectable()
 export class CategoryRepository implements ICategoryRepository {
-  constructor(private readonly prisma: PrismaService, private readonly editorTypeService: EditorTypeService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly editorTypeService: EditorTypeService,
+    private readonly templateService: TemplateService,
+  ) {}
 
   private async loadSeoMapByCategoryIds(categoryIds: string[]): Promise<Map<string, any>> {
     if (!categoryIds.length) return new Map<string, any>();
@@ -361,8 +366,8 @@ export class CategoryRepository implements ICategoryRepository {
     }
 
     // refuse if templates exist in this category
-    const template = await this.prisma.template.findFirst({ where: { categoryId: id }, select: { id: true } });
-    if (template) {
+    const templateExists = await this.templateService.hasTemplatesInCategory(id);
+    if (templateExists) {
       throw new BadRequestException('Category has templates; delete aborted');
     }
 
@@ -397,8 +402,7 @@ export class CategoryRepository implements ICategoryRepository {
 
   async getTemplatesRecursive(id: string): Promise<any[]> {
     const ids = [id, ...(await this.findDescendants(id)).map((d) => d.id)];
-    const templates = await this.prisma.template.findMany({ where: { categoryId: { in: ids }, }, select: { id: true, title: true, slug: true, authorId: true, status: true, createdAt: true, updatedAt: true } });
-    return templates;
+    return this.templateService.findByCategoryIds(ids);
   }
 
   async getHierarchyStats(id: string): Promise<any> {

@@ -275,6 +275,34 @@ export class TemplateRepository implements ITemplateRepository {
       .slice(0, limit);
   }
 
+  async existsByCategoryId(categoryId: string): Promise<boolean> {
+    const row = await this.prisma.template.findFirst({
+      where: { categoryId },
+      select: { id: true },
+    });
+
+    return Boolean(row);
+  }
+
+  async findByCategoryIds(categoryIds: string[]): Promise<any[]> {
+    if (categoryIds.length === 0) {
+      return [];
+    }
+
+    return this.prisma.template.findMany({
+      where: { categoryId: { in: categoryIds } },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        authorId: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+  }
+
   private async mapDbEditorTypeIdToValue(dbEditorTypeId: string): Promise<{ id: number; type: 'graphic' | 'document' | 'whiteboard' | 'form'; name: string }> {
     const editorType = await this.prisma.editorType.findUnique({
       where: { id: dbEditorTypeId },

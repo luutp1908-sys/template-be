@@ -19,4 +19,6 @@ export interface ITemplateRepository {
   archive(_id: string): Promise<TemplateEntity | null>;
   getPopularityStats(_query: TemplateStatsQueryDto): Promise<PopularityStatsEntity[]>;
   getCategoryStats(_query: TemplateStatsQueryDto): Promise<CategoryPopularityStatsEntity[]>;
+  existsByCategoryId(_categoryId: string): Promise<boolean>;
+  findByCategoryIds(_categoryIds: string[]): Promise<any[]>;
 }

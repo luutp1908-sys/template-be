@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { WorkspaceService } from '../workspace/workspace.service';
 import { CreateUserDraftDto } from './dto/create-user-draft.dto';
 import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
 import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
@@ -12,37 +13,19 @@ export class UserDraftRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly workspaceService: WorkspaceService,
   ) {}
 
   private async resolveWorkspaceId(userId: string, requestedWorkspaceId?: string): Promise<string | null> {
     if (requestedWorkspaceId) {
-      const membership = await this.prisma.workspaceMember.findFirst({
-        where: {
-          userId,
-          workspaceId: requestedWorkspaceId,
-        },
-        select: { workspaceId: true },
-      });
-
-      return membership?.workspaceId ?? null;
+      return this.workspaceService.findMemberWorkspaceId(userId, requestedWorkspaceId);
     }
 
-    const firstMembership = await this.prisma.workspaceMember.findFirst({
-      where: { userId },
-      select: { workspaceId: true },
-      orderBy: { createdAt: 'asc' },
-    });
-
-    return firstMembership?.workspaceId ?? null;
+    return this.workspaceService.findFirstWorkspaceIdByUserId(userId);
   }
 
   private async getAccessibleWorkspaceIds(userId: string): Promise<string[]> {
-    const memberships = await this.prisma.workspaceMember.findMany({
-      where: { userId },
-      select: { workspaceId: true },
-    });
-
-    return memberships.map((membership) => membership.workspaceId);
+    return this.workspaceService.findWorkspaceIdsByUserId(userId);
   }
 
   private async buildAccessibleDraftWhere(

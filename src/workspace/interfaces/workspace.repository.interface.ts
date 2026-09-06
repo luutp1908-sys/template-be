@@ -7,6 +7,9 @@ export interface IWorkspaceRepository {
   create(_payload: CreateWorkspaceDto, _createdByUserId?: string): Promise<WorkspaceEntity>;
   findMany(_userId: string): Promise<WorkspaceEntity[]>;
   findById(_id: string): Promise<WorkspaceEntity | null>;
+  findMemberWorkspaceId(_userId: string, _workspaceId: string): Promise<string | null>;
+  findFirstWorkspaceIdByUserId(_userId: string): Promise<string | null>;
+  findWorkspaceIdsByUserId(_userId: string): Promise<string[]>;
   update(_id: string, _payload: UpdateWorkspaceDto): Promise<WorkspaceEntity | null>;
   remove(_id: string): Promise<WorkspaceEntity | null>;
   inviteMember(_workspaceId: string, _payload: InviteWorkspaceMemberDto, _invitedByUserId: string): Promise<unknown>;

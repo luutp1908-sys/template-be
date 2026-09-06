@@ -1,6 +1,7 @@
 import { ConflictException, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../database/prisma.service';
+import { UserService } from '../user/user.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
@@ -20,7 +21,38 @@ function buildWorkspaceSlug(name: string): string {
 
 @Injectable()
 export class WorkspaceRepository implements IWorkspaceRepository {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly userService: UserService) {}
+
+  async findMemberWorkspaceId(userId: string, workspaceId: string): Promise<string | null> {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: {
+        userId,
+        workspaceId,
+      },
+      select: { workspaceId: true },
+    });
+
+    return membership?.workspaceId ?? null;
+  }
+
+  async findFirstWorkspaceIdByUserId(userId: string): Promise<string | null> {
+    const membership = await this.prisma.workspaceMember.findFirst({
+      where: { userId },
+      select: { workspaceId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return membership?.workspaceId ?? null;
+  }
+
+  async findWorkspaceIdsByUserId(userId: string): Promise<string[]> {
+    const memberships = await this.prisma.workspaceMember.findMany({
+      where: { userId },
+      select: { workspaceId: true },
+    });
+
+    return memberships.map((membership) => membership.workspaceId);
+  }
 
   async create(payload: CreateWorkspaceDto, createdByUserId?: string): Promise<WorkspaceEntity> {
     const name = payload.name?.trim() || 'Untitled Workspace';
@@ -223,10 +255,7 @@ export class WorkspaceRepository implements IWorkspaceRepository {
       throw new ForbiddenException('Only workspace owners and admins can invite members');
     }
 
-    const invitedUser = await this.prisma.user.findFirst({
-      where: { email: payload.email.toLowerCase(), deletedAt: null },
-      select: { id: true, email: true },
-    });
+    const invitedUser = await this.userService.findByEmail(payload.email);
 
     if (!invitedUser) {
       throw new NotFoundException('User not found');

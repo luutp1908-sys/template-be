@@ -22,6 +22,18 @@ export class WorkspaceService {
     return this.repository.findById(id);
   }
 
+  async findMemberWorkspaceId(userId: string, workspaceId: string): Promise<string | null> {
+    return this.repository.findMemberWorkspaceId(userId, workspaceId);
+  }
+
+  async findFirstWorkspaceIdByUserId(userId: string): Promise<string | null> {
+    return this.repository.findFirstWorkspaceIdByUserId(userId);
+  }
+
+  async findWorkspaceIdsByUserId(userId: string): Promise<string[]> {
+    return this.repository.findWorkspaceIdsByUserId(userId);
+  }
+
   async findMembers(workspaceId: string): Promise<unknown[]> {
     return this.repository.findMembers(workspaceId);
   }

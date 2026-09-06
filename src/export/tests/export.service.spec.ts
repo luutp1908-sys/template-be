@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { getQueueToken } from '@nestjs/bullmq';
 import { ExportService } from '../export.service';
 
 describe('ExportService', () => {
@@ -13,6 +14,12 @@ describe('ExportService', () => {
           useValue: {
             create: jest.fn(),
             findById: jest.fn(),
+          },
+        },
+        {
+          provide: getQueueToken('pdf-export'),
+          useValue: {
+            add: jest.fn(),
           },
         },
       ],

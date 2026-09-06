@@ -119,6 +119,14 @@ export class TemplateService {
     return this.repository.getCategoryStats(normalizedQuery);
   }
 
+  async hasTemplatesInCategory(categoryId: string): Promise<boolean> {
+    return this.repository.existsByCategoryId(categoryId);
+  }
+
+  async findByCategoryIds(categoryIds: string[]): Promise<any[]> {
+    return this.repository.findByCategoryIds(categoryIds);
+  }
+
   private buildTemplateListCacheKey(query: TemplateListQueryDto): string {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 10;

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { UserDraftController } from './user-draft.controller';
 import { UserDraftService } from './user-draft.service';
+import { WorkspaceModule } from '../workspace/workspace.module';
 
 const impl = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1'
   ? require('./user-draft.repository.mock')
@@ -8,6 +9,7 @@ const impl = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1'
 const USER_DRAFT_REPOSITORY = 'USER_DRAFT_REPOSITORY';
 
 @Module({
+  imports: [WorkspaceModule],
   controllers: [UserDraftController],
   providers: [
     UserDraftService,

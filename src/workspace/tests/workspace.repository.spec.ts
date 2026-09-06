@@ -4,6 +4,7 @@ import { WorkspaceTypeDto } from '../dto/update-workspace.dto';
 describe('WorkspaceRepository', () => {
   let repository: WorkspaceRepository;
   let prisma: any;
+  let userService: any;
 
   beforeEach(() => {
     prisma = {
@@ -19,12 +20,13 @@ describe('WorkspaceRepository', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
-      user: {
-        findFirst: jest.fn(),
-      },
     };
 
-    repository = new WorkspaceRepository(prisma as any);
+    userService = {
+      findByEmail: jest.fn(),
+    };
+
+    repository = new WorkspaceRepository(prisma as any, userService as any);
   });
 
   it('assigns the creator as workspace owner when creating a workspace', async () => {
@@ -64,7 +66,7 @@ describe('WorkspaceRepository', () => {
     prisma.workspaceMember.findFirst
       .mockResolvedValueOnce({ role: 'ADMIN' })
       .mockResolvedValueOnce(null);
-    prisma.user.findFirst.mockResolvedValue({ id: 'user-2', email: 'invitee@example.com' });
+    userService.findByEmail.mockResolvedValue({ id: 'user-2', email: 'invitee@example.com' });
     prisma.workspaceMember.create.mockResolvedValue({
       id: 'membership-1',
       workspaceId: 'workspace-1',
@@ -93,6 +95,7 @@ describe('WorkspaceRepository', () => {
         }),
       }),
     );
+    expect(userService.findByEmail).toHaveBeenCalledWith('invitee@example.com');
   });
 
   it('updates a member role when an owner or admin changes it', async () => {
