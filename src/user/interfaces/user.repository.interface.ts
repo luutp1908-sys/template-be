@@ -1,12 +1,24 @@
 import { CreateUserDto } from '../dto/create-user.dto';
-import { ChangePasswordDto, UpdateProfileDto } from '../dto/profile.dto';
+import { UpdateProfileDto } from '../dto/profile.dto';
 import { UserEntity } from '../user.entity';
 
+export interface UserCredentialsEntity {
+  id: string;
+  passwordHash: string;
+}
+
+export interface CreateUserRecord {
+  email: string;
+  passwordHash: string;
+  displayName?: string | null;
+}
+
 export interface IUserRepository {
-  create(_payload: CreateUserDto): Promise<UserEntity>;
+  create(_payload: CreateUserRecord): Promise<UserEntity>;
   findById(_id: string): Promise<UserEntity | null>;
   findByEmail(_email: string): Promise<UserEntity | null>;
+  findCredentialsById(_id: string): Promise<UserCredentialsEntity | null>;
   getProfile(_id: string): Promise<Partial<UserEntity> | null>;
   updateProfile(_id: string, _payload: UpdateProfileDto): Promise<Partial<UserEntity> | null>;
-  changePassword(_id: string, _payload: ChangePasswordDto): Promise<void>;
+  updatePasswordHash(_id: string, _passwordHash: string): Promise<void>;
 }

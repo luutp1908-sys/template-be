@@ -1,25 +1,52 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { CacheService } from '../../cache/cache.service';
 import { UserService } from '../user.service';
 import { UserRepository } from '../user.repository';
+import * as bcrypt from 'bcrypt';
+
+jest.mock('bcrypt', () => ({
+  hash: jest.fn(),
+  compare: jest.fn(),
+}));
 
 describe('UserService', () => {
   let service: UserService;
   let repository: {
     create: jest.Mock;
     findById: jest.Mock;
+    findByEmail: jest.Mock;
+    findCredentialsById: jest.Mock;
     getProfile: jest.Mock;
     updateProfile: jest.Mock;
-    changePassword: jest.Mock;
+    updatePasswordHash: jest.Mock;
+  };
+  const configService = {
+    get: jest.fn((key: string, fallback?: unknown) => {
+      if (key === 'security.bcryptSaltRounds') {
+        return 12;
+      }
+      return fallback;
+    }),
+  };
+  const cacheService = {
+    delete: jest.fn(),
   };
 
   beforeEach(async () => {
     repository = {
       create: jest.fn(),
       findById: jest.fn(),
+      findByEmail: jest.fn(),
+      findCredentialsById: jest.fn(),
       getProfile: jest.fn(),
       updateProfile: jest.fn(),
-      changePassword: jest.fn(),
+      updatePasswordHash: jest.fn(),
     };
+
+    (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-value');
+    (bcrypt.compare as jest.Mock).mockResolvedValue(true);
+    cacheService.delete.mockReset();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -28,6 +55,8 @@ describe('UserService', () => {
           provide: UserRepository,
           useValue: repository,
         },
+        { provide: ConfigService, useValue: configService },
+        { provide: CacheService, useValue: cacheService },
       ],
     }).compile();
 
@@ -76,7 +105,11 @@ describe('UserService', () => {
   });
 
   it('should change a password', async () => {
-    repository.changePassword.mockResolvedValue(undefined);
+    repository.findCredentialsById.mockResolvedValue({
+      id: 'user-1',
+      passwordHash: 'old-hash',
+    });
+    repository.updatePasswordHash.mockResolvedValue(undefined);
 
     await expect(
       service.changePassword('user-1', {
@@ -85,9 +118,8 @@ describe('UserService', () => {
       }),
     ).resolves.toBeUndefined();
 
-    expect(repository.changePassword).toHaveBeenCalledWith('user-1', {
-      currentPassword: 'old-password',
-      newPassword: 'new-password-123',
-    });
+    expect(repository.findCredentialsById).toHaveBeenCalledWith('user-1');
+    expect(repository.updatePasswordHash).toHaveBeenCalledWith('user-1', 'hashed-value');
+    expect(cacheService.delete).toHaveBeenCalledWith('auth:user:user-1');
   });
 });
