@@ -5,6 +5,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { MoveCategoryDto } from './dto/move-category.dto';
 import { CategoryEntity } from './category.entity';
+import { CategoryResponseDto, CategoryTreeNodeResponseDto } from './dto/category-response.dto';
 import { CategoryService } from './category.service';
 
 @ApiTags('category')
@@ -13,14 +14,51 @@ import { CategoryService } from './category.service';
 export class CategoryController {
   constructor(private readonly service: CategoryService) {}
 
+  private toCategoryResponse(entity: CategoryEntity): CategoryResponseDto {
+    return {
+      id: entity.id,
+      editorTypeId: entity.editorTypeId,
+      parentId: entity.parentId,
+      name: entity.name,
+      slug: entity.slug,
+      templateCount: entity.templateCount,
+      seo: entity.seo
+        ? {
+            metaTitle: entity.seo.metaTitle ?? null,
+            metaDescription: entity.seo.metaDescription ?? null,
+            metaKeywords: entity.seo.metaKeywords ?? null,
+            ogTitle: entity.seo.ogTitle ?? null,
+            ogDescription: entity.seo.ogDescription ?? null,
+            ogImage: entity.seo.ogImage ?? null,
+            canonicalUrl: entity.seo.canonicalUrl ?? null,
+            robotsMeta: entity.seo.robotsMeta ?? null,
+          }
+        : null,
+      deletedAt: entity.deletedAt ?? null,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+
+  private toCategoryTreeNodeResponse(node: any): CategoryTreeNodeResponseDto {
+    return {
+      ...this.toCategoryResponse(node as CategoryEntity),
+      children: Array.isArray(node.children)
+        ? node.children.map((child: any) => this.toCategoryTreeNodeResponse(child))
+        : [],
+    };
+  }
+
   @Get()
-  findMany(@Query() query: CategoryListQueryDto): Promise<CategoryEntity[]> {
-    return this.service.findMany(query);
+  async findMany(@Query() query: CategoryListQueryDto): Promise<CategoryResponseDto[]> {
+    const entities = await this.service.findMany(query);
+    return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Post()
-  create(@Body() payload: CreateCategoryDto): Promise<CategoryEntity> {
-    return this.service.create(payload);
+  async create(@Body() payload: CreateCategoryDto): Promise<CategoryResponseDto> {
+    const entity = await this.service.create(payload);
+    return this.toCategoryResponse(entity);
   }
 
   @Get('stats/hierarchy/:id')
@@ -34,13 +72,15 @@ export class CategoryController {
   }
 
   @Get(':id')
-  findById(@Param('id') id: string): Promise<CategoryEntity | null> {
-    return this.service.findById(id);
+  async findById(@Param('id') id: string): Promise<CategoryResponseDto | null> {
+    const entity = await this.service.findById(id);
+    return entity ? this.toCategoryResponse(entity) : null;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() payload: UpdateCategoryDto): Promise<CategoryEntity> {
-    return this.service.update(id, payload);
+  async update(@Param('id') id: string, @Body() payload: UpdateCategoryDto): Promise<CategoryResponseDto> {
+    const entity = await this.service.update(id, payload);
+    return this.toCategoryResponse(entity);
   }
 
   @Delete(':id')
@@ -49,28 +89,33 @@ export class CategoryController {
   }
 
   @Get('tree')
-  getTree(): Promise<any> {
-    return this.service.getTree();
+  async getTree(): Promise<CategoryTreeNodeResponseDto[]> {
+    const tree = await this.service.getTree();
+    return (tree as any[]).map((node) => this.toCategoryTreeNodeResponse(node));
   }
 
   @Post(':id/move')
-  move(@Param('id') id: string, @Body() payload: MoveCategoryDto): Promise<CategoryEntity> {
-    return this.service.move(id, payload.newParentId ?? null);
+  async move(@Param('id') id: string, @Body() payload: MoveCategoryDto): Promise<CategoryResponseDto> {
+    const entity = await this.service.move(id, payload.newParentId ?? null);
+    return this.toCategoryResponse(entity);
   }
 
   @Get(':id/breadcrumbs')
-  breadcrumbs(@Param('id') id: string): Promise<CategoryEntity[]> {
-    return this.service.getBreadcrumbs(id);
+  async breadcrumbs(@Param('id') id: string): Promise<CategoryResponseDto[]> {
+    const entities = await this.service.getBreadcrumbs(id);
+    return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/descendants')
-  descendants(@Param('id') id: string): Promise<CategoryEntity[]> {
-    return this.service.getDescendants(id);
+  async descendants(@Param('id') id: string): Promise<CategoryResponseDto[]> {
+    const entities = await this.service.getDescendants(id);
+    return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/ancestors')
-  ancestors(@Param('id') id: string): Promise<CategoryEntity[]> {
-    return this.service.getAncestors(id);
+  async ancestors(@Param('id') id: string): Promise<CategoryResponseDto[]> {
+    const entities = await this.service.getAncestors(id);
+    return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/templates')

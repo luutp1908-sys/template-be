@@ -29,6 +29,12 @@ import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { UpdateTemplateDto } from './dto/update-template.dto';
 import { TemplateStatsQueryDto } from './dto/template-stats-query.dto';
 import { CategoryPopularityStatsEntity, PopularityStatsEntity, TemplateEntity, TemplateListEntity } from './template.entity';
+import {
+  TemplateCategoryStatsResponseDto,
+  TemplateListResponseDto,
+  TemplatePopularityStatsResponseDto,
+  TemplateResponseDto,
+} from './dto/template-response.dto';
 import { TemplateService } from './template.service';
 
 @ApiTags('template')
@@ -37,6 +43,66 @@ import { TemplateService } from './template.service';
 @Controller({ path: 'template', version: '1' })
 export class TemplateController {
   constructor(private readonly service: TemplateService) {}
+
+  private toTemplateResponse(entity: TemplateEntity): TemplateResponseDto {
+    return {
+      id: entity.id,
+      title: entity.title,
+      slug: entity.slug,
+      thumbnail: entity.thumbnail,
+      author: entity.author
+        ? {
+            id: entity.author.id,
+            email: entity.author.email,
+            displayName: entity.author.displayName,
+          }
+        : null,
+      category: {
+        id: entity.category.id,
+        name: entity.category.name,
+        slug: entity.category.slug,
+      },
+      editorType: {
+        id: entity.editorType.id,
+        type: entity.editorType.type,
+      },
+      status: entity.status,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+
+  private toTemplateListResponse(entity: TemplateListEntity): TemplateListResponseDto {
+    return {
+      items: entity.items.map((item) => this.toTemplateResponse(item)),
+      total: entity.total,
+      page: entity.page,
+      pageSize: entity.pageSize,
+    };
+  }
+
+  private toPopularityStatsResponse(entity: PopularityStatsEntity): TemplatePopularityStatsResponseDto {
+    return {
+      editorType: {
+        id: entity.editorType.id,
+        type: entity.editorType.type,
+        name: entity.editorType.name,
+      },
+      templateCount: entity.templateCount,
+      publishedCount: entity.publishedCount,
+      draftCount: entity.draftCount,
+    };
+  }
+
+  private toCategoryStatsResponse(entity: CategoryPopularityStatsEntity): TemplateCategoryStatsResponseDto {
+    return {
+      categoryId: entity.categoryId,
+      categoryName: entity.categoryName,
+      editorTypeId: entity.editorTypeId,
+      templateCount: entity.templateCount,
+      publishedCount: entity.publishedCount,
+    };
+  }
 
   @Get()
   @Public()
@@ -57,8 +123,9 @@ export class TemplateController {
   @ApiQuery({ name: 'categoryId', required: false, type: String })
   @ApiQuery({ name: 'authorId', required: false, type: String })
   @ApiQuery({ name: 'search', required: false, type: String })
-  findMany(@Query() query: TemplateListQueryDto): Promise<TemplateListEntity> {
-    return this.service.findMany(query);
+  async findMany(@Query() query: TemplateListQueryDto): Promise<TemplateListResponseDto> {
+    const result = await this.service.findMany(query);
+    return this.toTemplateListResponse(result);
   }
 
   @Post()
@@ -67,60 +134,65 @@ export class TemplateController {
   create(
     @Body() payload: CreateTemplateDto,
     @CurrentUser() user?: AuthUser,
-  ): Promise<TemplateEntity> {
+  ): Promise<TemplateResponseDto> {
     const isMockMode = (process.env.MOCK_MODE ?? '').toLowerCase() === 'true';
     if (!user?.id && !isMockMode) {
       throw new UnauthorizedException(
         'Authentication is required to create template when MOCK_MODE is disabled',
       );
     }
-
-    return this.service.create(payload, user?.id ?? '');
+    return this.service.create(payload, user?.id ?? '').then((entity) => this.toTemplateResponse(entity));
   }
 
   @Get('stats/popularity')
   @Public()
   @ApiOperation({ summary: 'Get popularity stats by editor type' })
   @ApiOkResponse({ type: [Object] })
-  getPopularityStats(@Query() query: TemplateStatsQueryDto): Promise<PopularityStatsEntity[]> {
-    return this.service.getPopularityStats(query);
+  async getPopularityStats(@Query() query: TemplateStatsQueryDto): Promise<TemplatePopularityStatsResponseDto[]> {
+    const rows = await this.service.getPopularityStats(query);
+    return rows.map((row) => this.toPopularityStatsResponse(row));
   }
 
   @Get('stats/by-category')
   @Public()
   @ApiOperation({ summary: 'Get template counts by category' })
   @ApiOkResponse({ type: [Object] })
-  getCategoryStats(@Query() query: TemplateStatsQueryDto): Promise<CategoryPopularityStatsEntity[]> {
-    return this.service.getCategoryStats(query);
+  async getCategoryStats(@Query() query: TemplateStatsQueryDto): Promise<TemplateCategoryStatsResponseDto[]> {
+    const rows = await this.service.getCategoryStats(query);
+    return rows.map((row) => this.toCategoryStatsResponse(row));
   }
 
   @Get(':id')
   @Public()
   @ApiOperation({ summary: 'Get template metadata by id' })
   @ApiOkResponse({ type: Object })
-  findById(@Param('id') id: string): Promise<TemplateEntity> {
-    return this.service.findById(id);
+  async findById(@Param('id') id: string): Promise<TemplateResponseDto> {
+    const entity = await this.service.findById(id);
+    return this.toTemplateResponse(entity);
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update template metadata' })
   @ApiOkResponse({ type: Object })
-  update(@Param('id') id: string, @Body() payload: UpdateTemplateDto): Promise<TemplateEntity> {
-    return this.service.update(id, payload);
+  async update(@Param('id') id: string, @Body() payload: UpdateTemplateDto): Promise<TemplateResponseDto> {
+    const entity = await this.service.update(id, payload);
+    return this.toTemplateResponse(entity);
   }
 
   @Patch(':id/publish')
   @ApiOperation({ summary: 'Publish template metadata' })
   @ApiOkResponse({ type: Object })
-  publish(@Param('id') id: string): Promise<TemplateEntity> {
-    return this.service.publish(id);
+  async publish(@Param('id') id: string): Promise<TemplateResponseDto> {
+    const entity = await this.service.publish(id);
+    return this.toTemplateResponse(entity);
   }
 
   @Patch(':id/archive')
   @ApiOperation({ summary: 'Archive template metadata' })
   @ApiOkResponse({ type: Object })
-  archive(@Param('id') id: string): Promise<TemplateEntity> {
-    return this.service.archive(id);
+  async archive(@Param('id') id: string): Promise<TemplateResponseDto> {
+    const entity = await this.service.archive(id);
+    return this.toTemplateResponse(entity);
   }
 
   @Delete(':id')

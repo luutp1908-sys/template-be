@@ -9,6 +9,7 @@ import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceMembership } from './decorators/workspace-membership.decorator';
 import { WorkspaceMembershipGuard } from './guards/workspace-membership.guard';
 import { WorkspaceEntity } from './workspace.entity';
+import { WorkspaceMemberResponseDto, WorkspaceResponseDto } from './dto/workspace-response.dto';
 import { WorkspaceService } from './workspace.service';
 
 @ApiTags('workspace')
@@ -18,42 +19,81 @@ import { WorkspaceService } from './workspace.service';
 export class WorkspaceController {
   constructor(private readonly service: WorkspaceService) {}
 
+  private toWorkspaceResponse(entity: WorkspaceEntity): WorkspaceResponseDto {
+    return {
+      id: entity.id,
+      name: entity.name,
+      slug: entity.slug,
+      type: entity.type,
+      description: entity.description,
+      avatarUrl: entity.avatarUrl,
+      isArchived: entity.isArchived,
+      deletedAt: entity.deletedAt,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+
+  private toWorkspaceMemberResponse(entity: any): WorkspaceMemberResponseDto {
+    return {
+      id: entity.id,
+      userId: entity.userId,
+      role: entity.role,
+      workspaceId: entity.workspaceId,
+      invitedBy: entity.invitedBy ?? null,
+      joinedAt: entity.joinedAt ?? null,
+      user: entity.user
+        ? {
+            id: entity.user.id,
+            email: entity.user.email,
+            displayName: entity.user.displayName ?? null,
+          }
+        : undefined,
+    };
+  }
+
   @Post()
-  create(@Body() payload: CreateWorkspaceDto, @CurrentUser() user: AuthUser): Promise<WorkspaceEntity> {
-    return this.service.create(payload, user.id);
+  async create(@Body() payload: CreateWorkspaceDto, @CurrentUser() user: AuthUser): Promise<WorkspaceResponseDto> {
+    const entity = await this.service.create(payload, user.id);
+    return this.toWorkspaceResponse(entity);
   }
 
   @Get()
-  findMany(@CurrentUser() user: AuthUser): Promise<WorkspaceEntity[]> {
-    return this.service.findMany(user);
+  async findMany(@CurrentUser() user: AuthUser): Promise<WorkspaceResponseDto[]> {
+    const entities = await this.service.findMany(user);
+    return entities.map((entity) => this.toWorkspaceResponse(entity));
   }
 
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id')
-  findById(@Param('id') id: string): Promise<WorkspaceEntity | null> {
-    return this.service.findById(id);
+  async findById(@Param('id') id: string): Promise<WorkspaceResponseDto | null> {
+    const entity = await this.service.findById(id);
+    return entity ? this.toWorkspaceResponse(entity) : null;
   }
 
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id/members')
-  findMembers(@Param('id') id: string): Promise<unknown[]> {
-    return this.service.findMembers(id);
+  async findMembers(@Param('id') id: string): Promise<WorkspaceMemberResponseDto[]> {
+    const members = await this.service.findMembers(id);
+    return members.map((member) => this.toWorkspaceMemberResponse(member));
   }
 
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id')
-  update(@Param('id') id: string, @Body() payload: UpdateWorkspaceDto): Promise<WorkspaceEntity> {
-    return this.service.update(id, payload);
+  async update(@Param('id') id: string, @Body() payload: UpdateWorkspaceDto): Promise<WorkspaceResponseDto> {
+    const entity = await this.service.update(id, payload);
+    return this.toWorkspaceResponse(entity);
   }
 
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<WorkspaceEntity> {
-    return this.service.remove(id);
+  async remove(@Param('id') id: string): Promise<WorkspaceResponseDto> {
+    const entity = await this.service.remove(id);
+    return this.toWorkspaceResponse(entity);
   }
 
   @UseGuards(WorkspaceMembershipGuard)

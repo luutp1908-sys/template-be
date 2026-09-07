@@ -9,6 +9,7 @@ import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ChangePasswordDto, UpdateProfileDto } from './dto/profile.dto';
 import { UserEntity } from './user.entity';
+import { UserProfileResponseDto, UserResponseDto } from './dto/user-response.dto';
 import { UserService } from './user.service';
 
 @ApiTags('user')
@@ -18,20 +19,49 @@ import { UserService } from './user.service';
 export class UserController {
   constructor(private readonly service: UserService) {}
 
+  private toUserResponse(entity: UserEntity): UserResponseDto {
+    return {
+      id: entity.id,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+    };
+  }
+
+  private toUserProfileResponse(entity: Partial<UserEntity> | null): UserProfileResponseDto | null {
+    if (!entity) {
+      return null;
+    }
+
+    return {
+      id: entity.id ?? '',
+      email: (entity as any).email ?? '',
+      displayName: (entity as any).displayName ?? null,
+      avatarUrl: (entity as any).avatarUrl ?? null,
+      createdAt: entity.createdAt ?? new Date(0),
+      updatedAt: entity.updatedAt ?? new Date(0),
+    };
+  }
+
   @Post()
   @Roles(ROLE_KEYS.admin)
-  create(@Body() payload: CreateUserDto): Promise<UserEntity> {
-    return this.service.create(payload);
+  async create(@Body() payload: CreateUserDto): Promise<UserResponseDto> {
+    const entity = await this.service.create(payload);
+    return this.toUserResponse(entity);
   }
 
   @Get('me')
-  getMe(@CurrentUser() user: AuthUser): Promise<Partial<UserEntity> | null> {
-    return this.service.getProfile(user.id);
+  async getMe(@CurrentUser() user: AuthUser): Promise<UserProfileResponseDto | null> {
+    const entity = await this.service.getProfile(user.id);
+    return this.toUserProfileResponse(entity);
   }
 
   @Patch('me')
-  updateMe(@CurrentUser() user: AuthUser, @Body() payload: UpdateProfileDto): Promise<Partial<UserEntity> | null> {
-    return this.service.updateProfile(user.id, payload);
+  async updateMe(
+    @CurrentUser() user: AuthUser,
+    @Body() payload: UpdateProfileDto,
+  ): Promise<UserProfileResponseDto | null> {
+    const entity = await this.service.updateProfile(user.id, payload);
+    return this.toUserProfileResponse(entity);
   }
 
   @Patch('me/password')
@@ -41,7 +71,8 @@ export class UserController {
 
   @Get(':id')
   @Roles(ROLE_KEYS.admin)
-  findById(@Param('id') id: string): Promise<UserEntity | null> {
-    return this.service.findById(id);
+  async findById(@Param('id') id: string): Promise<UserResponseDto | null> {
+    const entity = await this.service.findById(id);
+    return entity ? this.toUserResponse(entity) : null;
   }
 }
