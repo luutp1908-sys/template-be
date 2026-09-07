@@ -11,12 +11,12 @@ editor_site_certificate_arn        = null
 
 # Homepage service deployment
 repository_names                           = ["be-monolith", "be-export-service", "homepage"]
-enable_homepage_service                    = true
+enable_homepage_service                    = false
 homepage_container_port                    = 3000
 homepage_health_check_path                 = "/healthz"
 homepage_ecs_task_cpu                      = 512
 homepage_ecs_task_memory                   = 1024
-homepage_ecs_desired_count                 = 1
+homepage_ecs_desired_count                 = 0
 homepage_health_check_grace_period_seconds = 90
 homepage_log_retention_days                = 14
 homepage_image_tag                         = "7-c7efceb1647c"
@@ -24,6 +24,18 @@ homepage_enable_https_listener             = false
 homepage_certificate_arn_override          = null
 homepage_execution_role_arn                = null
 homepage_task_role_arn                     = null
+
+# Cost-down mode: keep registries and network baseline, remove runtime spend.
+# You can flip these back to true when you are ready to restore prod services.
+enable_ecs              = false
+enable_data_services    = false
+enable_vpc_endpoints    = false
+
+# Explicitly pin desired counts to 0 for safety when services are re-enabled.
+ecs_desired_count          = 0
+
+# App-level cache is irrelevant when services are disabled, keep this off.
+cache_enabled = false
 
 # Backend CORS allowlist for production browser requests
 frontend_origin = "https://dv3a184duo0ff.cloudfront.net,http://localhost:3000,http://localhost:5173,http://localhost:5174"
