@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 import * as bcrypt from 'bcrypt';
+import { Logger } from 'nestjs-pino';
 import { ROLE_KEYS } from '../../common/constants/roles.constant';
 import { AuthRepository } from '../auth.repository';
 import { AuthService } from '../auth.service';
@@ -68,6 +69,16 @@ describe('AuthService', () => {
         {
           provide: ConfigService,
           useValue: configService,
+        },
+        {
+          provide: Logger,
+          useValue: {
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+            trace: jest.fn(),
+          },
         },
       ],
     }).compile();

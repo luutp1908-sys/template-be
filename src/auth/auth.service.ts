@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
-import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { Logger } from 'nestjs-pino';
 import { AuthEntity } from './auth.entity';
@@ -46,26 +45,7 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(payload.password, this.saltRounds);
-    let user: any;
-    try {
-      user = await this.repository.createUser(payload, passwordHash);
-    } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException('Email already registered');
-        }
-
-        this.logger.error(
-          `REGISTRATION_DB_KNOWN_ERROR code=${error.code} email=${payload.email.toLowerCase()}`,
-        );
-        throw new InternalServerErrorException(`Registration database error (${error.code})`);
-      }
-
-      this.logger.error(
-        `REGISTRATION_DB_WRITE_FAILED email=${payload.email.toLowerCase()} reason=${(error as Error).message}`,
-      );
-      throw new InternalServerErrorException('Registration failed while writing to database');
-    }
+    const user = await this.repository.createUser(payload, passwordHash);
 
     const authUser = await this.repository.findAuthUserById(user.id);
 

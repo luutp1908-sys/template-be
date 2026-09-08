@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { Logger } from 'nestjs-pino';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
 import { CacheService } from '../cache/cache.service';
 import { PrismaService } from '../database/prisma.service';
@@ -15,6 +17,7 @@ export class AuthRepository implements IAuthRepository {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly cacheService?: CacheService,
+    private readonly logger?: Logger,
   ) {}
 
   async findUserByEmail(email: string): Promise<AuthUserWithSecrets | null> {
@@ -137,44 +140,64 @@ export class AuthRepository implements IAuthRepository {
   }
 
   async createUser(payload: CreateAuthUserRecord, passwordHash: string): Promise<AuthUserWithSecrets> {
-    return this.prisma.$transaction(async (tx) => {
-      const createdUser = await tx.user.create({
-        data: {
-          email: payload.email.toLowerCase(),
-          displayName: payload.displayName ?? null,
-          passwordHash,
-        },
-        select: {
-          id: true,
-          email: true,
-          displayName: true,
-          isActive: true,
-          passwordHash: true,
-          refreshTokenHash: true,
-        },
-      });
+    const normalizedEmail = payload.email.toLowerCase();
 
-      const userRole = await tx.role.findFirst({
-        where: {
-          key: ROLE_KEYS.user,
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-        },
-      });
-
-      if (userRole) {
-        await tx.userRole.create({
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const createdUser = await tx.user.create({
           data: {
-            userId: createdUser.id,
-            roleId: userRole.id,
+            email: normalizedEmail,
+            displayName: payload.displayName ?? null,
+            passwordHash,
+          },
+          select: {
+            id: true,
+            email: true,
+            displayName: true,
+            isActive: true,
+            passwordHash: true,
+            refreshTokenHash: true,
           },
         });
+
+        const userRole = await tx.role.findFirst({
+          where: {
+            key: ROLE_KEYS.user,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (userRole) {
+          await tx.userRole.create({
+            data: {
+              userId: createdUser.id,
+              roleId: userRole.id,
+            },
+          });
+        }
+
+        return createdUser;
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          throw new ConflictException('Email already registered');
+        }
+
+        this.logger?.error(
+          `REGISTRATION_DB_KNOWN_ERROR code=${error.code} email=${normalizedEmail}`,
+        );
+        throw new InternalServerErrorException(`Registration database error (${error.code})`);
       }
 
-      return createdUser;
-    });
+      this.logger?.error(
+        `REGISTRATION_DB_WRITE_FAILED email=${normalizedEmail} reason=${(error as Error).message}`,
+      );
+      throw new InternalServerErrorException('Registration failed while writing to database');
+    }
   }
 
   async updateRefreshTokenHash(userId: string, refreshTokenHash: string | null): Promise<void> {
