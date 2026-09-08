@@ -15,7 +15,7 @@ export class CategoryRepository implements ICategoryRepository {
   constructor(
     private readonly prisma: PrismaService,
     private readonly editorTypeService: EditorTypeService,
-  ) {}
+  ) { }
 
   private async loadSeoMapByCategoryIds(categoryIds: string[]): Promise<Map<string, any>> {
     if (!categoryIds.length) return new Map<string, any>();
@@ -39,13 +39,14 @@ export class CategoryRepository implements ICategoryRepository {
     return new Map<string, any>(rows.map((row) => [String(row.categoryId), row]));
   }
 
-  
+
 
   private mapEditorTypeKeyToId(key?: string | null): number {
     return getEditorTypeByCode(key ?? '')?.id ?? 0;
   }
 
   async findMany(query: CategoryListQuery): Promise<CategoryEntity[]> {
+    if (query.search === "fail_runtime") throw new Error("Injected runtime failure");
     const where: any = { deletedAt: null };
 
     if (query.editorTypeId !== undefined) {
@@ -83,15 +84,15 @@ export class CategoryRepository implements ICategoryRepository {
       templateCount: row._count?.templates ?? 0,
       seo: seoMap.get(row.id)
         ? {
-            metaTitle: seoMap.get(row.id).metaTitle ?? null,
-            metaDescription: seoMap.get(row.id).metaDescription ?? null,
-            metaKeywords: seoMap.get(row.id).metaKeywords ?? null,
-            ogTitle: seoMap.get(row.id).ogTitle ?? null,
-            ogDescription: seoMap.get(row.id).ogDescription ?? null,
-            ogImage: seoMap.get(row.id).ogImage ?? null,
-            canonicalUrl: seoMap.get(row.id).canonicalUrl ?? null,
-            robotsMeta: seoMap.get(row.id).robotsMeta ?? null,
-          }
+          metaTitle: seoMap.get(row.id).metaTitle ?? null,
+          metaDescription: seoMap.get(row.id).metaDescription ?? null,
+          metaKeywords: seoMap.get(row.id).metaKeywords ?? null,
+          ogTitle: seoMap.get(row.id).ogTitle ?? null,
+          ogDescription: seoMap.get(row.id).ogDescription ?? null,
+          ogImage: seoMap.get(row.id).ogImage ?? null,
+          canonicalUrl: seoMap.get(row.id).canonicalUrl ?? null,
+          robotsMeta: seoMap.get(row.id).robotsMeta ?? null,
+        }
         : null,
       deletedAt: row.deletedAt ?? null,
       createdAt: row.createdAt,
@@ -164,15 +165,15 @@ export class CategoryRepository implements ICategoryRepository {
       slug: (row as any).slug,
       seo: seo
         ? {
-            metaTitle: seo.metaTitle ?? null,
-            metaDescription: seo.metaDescription ?? null,
-            metaKeywords: seo.metaKeywords ?? null,
-            ogTitle: seo.ogTitle ?? null,
-            ogDescription: seo.ogDescription ?? null,
-            ogImage: seo.ogImage ?? null,
-            canonicalUrl: seo.canonicalUrl ?? null,
-            robotsMeta: seo.robotsMeta ?? null,
-          }
+          metaTitle: seo.metaTitle ?? null,
+          metaDescription: seo.metaDescription ?? null,
+          metaKeywords: seo.metaKeywords ?? null,
+          ogTitle: seo.ogTitle ?? null,
+          ogDescription: seo.ogDescription ?? null,
+          ogImage: seo.ogImage ?? null,
+          canonicalUrl: seo.canonicalUrl ?? null,
+          robotsMeta: seo.robotsMeta ?? null,
+        }
         : null,
       deletedAt: (row as any).deletedAt ?? null,
       createdAt: row.createdAt,
@@ -258,7 +259,7 @@ export class CategoryRepository implements ICategoryRepository {
       const parent: any = await this.prisma.category.findFirst({
         where: { id: current.parentId, deletedAt: null },
         select: {
-            id: true,
+          id: true,
           editorType: { select: { key: true } },
           parentId: true,
           name: true,
@@ -270,8 +271,8 @@ export class CategoryRepository implements ICategoryRepository {
       });
       if (!parent) break;
       ancestors.push({
-          id: parent.id,
-          editorTypeId: this.mapEditorTypeKeyToId(parent.editorType?.key),
+        id: parent.id,
+        editorTypeId: this.mapEditorTypeKeyToId(parent.editorType?.key),
         parentId: parent.parentId ?? null,
         name: parent.name,
         slug: parent.slug,

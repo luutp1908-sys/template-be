@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
 import { CreateTemplateContentDto } from './dto/create-template-content.dto';
 import { UpdateTemplateContentDto } from './dto/update-template-content.dto';
 import { TemplateContentEntity } from './template-content.entity';
@@ -8,6 +8,8 @@ import { UserDraftEntity } from '../user-draft/user-draft.entity';
 
 @Injectable()
 export class TemplateContentService {
+  private readonly logger = new Logger(TemplateContentService.name);
+
   constructor(
     @Inject('TEMPLATE_CONTENT_REPOSITORY') private readonly repository: any,
     private readonly userDraftService: UserDraftService,
@@ -51,7 +53,17 @@ export class TemplateContentService {
     let templateContent: TemplateContentEntity | null = null;
     try {
       templateContent = await this.repository.findByTemplateId(draft.templateId);
-    } catch {}
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        return { templateContent: null, draft };
+      }
+
+      this.logger.error(
+        `TEMPLATE_CONTENT_LOAD_FAILED draftId=${draftId} templateId=${draft.templateId} userId=${userId} reason=${(error as Error).message}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      throw error;
+    }
 
     return { templateContent, draft };
   }
