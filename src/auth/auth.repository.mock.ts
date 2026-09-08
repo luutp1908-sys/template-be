@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
@@ -93,6 +93,10 @@ export class AuthRepository implements IAuthRepository {
   async createUser(payload: CreateAuthUserRecord, passwordHash: string): Promise<AuthUserWithSecrets> {
     const normalizedEmail = payload.email.toLowerCase();
 
+    if (this.mockUsersByEmail.has(normalizedEmail)) {
+      throw new Error('Email already registered');
+    }
+
     const now = new Date();
     const mockUser: MockUserRecord = {
       id: randomUUID(),
@@ -114,7 +118,7 @@ export class AuthRepository implements IAuthRepository {
 
   async updateRefreshTokenHash(userId: string, refreshTokenHash: string | null): Promise<void> {
     const mock = this.mockUsersById.get(userId);
-    if (!mock) return;
+    if (!mock) throw new NotFoundException('User not found');
     mock.refreshTokenHash = refreshTokenHash;
     mock.updatedAt = new Date();
     this.persistMockStore()
@@ -122,7 +126,7 @@ export class AuthRepository implements IAuthRepository {
 
   async updateLastLogin(userId: string): Promise<void> {
     const mock = this.mockUsersById.get(userId);
-    if (!mock) return;
+    if (!mock) throw new NotFoundException('User not found');
     mock.updatedAt = new Date();
     this.persistMockStore()
   }

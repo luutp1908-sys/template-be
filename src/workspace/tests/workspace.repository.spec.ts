@@ -107,6 +107,17 @@ describe('WorkspaceRepository', () => {
     );
   });
 
+  it('throws not found when member role update target is missing', async () => {
+    const error = new Error('missing') as Error & { code?: string };
+    error.code = 'P2025';
+    error.constructor = { name: 'PrismaClientKnownRequestError' } as any;
+    prisma.workspaceMember.update.mockRejectedValue(error);
+
+    await expect(repository.updateMemberRoleById('missing-member', 'ADMIN')).rejects.toMatchObject({
+      message: 'Workspace member not found',
+    });
+  });
+
   it('removes a member by member id', async () => {
     prisma.workspaceMember.deleteMany.mockResolvedValue({ count: 1 });
 
@@ -227,6 +238,25 @@ describe('WorkspaceRepository', () => {
     expect(result).toEqual(expect.objectContaining({ id: 'workspace-1', name: 'New Name', type: 'TEAM', description: 'desc', avatarUrl: 'http://example.com/a.png', isArchived: true }));
   });
 
+  it('throws not found when workspace update target is missing', async () => {
+    const error = new Error('missing') as Error & { code?: string };
+    error.code = 'P2025';
+    error.constructor = { name: 'PrismaClientKnownRequestError' } as any;
+    prisma.workspace.update.mockRejectedValue(error);
+
+    await expect(repository.update('missing-workspace', { name: 'Updated' })).rejects.toMatchObject({
+      message: 'Workspace missing-workspace not found',
+    });
+  });
+
+  it('throws not found when workspace update has no fields and row is missing', async () => {
+    prisma.workspace.findFirst.mockResolvedValue(null);
+
+    await expect(repository.update('missing-workspace', {} as any)).rejects.toMatchObject({
+      message: 'Workspace missing-workspace not found',
+    });
+  });
+
   it('returns findById result when no supported fields provided', async () => {
     prisma.workspace.findFirst.mockResolvedValue({ id: 'workspace-1', name: 'Old', slug: 'old', type: 'PERSONAL', description: null, avatarUrl: null, isArchived: false, deletedAt: null, createdAt: new Date(), updatedAt: new Date() });
 
@@ -234,5 +264,16 @@ describe('WorkspaceRepository', () => {
 
     expect(prisma.workspace.findFirst).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'workspace-1', deletedAt: null } }));
     expect(result).toEqual(expect.objectContaining({ id: 'workspace-1', name: 'Old' }));
+  });
+
+  it('throws not found when workspace removal target is missing', async () => {
+    const error = new Error('missing') as Error & { code?: string };
+    error.code = 'P2025';
+    error.constructor = { name: 'PrismaClientKnownRequestError' } as any;
+    prisma.workspace.update.mockRejectedValue(error);
+
+    await expect(repository.remove('missing-workspace')).rejects.toMatchObject({
+      message: 'Workspace missing-workspace not found',
+    });
   });
 });

@@ -59,9 +59,9 @@ export class UserController {
   async updateMe(
     @CurrentUser() user: AuthUser,
     @Body() payload: UpdateProfileDto,
-  ): Promise<UserProfileResponseDto | null> {
+  ): Promise<UserProfileResponseDto> {
     const entity = await this.service.updateProfile(user.id, payload);
-    return this.toUserProfileResponse(entity);
+    return this.toUserProfileResponse(entity) as UserProfileResponseDto;
   }
 
   @Patch('me/password')

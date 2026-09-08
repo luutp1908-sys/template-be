@@ -48,19 +48,11 @@ export class WorkspaceService {
   }
 
   async update(id: string, payload: UpdateWorkspaceDto): Promise<WorkspaceEntity> {
-    const updated = await this.repository.update(id, payload);
-    if (!updated) {
-      throw new NotFoundException(`Workspace ${id} not found`);
-    }
-    return updated;
+    return this.repository.update(id, payload);
   }
 
   async remove(id: string): Promise<WorkspaceEntity> {
-    const removed = await this.repository.remove(id);
-    if (!removed) {
-      throw new NotFoundException(`Workspace ${id} not found`);
-    }
-    return removed;
+    return this.repository.remove(id);
   }
 
   async inviteMember(workspaceId: string, payload: InviteWorkspaceMemberDto, user: AuthUser): Promise<unknown> {

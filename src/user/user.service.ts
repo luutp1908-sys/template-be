@@ -44,7 +44,7 @@ export class UserService {
     return this.repository.getProfile(id);
   }
 
-  async updateProfile(id: string, payload: UpdateProfileDto): Promise<Partial<UserEntity> | null> {
+  async updateProfile(id: string, payload: UpdateProfileDto): Promise<Partial<UserEntity>> {
     const updated = await this.repository.updateProfile(id, payload);
     await this.cacheService.delete(`auth:user:${id}`);
     return updated;

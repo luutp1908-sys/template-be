@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { mapPrismaWriteError } from '../database/prisma-write-error.mapper';
 import { PrismaService } from '../database/prisma.service';
 import { WorkspaceEntity } from './workspace.entity';
 import {
@@ -82,22 +83,37 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     role: WorkspaceMembershipRole,
     invitedByUserId: string,
   ): Promise<unknown> {
-    return this.prisma.workspaceMember.create({
-      data: {
-        id: randomUUID(),
-        workspaceId,
-        userId,
-        role,
-        invitedBy: invitedByUserId,
-      },
-    });
+    try {
+      return await this.prisma.workspaceMember.create({
+        data: {
+          id: randomUUID(),
+          workspaceId,
+          userId,
+          role,
+          invitedBy: invitedByUserId,
+        },
+      });
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Workspace member',
+        fallbackMessage: 'Workspace member creation failed',
+      });
+    }
   }
 
   async updateMemberRoleById(memberId: string, role: WorkspaceMembershipRole): Promise<unknown> {
-    return this.prisma.workspaceMember.update({
-      where: { id: memberId },
-      data: { role },
-    });
+    try {
+      return await this.prisma.workspaceMember.update({
+        where: { id: memberId },
+        data: { role },
+      });
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Workspace member',
+        notFoundMessage: 'Workspace member not found',
+        fallbackMessage: 'Workspace member update failed',
+      });
+    }
   }
 
   async removeMemberById(memberId: string): Promise<boolean> {
@@ -108,47 +124,54 @@ export class WorkspaceRepository implements IWorkspaceRepository {
   async create(payload: CreateWorkspaceRecord, createdByUserId?: string): Promise<WorkspaceEntity> {
     const name = payload.name?.trim() || 'Untitled Workspace';
 
-    const workspace = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.workspace.create({
-        data: {
-          id: randomUUID(),
-          name,
-          slug: buildWorkspaceSlug(name),
-          type: payload.type ?? 'PERSONAL',
-          description: payload.description ?? null,
-          avatarUrl: payload.avatarUrl ?? null,
-          isArchived: payload.isArchived ?? false,
-        },
-        select: {
-          id: true,
-          name: true,
-          slug: true,
-          type: true,
-          description: true,
-          avatarUrl: true,
-          isArchived: true,
-          deletedAt: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
-
-      if (createdByUserId) {
-        await tx.workspaceMember.create({
+    try {
+      const workspace = await this.prisma.$transaction(async (tx) => {
+        const created = await tx.workspace.create({
           data: {
             id: randomUUID(),
-            workspaceId: created.id,
-            userId: createdByUserId,
-            role: 'OWNER',
-            invitedBy: createdByUserId,
+            name,
+            slug: buildWorkspaceSlug(name),
+            type: payload.type ?? 'PERSONAL',
+            description: payload.description ?? null,
+            avatarUrl: payload.avatarUrl ?? null,
+            isArchived: payload.isArchived ?? false,
+          },
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            type: true,
+            description: true,
+            avatarUrl: true,
+            isArchived: true,
+            deletedAt: true,
+            createdAt: true,
+            updatedAt: true,
           },
         });
-      }
 
-      return created;
-    });
+        if (createdByUserId) {
+          await tx.workspaceMember.create({
+            data: {
+              id: randomUUID(),
+              workspaceId: created.id,
+              userId: createdByUserId,
+              role: 'OWNER',
+              invitedBy: createdByUserId,
+            },
+          });
+        }
 
-    return WorkspaceMapper.toEntity(workspace);
+        return created;
+      });
+
+      return WorkspaceMapper.toEntity(workspace);
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Workspace',
+        fallbackMessage: 'Workspace creation failed',
+      });
+    }
   }
 
   async findMany(userId: string): Promise<WorkspaceEntity[]> {
@@ -224,7 +247,7 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     }));
   }
 
-  async update(id: string, payload: UpdateWorkspaceRecord): Promise<WorkspaceEntity | null> {
+  async update(id: string, payload: UpdateWorkspaceRecord): Promise<WorkspaceEntity> {
     const data: Record<string, unknown> = {};
 
     if (payload.name !== undefined) data.name = payload.name.trim();
@@ -234,44 +257,64 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     if (payload.isArchived !== undefined) data.isArchived = payload.isArchived;
 
     if (Object.keys(data).length === 0) {
-      return this.findById(id);
+      const existing = await this.findById(id);
+      if (!existing) {
+        throw new NotFoundException(`Workspace ${id} not found`);
+      }
+      return existing;
     }
 
-    const row = await this.prisma.workspace.update({
-      where: { id },
-      data,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        type: true,
-        description: true,
-        avatarUrl: true,
-        isArchived: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    try {
+      const row = await this.prisma.workspace.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          type: true,
+          description: true,
+          avatarUrl: true,
+          isArchived: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
 
-    return WorkspaceMapper.toEntity(row);
+      return WorkspaceMapper.toEntity(row);
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Workspace',
+        notFoundMessage: `Workspace ${id} not found`,
+        fallbackMessage: 'Workspace update failed',
+      });
+    }
   }
 
-  async remove(id: string): Promise<WorkspaceEntity | null> {
-    const row = await this.prisma.workspace.update({
-      where: { id },
-      data: { deletedAt: new Date() },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+  async remove(id: string): Promise<WorkspaceEntity> {
+    try {
+      const row = await this.prisma.workspace.update({
+        where: { id },
+        data: { deletedAt: new Date() },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
 
-    return WorkspaceMapper.toEntity(row);
+      return WorkspaceMapper.toEntity(row);
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Workspace',
+        notFoundMessage: `Workspace ${id} not found`,
+        fallbackMessage: 'Workspace removal failed',
+      });
+    }
   }
 
 }

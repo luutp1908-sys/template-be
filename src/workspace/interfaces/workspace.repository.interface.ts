@@ -32,6 +32,6 @@ export interface IWorkspaceRepository {
   updateMemberRoleById(_memberId: string, _role: WorkspaceMembershipRole): Promise<unknown>;
   removeMemberById(_memberId: string): Promise<boolean>;
   findMembers(_workspaceId: string): Promise<unknown[]>;
-  update(_id: string, _payload: UpdateWorkspaceRecord): Promise<WorkspaceEntity | null>;
-  remove(_id: string): Promise<WorkspaceEntity | null>;
+  update(_id: string, _payload: UpdateWorkspaceRecord): Promise<WorkspaceEntity>;
+  remove(_id: string): Promise<WorkspaceEntity>;
 }

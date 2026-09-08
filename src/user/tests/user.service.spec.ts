@@ -4,6 +4,7 @@ import { CacheService } from '../../cache/cache.service';
 import { UserService } from '../user.service';
 import { UserRepository } from '../user.repository';
 import * as bcrypt from 'bcrypt';
+import { NotFoundException } from '@nestjs/common';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn(),
@@ -102,6 +103,16 @@ describe('UserService', () => {
       displayName: 'Updated User',
       avatarUrl: 'https://cdn.example.com/avatar.png',
     });
+  });
+
+  it('should surface not found when profile update target is missing', async () => {
+    repository.updateProfile.mockRejectedValue(new NotFoundException('User not found'));
+
+    await expect(
+      service.updateProfile('missing-user', {
+        displayName: 'Updated User',
+      }),
+    ).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('should change a password', async () => {

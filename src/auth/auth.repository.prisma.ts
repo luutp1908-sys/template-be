@@ -1,10 +1,10 @@
-import { ConflictException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Prisma } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { Logger } from 'nestjs-pino';
 import { ROLE_KEYS } from '../common/constants/roles.constant';
 import { CacheService } from '../cache/cache.service';
+import { mapPrismaWriteError } from '../database/prisma-write-error.mapper';
 import { PrismaService } from '../database/prisma.service';
 import { CreateAuthUserRecord, IAuthRepository } from './interfaces/auth.repository.interface';
 import { AuthUser, AuthUserWithSecrets } from './types/auth-user.type';
@@ -182,35 +182,50 @@ export class AuthRepository implements IAuthRepository {
         return createdUser;
       });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new ConflictException('Email already registered');
-        }
-
-        this.logger?.error(
-          `REGISTRATION_DB_KNOWN_ERROR code=${error.code} email=${normalizedEmail}`,
-        );
-        throw new InternalServerErrorException(`Registration database error (${error.code})`);
-      }
-
       this.logger?.error(
-        `REGISTRATION_DB_WRITE_FAILED email=${normalizedEmail} reason=${(error as Error).message}`,
+        `AUTH_CREATE_USER_FAILED email=${normalizedEmail} reason=${(error as Error).message}`,
       );
-      throw new InternalServerErrorException('Registration failed while writing to database');
+      mapPrismaWriteError(error, {
+        entityName: 'User',
+        duplicateMessage: 'Email already registered',
+        fallbackMessage: 'Registration failed while writing to database',
+      });
     }
   }
 
   async updateRefreshTokenHash(userId: string, refreshTokenHash: string | null): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { refreshTokenHash },
-    });
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { refreshTokenHash },
+      });
+    } catch (error) {
+      this.logger?.error(
+        `AUTH_REFRESH_TOKEN_HASH_UPDATE_FAILED userId=${userId} reason=${(error as Error).message}`,
+      );
+      mapPrismaWriteError(error, {
+        entityName: 'User',
+        notFoundMessage: 'User not found',
+        fallbackMessage: 'Refresh token update failed',
+      });
+    }
   }
 
   async updateLastLogin(userId: string): Promise<void> {
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: { lastLoginAt: new Date() },
-    });
+    try {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { lastLoginAt: new Date() },
+      });
+    } catch (error) {
+      this.logger?.error(
+        `AUTH_LAST_LOGIN_UPDATE_FAILED userId=${userId} reason=${(error as Error).message}`,
+      );
+      mapPrismaWriteError(error, {
+        entityName: 'User',
+        notFoundMessage: 'User not found',
+        fallbackMessage: 'Last login update failed',
+      });
+    }
   }
 }

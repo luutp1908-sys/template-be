@@ -113,6 +113,14 @@ describe('WorkspaceService', () => {
     expect(repository.update).toHaveBeenCalledWith('workspace-1', { name: 'Updated' });
   });
 
+  it('should surface repository not found during workspace update', async () => {
+    repository.update.mockRejectedValue(new NotFoundException('Workspace workspace-1 not found'));
+
+    await expect(service.update('workspace-1', { name: 'Updated' })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+  });
+
   it('invites member when requester is workspace admin', async () => {
     repository.findById.mockResolvedValue({ id: 'workspace-1', type: WorkspaceTypeDto.TEAM });
     repository.findMemberRole.mockResolvedValue('ADMIN');
@@ -161,6 +169,12 @@ describe('WorkspaceService', () => {
     await expect(service.removeMember('workspace-1', 'membership-1', 'owner-1')).rejects.toThrow(
       ForbiddenException,
     );
+  });
+
+  it('should surface repository not found during workspace removal', async () => {
+    repository.remove.mockRejectedValue(new NotFoundException('Workspace workspace-1 not found'));
+
+    await expect(service.remove('workspace-1')).rejects.toBeInstanceOf(NotFoundException);
   });
 
   it('throws when listing members for unknown workspace', async () => {

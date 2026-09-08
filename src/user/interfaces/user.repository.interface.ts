@@ -22,6 +22,6 @@ export interface IUserRepository {
   findByEmail(_email: string): Promise<UserEntity | null>;
   findCredentialsById(_id: string): Promise<UserCredentialsEntity | null>;
   getProfile(_id: string): Promise<Partial<UserEntity> | null>;
-  updateProfile(_id: string, _payload: UpdateUserProfileRecord): Promise<Partial<UserEntity> | null>;
+  updateProfile(_id: string, _payload: UpdateUserProfileRecord): Promise<Partial<UserEntity>>;
   updatePasswordHash(_id: string, _passwordHash: string): Promise<void>;
 }

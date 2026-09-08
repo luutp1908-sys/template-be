@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from 'nestjs-pino';
 import { CacheService } from '../../cache/cache.service';
 import { TemplateService } from '../../template/template.service';
 import { CategoryService } from '../category.service';
@@ -55,6 +56,16 @@ describe('CategoryService', () => {
         { provide: CacheService, useValue: cacheService },
         { provide: ConfigService, useValue: configService },
         { provide: TemplateService, useValue: templateService },
+        {
+          provide: Logger,
+          useValue: {
+            log: jest.fn(),
+            warn: jest.fn(),
+            error: jest.fn(),
+            debug: jest.fn(),
+            trace: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
