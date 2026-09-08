@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, Logger, BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
 import { TemplateService } from '../template/template.service';
@@ -18,7 +18,7 @@ export class CategoryService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly templateService: TemplateService,
-  ) {}
+  ) { }
 
   async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {
     return this.repository.findMany(query);
@@ -31,7 +31,12 @@ export class CategoryService {
   }
 
   async findById(id: string): Promise<CategoryEntity | null> {
-    return this.repository.findById(id);
+    const category = await this.repository.findById(id);
+
+    if (!category) 
+      throw new NotFoundException('The template with this id does not exist')
+
+    return category
   }
 
   async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
