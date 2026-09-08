@@ -1,6 +1,12 @@
 import { CacheService } from '../cache.service';
 
 describe('CacheService metrics', () => {
+  const logger = {
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+  } as any;
+
   it('tracks cache hits, misses, sets, and deletes in the shared cache layer', async () => {
     const configService = {
       get: jest.fn((key: string, defaultValue: unknown) => defaultValue),
@@ -14,7 +20,7 @@ describe('CacheService metrics', () => {
       isOpen: true,
     };
 
-    const service = new CacheService(configService);
+    const service = new CacheService(configService, logger);
     (service as any).client = client;
     (service as any).isAvailable = true;
 
@@ -52,7 +58,7 @@ describe('CacheService metrics', () => {
       isOpen: true,
     };
 
-    const service = new CacheService(configService);
+    const service = new CacheService(configService, logger);
     (service as any).client = client;
     (service as any).isAvailable = true;
 
@@ -82,7 +88,7 @@ describe('CacheService metrics', () => {
       isOpen: true,
     };
 
-    const service = new CacheService(configService);
+    const service = new CacheService(configService, logger);
     (service as any).client = client;
     (service as any).isAvailable = true;
 
@@ -99,7 +105,7 @@ describe('CacheService metrics', () => {
       get: jest.fn((key: string, defaultValue: unknown) => defaultValue),
     } as any;
 
-    const service = new CacheService(configService);
+    const service = new CacheService(configService, logger);
     (service as any).client = null;
     (service as any).isAvailable = false;
 

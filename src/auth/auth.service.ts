@@ -2,7 +2,6 @@ import {
   ConflictException,
   Injectable,
   InternalServerErrorException,
-  Logger,
   UnauthorizedException,
   Inject,
 } from '@nestjs/common';
@@ -10,6 +9,7 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { Logger } from 'nestjs-pino';
 import { AuthEntity } from './auth.entity';
 import { AuthMapper } from './auth.mapper';
 import { LoginDto } from './dto/login.dto';
@@ -20,7 +20,6 @@ import { AuthUser, JwtClaims } from './types/auth-user.type';
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
   private readonly accessTokenExpiresIn: string;
   private readonly refreshTokenExpiresIn: string;
   private readonly accessSecret: string;
@@ -31,6 +30,7 @@ export class AuthService {
     @Inject('AUTH_REPOSITORY') private readonly repository: any,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly logger: Logger,
   ) {
     this.accessTokenExpiresIn = this.configService.get<string>('jwt.accessExpiresIn', '15m');
     this.refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshExpiresIn', '7d');

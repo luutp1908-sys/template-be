@@ -1,7 +1,7 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
@@ -27,6 +27,7 @@ import { QueueModule } from './queue/queue.module';
 import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
 import { AuthenticationMiddleware } from './auth/middleware/authentication.middleware';
 import { MetricsModule } from './common/metrics/metrics.module';
+import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 
 const useExportProxy = Boolean(process.env.EXPORT_SERVICE_URL?.trim());
 const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
@@ -90,6 +91,10 @@ const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
     AiModule,
   ],
   providers: [
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,

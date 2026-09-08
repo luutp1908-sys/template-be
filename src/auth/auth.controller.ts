@@ -1,6 +1,7 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Logger, Post, UseGuards, Req, Res } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, UseGuards, Req, Res } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Request, Response } from 'express';
+import { Logger } from 'nestjs-pino';
 import {
   ApiBearerAuth,
   ApiBody,
@@ -97,9 +98,11 @@ function getRefreshCookieOptions(configService: ConfigService): Record<string, s
 @ApiTags('auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  private readonly logger = new Logger(AuthController.name);
-
-  constructor(private readonly service: AuthService, private readonly configService: ConfigService) {}
+  constructor(
+    private readonly service: AuthService,
+    private readonly configService: ConfigService,
+    private readonly logger: Logger,
+  ) {}
 
   @Public()
   @Post('register')

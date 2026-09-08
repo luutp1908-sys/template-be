@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
+import { Logger } from 'nestjs-pino';
 import { CreateTemplateDto } from './dto/create-template.dto';
 import { TemplateListQueryDto } from './dto/template-list-query.dto';
 import { TemplateStatsQueryDto } from './dto/template-stats-query.dto';
@@ -15,13 +16,13 @@ import { TemplateRepository } from './template.data.repository';
 
 @Injectable()
 export class TemplateService {
-  private readonly logger = new Logger(TemplateService.name);
   private readonly templateListCachePrefix = 'template:list:';
 
   constructor(
     @Inject('TEMPLATE_REPOSITORY') private readonly repository: any,
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
+    private readonly logger: Logger,
   ) {}
 
   async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {

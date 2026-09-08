@@ -4,13 +4,13 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
-  Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { Logger } from 'nestjs-pino';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
-  private readonly logger = new Logger(HttpExceptionFilter.name);
+  constructor(private readonly logger: Logger) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -113,12 +113,15 @@ export class HttpExceptionFilter implements ExceptionFilter {
 
     if (context.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        JSON.stringify(payload),
-        exception instanceof Error ? exception.stack : undefined,
+        {
+          ...payload,
+          err: exception instanceof Error ? exception : undefined,
+        },
+        'http.exception',
       );
       return;
     }
 
-    this.logger.warn(JSON.stringify(payload));
+    this.logger.warn(payload, 'http.exception');
   }
 }

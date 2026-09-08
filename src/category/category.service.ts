@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, Inject, Logger, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, BadRequestException, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from 'nestjs-pino';
 import { CacheService } from '../cache/cache.service';
 import { TemplateService } from '../template/template.service';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
@@ -10,7 +11,6 @@ import { CategoryRepository } from './category.repository';
 
 @Injectable()
 export class CategoryService {
-  private readonly logger = new Logger(CategoryService.name);
   private readonly categoryTreeCacheKey = 'category:tree';
 
   constructor(
@@ -18,6 +18,7 @@ export class CategoryService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly templateService: TemplateService,
+    private readonly logger: Logger,
   ) { }
 
   async findMany(query: CategoryListQueryDto): Promise<CategoryEntity[]> {

@@ -10,6 +10,11 @@ import {
 import { HttpExceptionFilter } from './http-exception.filter';
 
 describe('HttpExceptionFilter', () => {
+  const logger = {
+    error: jest.fn(),
+    warn: jest.fn(),
+  } as any;
+
   const makeHost = (url: string, requestId = 'req-123') => {
     const json = jest.fn();
     const status = jest.fn().mockReturnValue({ json });
@@ -28,7 +33,7 @@ describe('HttpExceptionFilter', () => {
   };
 
   it('standardizes bad-request errors with a canonical error envelope', () => {
-    const filter = new HttpExceptionFilter();
+    const filter = new HttpExceptionFilter(logger);
     const { host, json, status } = makeHost('/api/v1/auth/login');
 
     filter.catch(new BadRequestException(['email is required']), host);
@@ -55,7 +60,7 @@ describe('HttpExceptionFilter', () => {
     ['not found', new NotFoundException('User not found'), HttpStatus.NOT_FOUND, 'NOT_FOUND'],
     ['internal', new InternalServerErrorException('Unexpected failure'), HttpStatus.INTERNAL_SERVER_ERROR, 'INTERNAL_SERVER_ERROR'],
   ])('standardizes %s errors', (_label, exception, expectedStatus, expectedCode) => {
-    const filter = new HttpExceptionFilter();
+    const filter = new HttpExceptionFilter(logger);
     const { host, json, status } = makeHost('/api/v1/test');
 
     filter.catch(exception, host);

@@ -1,6 +1,7 @@
-import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, type RedisClientType } from 'redis';
+import { Logger } from 'nestjs-pino';
 
 export interface CacheMetricSnapshot {
   hits: number;
@@ -15,7 +16,6 @@ export interface CacheMetricSnapshot {
 
 @Injectable()
 export class CacheService implements OnModuleInit, OnModuleDestroy {
-  private readonly logger = new Logger(CacheService.name);
   private client: RedisClientType | null = null;
   private isAvailable = false;
   private hits = 0;
@@ -24,7 +24,10 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
   private deletes = 0;
   private fallbackEvents = 0;
 
-  constructor(private readonly configService: ConfigService) {}
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly logger: Logger,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     const enabled = this.configService.get<boolean>('cache.enabled', true);

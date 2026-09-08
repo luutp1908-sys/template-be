@@ -1,18 +1,18 @@
-import { Injectable, NotFoundException, Inject, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { CreateTemplateContentDto } from './dto/create-template-content.dto';
 import { UpdateTemplateContentDto } from './dto/update-template-content.dto';
 import { TemplateContentEntity } from './template-content.entity';
 import { TemplateContentRepository } from './template-content.repository';
 import { UserDraftService } from '../user-draft/user-draft.service';
 import { UserDraftEntity } from '../user-draft/user-draft.entity';
+import { Logger } from 'nestjs-pino';
 
 @Injectable()
 export class TemplateContentService {
-  private readonly logger = new Logger(TemplateContentService.name);
-
   constructor(
     @Inject('TEMPLATE_CONTENT_REPOSITORY') private readonly repository: any,
     private readonly userDraftService: UserDraftService,
+    private readonly logger: Logger,
   ) {}
 
   async upsert(templateId: string, payload: CreateTemplateContentDto): Promise<TemplateContentEntity> {
