@@ -23,4 +23,28 @@ describe('ExportRepository', () => {
     expect(result).toEqual(expect.objectContaining({ id: 'export-1' }));
     expect(prisma.export.create).toHaveBeenCalledTimes(1);
   });
+
+  it('returns null when export job is missing', async () => {
+    const prisma = {
+      export: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+
+    const repository = new ExportRepository(prisma as any);
+
+    await expect(repository.findById('missing-export')).resolves.toBeNull();
+  });
+
+  it('returns null when export exists but is outside requester scope', async () => {
+    const prisma = {
+      export: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
+    };
+
+    const repository = new ExportRepository(prisma as any);
+
+    await expect(repository.findById('export-1', 'different-user')).resolves.toBeNull();
+  });
 });

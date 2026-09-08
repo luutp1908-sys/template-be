@@ -129,6 +129,14 @@ describe('WorkspaceRepository', () => {
     );
   });
 
+  it('returns null when member role lookup misses', async () => {
+    prisma.workspaceMember.findFirst.mockResolvedValue(null);
+
+    const role = await repository.findMemberRole('workspace-1', 'missing-user');
+
+    expect(role).toBeNull();
+  });
+
   it('returns membership by id within workspace', async () => {
     prisma.workspaceMember.findFirst.mockResolvedValue({
       id: 'membership-2',
@@ -145,6 +153,38 @@ describe('WorkspaceRepository', () => {
         role: 'MEMBER',
       }),
     );
+  });
+
+  it('returns null when membership by id is missing', async () => {
+    prisma.workspaceMember.findFirst.mockResolvedValue(null);
+
+    const membership = await repository.findMembershipById('workspace-1', 'missing-membership');
+
+    expect(membership).toBeNull();
+  });
+
+  it('returns null when member workspace lookup misses', async () => {
+    prisma.workspaceMember.findFirst.mockResolvedValue(null);
+
+    const workspaceId = await repository.findMemberWorkspaceId('missing-user', 'workspace-1');
+
+    expect(workspaceId).toBeNull();
+  });
+
+  it('returns null when first workspace lookup by user misses', async () => {
+    prisma.workspaceMember.findFirst.mockResolvedValue(null);
+
+    const workspaceId = await repository.findFirstWorkspaceIdByUserId('missing-user');
+
+    expect(workspaceId).toBeNull();
+  });
+
+  it('returns null when workspace by id is missing', async () => {
+    prisma.workspace.findFirst.mockResolvedValue(null);
+
+    const workspace = await repository.findById('missing-workspace');
+
+    expect(workspace).toBeNull();
   });
 
   it('updates workspace fields when provided', async () => {
