@@ -125,11 +125,7 @@ export class CategoryController {
   }
 
   @Get(':id/templates')
-  templates(
-    @Param('id', new ParseUUIDPipe()) id: string,
-    @Query('recursive') recursive?: string,
-  ): Promise<any[]> {
-    // default to recursive behavior
+  templates(@Param('id', new ParseUUIDPipe()) id: string): Promise<any[]> {
     return this.service.getTemplatesRecursive(id);
   }
 }

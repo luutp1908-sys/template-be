@@ -80,7 +80,7 @@ Checker:
 
 Target output: controllers focus on transport concerns, not business/request-shape validation.
 
-- [ ] Remove ad-hoc validation that belongs in DTOs/pipes.
+- [x] Remove ad-hoc validation that belongs in DTOs/pipes.
 - [ ] Keep controller responsibilities limited to request/response transport concerns.
 - [ ] Confirm nullable-read endpoints remain intentionally nullable.
 - [ ] Confirm throw-based endpoints remain explicit and documented.
@@ -130,7 +130,7 @@ Checker:
 - [x] Tighten DTO constraints in be/src/category/dto/create-category.dto.ts
 - [x] Tighten DTO constraints in be/src/category/dto/update-category.dto.ts
 - [x] Normalize domain/resource exception semantics in be/src/category/category.service.ts
-- [ ] Align param validation and boundary behavior in be/src/category/category.controller.ts
+- [x] Align param validation and boundary behavior in be/src/category/category.controller.ts
 - [x] Update tests in be/src/category/tests/category.service.spec.ts
 
 ### Editor Type
