@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { mapPrismaWriteError } from '../database/prisma-write-error.mapper';
 import { EditorTypeEntity } from './editor-type.entity';
 import { CreateEditorTypeRecord, IEditorTypeRepository } from './interfaces/editor-type.repository.interface';
 import { EditorTypeMapper } from './editor-type.mapper';
@@ -11,8 +12,16 @@ export class EditorTypeRepository implements IEditorTypeRepository {
   async create(payload: CreateEditorTypeRecord): Promise<EditorTypeEntity> {
     const name = payload.name ?? 'Unknown';
     const key = name.toLowerCase().replace(/\s+/g, '-').slice(0, 60);
-    const created = await this.prisma.editorType.create({ data: { key, name } });
-    return EditorTypeMapper.toEntity(created as any);
+    try {
+      const created = await this.prisma.editorType.create({ data: { key, name } });
+      return EditorTypeMapper.toEntity(created as any);
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Editor type',
+        duplicateMessage: 'Editor type key already exists',
+        fallbackMessage: 'Editor type creation failed',
+      });
+    }
   }
 
   async findById(id: string): Promise<EditorTypeEntity | null> {

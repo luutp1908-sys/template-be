@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
+import { mapPrismaWriteError } from '../database/prisma-write-error.mapper';
 import { EditorTypeService } from '../editor-type/editor-type.service';
 import { CategoryEntity } from './category.entity';
 import {
@@ -106,35 +107,43 @@ export class CategoryRepository implements ICategoryRepository {
 
     const dbEditorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(payload.editorTypeId ?? 0);
 
-    const created = await this.prisma.category.create({
-      data: {
-        editorTypeId: dbEditorTypeId,
-        parentId: payload.parentId ?? null,
-        name: payload.name,
-        slug,
-      },
-      select: {
-        id: true,
-        editorType: { select: { key: true } },
-        parentId: true,
-        name: true,
-        slug: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
+    try {
+      const created = await this.prisma.category.create({
+        data: {
+          editorTypeId: dbEditorTypeId,
+          parentId: payload.parentId ?? null,
+          name: payload.name,
+          slug,
+        },
+        select: {
+          id: true,
+          editorType: { select: { key: true } },
+          parentId: true,
+          name: true,
+          slug: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
 
-    return {
-      id: created.id,
-      editorTypeId: this.mapEditorTypeKeyToId((created as any).editorType?.key),
-      parentId: (created as any).parentId ?? null,
-      name: (created as any).name,
-      slug: (created as any).slug,
-      deletedAt: (created as any).deletedAt ?? null,
-      createdAt: created.createdAt,
-      updatedAt: created.updatedAt,
-    } as CategoryEntity;
+      return {
+        id: created.id,
+        editorTypeId: this.mapEditorTypeKeyToId((created as any).editorType?.key),
+        parentId: (created as any).parentId ?? null,
+        name: (created as any).name,
+        slug: (created as any).slug,
+        deletedAt: (created as any).deletedAt ?? null,
+        createdAt: created.createdAt,
+        updatedAt: created.updatedAt,
+      } as CategoryEntity;
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Category',
+        duplicateMessage: 'Category slug already exists',
+        fallbackMessage: 'Category creation failed',
+      });
+    }
   }
 
   async findById(id: string): Promise<CategoryEntity | null> {
@@ -292,61 +301,86 @@ export class CategoryRepository implements ICategoryRepository {
       data.editorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId((payload as any).editorTypeId);
     }
 
-    const updated = await this.prisma.category.update({
-      where: { id },
-      data,
-      select: {
-        id: true,
-        editorType: { select: { key: true } },
-        parentId: true,
-        name: true,
-        slug: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-    return {
-      id: updated.id,
-      editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
-      parentId: (updated as any).parentId ?? null,
-      name: (updated as any).name,
-      slug: (updated as any).slug,
-      deletedAt: (updated as any).deletedAt ?? null,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    } as CategoryEntity;
+    try {
+      const updated = await this.prisma.category.update({
+        where: { id },
+        data,
+        select: {
+          id: true,
+          editorType: { select: { key: true } },
+          parentId: true,
+          name: true,
+          slug: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      return {
+        id: updated.id,
+        editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
+        parentId: (updated as any).parentId ?? null,
+        name: (updated as any).name,
+        slug: (updated as any).slug,
+        deletedAt: (updated as any).deletedAt ?? null,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      } as CategoryEntity;
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Category',
+        notFoundMessage: 'Category not found',
+        duplicateMessage: 'Category slug already exists',
+        fallbackMessage: 'Category update failed',
+      });
+    }
   }
 
   async move(id: string, newParentId: string | null): Promise<CategoryEntity> {
-    const updated = await this.prisma.category.update({
-      where: { id },
-      data: { parentId: newParentId },
-      select: {
-        id: true,
-        editorType: { select: { key: true } },
-        parentId: true,
-        name: true,
-        slug: true,
-        deletedAt: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-    return {
-      id: updated.id,
-      editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
-      parentId: (updated as any).parentId ?? null,
-      name: (updated as any).name,
-      slug: (updated as any).slug,
-      deletedAt: (updated as any).deletedAt ?? null,
-      createdAt: updated.createdAt,
-      updatedAt: updated.updatedAt,
-    } as CategoryEntity;
+    try {
+      const updated = await this.prisma.category.update({
+        where: { id },
+        data: { parentId: newParentId },
+        select: {
+          id: true,
+          editorType: { select: { key: true } },
+          parentId: true,
+          name: true,
+          slug: true,
+          deletedAt: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+      return {
+        id: updated.id,
+        editorTypeId: this.mapEditorTypeKeyToId((updated as any).editorType?.key),
+        parentId: (updated as any).parentId ?? null,
+        name: (updated as any).name,
+        slug: (updated as any).slug,
+        deletedAt: (updated as any).deletedAt ?? null,
+        createdAt: updated.createdAt,
+        updatedAt: updated.updatedAt,
+      } as CategoryEntity;
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Category',
+        notFoundMessage: 'Category not found',
+        fallbackMessage: 'Category move failed',
+      });
+    }
   }
 
   async softDeleteSafe(id: string): Promise<void> {
-    await this.prisma.category.update({ where: { id }, data: { deletedAt: new Date() } });
+    try {
+      await this.prisma.category.update({ where: { id }, data: { deletedAt: new Date() } });
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Category',
+        notFoundMessage: 'Category not found',
+        fallbackMessage: 'Category deletion failed',
+      });
+    }
   }
 
   async getTree(): Promise<CategoryEntity[]> {

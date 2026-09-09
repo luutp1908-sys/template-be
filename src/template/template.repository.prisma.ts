@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
+import { mapPrismaWriteError } from '../database/prisma-write-error.mapper';
 import { EditorTypeService } from '../editor-type/editor-type.service';
 import { getEditorTypeByCode, getEditorTypeById } from '../common/constants/editor-types.constant';
 import {
@@ -59,20 +60,28 @@ export class TemplateRepository implements ITemplateRepository {
   async create(payload: CreateTemplateRecord, authorId: string): Promise<TemplateEntity> {
     const dbEditorTypeId = await this.editorTypeService.ensureEditorTypeByNumericId(payload.editorTypeId);
 
-    const created = await this.prisma.template.create({
-      data: {
-        title: payload.title,
-        slug: payload.slug,
-        authorId,
-        editorTypeId: dbEditorTypeId,
-        categoryId: payload.categoryId,
-        thumbnail: payload.thumbnail ?? null,
-        status: payload.status ?? 'draft',
-      },
-      include: templateInclude,
-    });
+    try {
+      const created = await this.prisma.template.create({
+        data: {
+          title: payload.title,
+          slug: payload.slug,
+          authorId,
+          editorTypeId: dbEditorTypeId,
+          categoryId: payload.categoryId,
+          thumbnail: payload.thumbnail ?? null,
+          status: payload.status ?? 'draft',
+        },
+        include: templateInclude,
+      });
 
-    return this.mapTemplateRow(created);
+      return this.mapTemplateRow(created);
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Template',
+        duplicateMessage: 'Template slug already exists',
+        fallbackMessage: 'Template creation failed',
+      });
+    }
   }
 
   async findById(id: string): Promise<TemplateEntity | null> {
@@ -155,13 +164,22 @@ export class TemplateRepository implements ITemplateRepository {
       };
     }
 
-    const updated = await this.prisma.template.update({
-      where: { id },
-      data: updateData,
-      include: templateInclude,
-    });
+    try {
+      const updated = await this.prisma.template.update({
+        where: { id },
+        data: updateData,
+        include: templateInclude,
+      });
 
-    return this.mapTemplateRow(updated);
+      return this.mapTemplateRow(updated);
+    } catch (error) {
+      mapPrismaWriteError(error, {
+        entityName: 'Template',
+        notFoundMessage: 'Template not found',
+        duplicateMessage: 'Template slug already exists',
+        fallbackMessage: 'Template update failed',
+      });
+    }
   }
 
   async remove(id: string): Promise<boolean> {
