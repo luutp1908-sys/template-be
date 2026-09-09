@@ -41,7 +41,7 @@ Target output: one agreed exception mapping used by all target modules.
 Checker:
 - [x] Step 1 complete
 - [x] Reviewed by: luu (chat sign-off)
-- [x] Notes: Taxonomy finalized in be/docs/ERROR_TAXONOMY_AND_MESSAGE_CONVENTION_2026-09-09.md
+- [x] Notes: Taxonomy and error-handling guidance consolidated in be/docs/ERROR_HANDLING_IMPROVEMENT_PLAN_2026-09-09.md
 
 ### Step 2: Move Request Validation to DTOs and Pipes
 
