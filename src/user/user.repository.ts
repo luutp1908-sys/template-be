@@ -33,7 +33,7 @@ export class UserRepository implements IUserRepository {
     } catch (error) {
       mapPrismaWriteError(error, {
         entityName: 'User',
-        duplicateMessage: 'User already exists',
+        duplicateMessage: 'Email already registered',
         fallbackMessage: 'User creation failed',
       });
     }

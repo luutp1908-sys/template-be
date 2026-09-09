@@ -10,7 +10,7 @@ Scope: Backend Prisma write paths under be/src that can return unique-constraint
 - Target completion date: __________
 - Owner: __________
 - Reviewer: __________
-- Last updated: 2026-09-09 (Step 2 completed)
+- Last updated: 2026-09-09 (Step 3 completed)
 
 ## Objective
 
@@ -64,16 +64,16 @@ Checker:
 
 Target output: same underlying constraint produces the same user-facing message.
 
-- [ ] Normalize duplicate-message text for shared constraints such as email, slug, and workspace membership.
-- [ ] Keep per-constraint messaging stable across services and repositories.
-- [ ] Preserve domain-specific wording where the same constraint is intentionally surfaced differently.
-- [ ] Avoid repository-specific fallback wording for the same Prisma code.
+- [x] Normalize duplicate-message text for shared constraints such as email, slug, and workspace membership.
+- [x] Keep per-constraint messaging stable across services and repositories.
+- [x] Preserve domain-specific wording where the same constraint is intentionally surfaced differently.
+- [x] Avoid repository-specific fallback wording for the same Prisma code.
 
 Checker:
-- [ ] Email conflict wording standardized
-- [ ] Slug conflict wording standardized
-- [ ] Workspace membership conflict wording standardized
-- [ ] Fallback wording reviewed
+- [x] Email conflict wording standardized
+- [x] Slug conflict wording standardized
+- [x] Workspace membership conflict wording standardized
+- [x] Fallback wording reviewed
 
 ### Step 4: Add or update regression tests
 
@@ -98,11 +98,12 @@ Checker:
 
 - [ ] Keep auth repository Prisma mapping consistent for user registration and token updates.
 - [x] Confirm user repository write paths continue to use the shared mapper.
+- [x] Standardize user email uniqueness wording across auth and user repositories.
 
 ### Workspace
 
 - [ ] Update workspace repository write paths that can hit workspace membership or workspace unique constraints.
-- [ ] Align workspace conflict messages with the service-level membership semantics.
+- [x] Align workspace conflict messages with the service-level membership semantics.
 
 ### Category
 
@@ -136,3 +137,4 @@ Checker:
 - [x] 2026-09-09 - Initialized Prisma conflict normalization plan
 - [x] 2026-09-09 - Step 1 audit completed (hotspots documented and mapper coverage inventory recorded)
 - [x] 2026-09-09 - Step 2 completed (shared Prisma write-error mapper applied to category/template/editor-type repositories)
+- [x] 2026-09-09 - Step 3 completed (email and workspace membership conflict wording standardized)

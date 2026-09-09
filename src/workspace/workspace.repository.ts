@@ -96,6 +96,7 @@ export class WorkspaceRepository implements IWorkspaceRepository {
     } catch (error) {
       mapPrismaWriteError(error, {
         entityName: 'Workspace member',
+        duplicateMessage: 'User is already a member of this workspace',
         fallbackMessage: 'Workspace member creation failed',
       });
     }
