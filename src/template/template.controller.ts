@@ -5,7 +5,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  UnauthorizedException,
   Param,
   Patch,
   Post,
@@ -14,9 +13,12 @@ import {
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
+  ApiConflictResponse,
   ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiUnauthorizedResponse,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
@@ -131,16 +133,14 @@ export class TemplateController {
   @Post()
   @ApiOperation({ summary: 'Create template metadata' })
   @ApiOkResponse({ type: Object })
+  @ApiUnauthorizedResponse({
+    description: 'Authentication is required to create template when MOCK_MODE is disabled.',
+  })
+  @ApiConflictResponse({ description: 'Template slug already exists.' })
   create(
     @Body() payload: CreateTemplateDto,
     @CurrentUser() user?: AuthUser,
   ): Promise<TemplateResponseDto> {
-    const isMockMode = (process.env.MOCK_MODE ?? '').toLowerCase() === 'true';
-    if (!user?.id && !isMockMode) {
-      throw new UnauthorizedException(
-        'Authentication is required to create template when MOCK_MODE is disabled',
-      );
-    }
     return this.service.create(payload, user?.id ?? '').then((entity) => this.toTemplateResponse(entity));
   }
 
@@ -174,6 +174,8 @@ export class TemplateController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update template metadata' })
   @ApiOkResponse({ type: Object })
+  @ApiNotFoundResponse({ description: 'Template not found.' })
+  @ApiConflictResponse({ description: 'Template slug already exists.' })
   async update(@Param('id') id: string, @Body() payload: UpdateTemplateDto): Promise<TemplateResponseDto> {
     const entity = await this.service.update(id, payload);
     return this.toTemplateResponse(entity);
@@ -182,6 +184,7 @@ export class TemplateController {
   @Patch(':id/publish')
   @ApiOperation({ summary: 'Publish template metadata' })
   @ApiOkResponse({ type: Object })
+  @ApiNotFoundResponse({ description: 'Template not found.' })
   async publish(@Param('id') id: string): Promise<TemplateResponseDto> {
     const entity = await this.service.publish(id);
     return this.toTemplateResponse(entity);
@@ -190,6 +193,7 @@ export class TemplateController {
   @Patch(':id/archive')
   @ApiOperation({ summary: 'Archive template metadata' })
   @ApiOkResponse({ type: Object })
+  @ApiNotFoundResponse({ description: 'Template not found.' })
   async archive(@Param('id') id: string): Promise<TemplateResponseDto> {
     const entity = await this.service.archive(id);
     return this.toTemplateResponse(entity);

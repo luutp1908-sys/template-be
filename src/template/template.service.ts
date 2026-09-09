@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { CacheService } from '../cache/cache.service';
 import { Logger } from 'nestjs-pino';
@@ -26,6 +26,13 @@ export class TemplateService {
   ) {}
 
   async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
+    const isMockMode = (process.env.MOCK_MODE ?? '').toLowerCase() === 'true';
+    if (!authorId && !isMockMode) {
+      throw new UnauthorizedException(
+        'Authentication is required to create template when MOCK_MODE is disabled',
+      );
+    }
+
     const created = await this.repository.create(payload, authorId);
     await this.invalidateTemplateListCache();
     return created;

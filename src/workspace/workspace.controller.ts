@@ -60,6 +60,7 @@ export class WorkspaceController {
   }
 
   @Post()
+  @ApiConflictResponse({ description: 'Workspace slug already exists.' })
   async create(@Body() payload: CreateWorkspaceDto, @CurrentUser() user: AuthUser): Promise<WorkspaceResponseDto> {
     const entity = await this.service.create(payload, user.id);
     return this.toWorkspaceResponse(entity);

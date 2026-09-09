@@ -61,6 +61,7 @@ export class CategoryController {
   }
 
   @Post()
+  @ApiConflictResponse({ description: 'Category slug already exists.' })
   async create(@Body() payload: CreateCategoryDto): Promise<CategoryResponseDto> {
     const entity = await this.service.create(payload);
     return this.toCategoryResponse(entity);
@@ -85,6 +86,7 @@ export class CategoryController {
 
   @Patch(':id')
   @ApiNotFoundResponse({ description: 'Category not found.' })
+  @ApiConflictResponse({ description: 'Category slug already exists or hierarchy constraint violated.' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: UpdateCategoryDto,

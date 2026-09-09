@@ -1,5 +1,4 @@
-
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { CreateEditorTypeDto } from './dto/create-editor-type.dto';
 import { EditorTypeEntity } from './editor-type.entity';
 import { IEditorTypeRepository } from './interfaces/editor-type.repository.interface';
@@ -28,7 +27,7 @@ export class EditorTypeService {
   async ensureEditorTypeByNumericId(editorTypeId: number, tx?: any): Promise<string> {
     const editorType = getEditorTypeById(editorTypeId);
     if (!editorType) {
-      throw new Error(`Invariant violation: unsupported editorTypeId=${editorTypeId}`);
+      throw new BadRequestException('Unsupported editor type');
     }
 
     const name = `${editorType.type.charAt(0).toUpperCase()}${editorType.type.slice(1)}`;

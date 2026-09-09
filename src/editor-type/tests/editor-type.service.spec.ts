@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { EditorTypeService } from '../editor-type.service';
 import { EditorTypeRepository } from '../editor-type.repository';
 
@@ -38,9 +39,7 @@ describe('EditorTypeService', () => {
   });
 
   it('should throw invariant error for unsupported numeric id', async () => {
-    await expect(service.ensureEditorTypeByNumericId(999)).rejects.toThrow(
-      'Invariant violation: unsupported editorTypeId=999',
-    );
+    await expect(service.ensureEditorTypeByNumericId(999)).rejects.toBeInstanceOf(BadRequestException);
     expect(repository.ensureByKey).not.toHaveBeenCalled();
   });
 });

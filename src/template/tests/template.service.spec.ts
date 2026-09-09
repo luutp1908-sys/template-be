@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { UnauthorizedException } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import { CacheService } from '../../cache/cache.service';
 import { TemplateService } from '../template.service';
@@ -95,6 +96,21 @@ describe('TemplateService', () => {
 
     expect(result.id).toBe('template-1');
     expect(repository.create).toHaveBeenCalledTimes(1);
+  });
+
+  it('should reject template creation without an author when mock mode is disabled', async () => {
+    await expect(
+      service.create(
+        {
+          title: 'Template 1',
+          slug: 'template-1',
+          editorTypeId: 0,
+          categoryId: '0bbf1bb8-7eb2-4f16-bd2d-bd9b27df3e32',
+        },
+        '',
+      ),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(repository.create).not.toHaveBeenCalled();
   });
 
   it('should list templates with pagination', async () => {
