@@ -78,4 +78,24 @@ describe('HttpExceptionFilter', () => {
       }),
     );
   });
+
+  it('standardizes unknown errors to internal server error envelope', () => {
+    const filter = new HttpExceptionFilter(logger);
+    const { host, json, status } = makeHost('/api/v1/test');
+
+    filter.catch(new Error('boom'), host);
+
+    expect(status).toHaveBeenCalledWith(HttpStatus.INTERNAL_SERVER_ERROR);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        success: false,
+        error: expect.objectContaining({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: expect.any(String),
+        }),
+        path: '/api/v1/test',
+        requestId: 'req-123',
+      }),
+    );
+  });
 });

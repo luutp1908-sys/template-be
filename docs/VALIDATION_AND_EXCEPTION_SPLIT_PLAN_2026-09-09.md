@@ -10,7 +10,7 @@ Scope: Backend modules under be/src (export, search, category, editor-type, rela
 - Target completion date: __________
 - Owner: __________
 - Reviewer: luu (step-1 sign-off)
-- Last updated: 2026-09-09
+- Last updated: 2026-09-09 (Step 5 completed)
 
 ## Objective
 
@@ -101,14 +101,20 @@ Target output: behavior is locked with automated tests.
 - [ ] Assert error envelope shape stays stable via filter tests.
 - [ ] Run targeted module tests first.
 - [ ] Run full backend test suite.
+- [x] Add/expand negative tests for invalid params/query/body (expect 400).
+- [x] Add/expand resource missing tests (expect 404).
+- [x] Add/expand domain conflict tests (expect 409).
+- [x] Assert error envelope shape stays stable via filter tests.
+- [x] Run targeted module tests first.
+- [x] Run full backend test suite.
 
 Checker:
-- [ ] Export tests updated
-- [ ] Search tests updated
-- [ ] Category tests updated
-- [ ] Filter contract tests updated
-- [ ] Full backend suite passing
-- [ ] Step 5 complete
+- [x] Export tests updated
+- [x] Search tests updated
+- [x] Category tests updated
+- [x] Filter contract tests updated
+- [x] Full backend suite passing
+- [x] Step 5 complete
 
 ## Module-Level Checklist
 
@@ -142,25 +148,25 @@ Checker:
 
 ### API Behavior Verification
 
-- [ ] Invalid UUID params return 400 with standardized envelope
-- [ ] Unknown fields return 400 because forbidNonWhitelisted is enabled
-- [ ] Invalid enum/range/length values return 400
-- [ ] Well-formed but non-existent IDs return 404 where resource is required
-- [ ] Domain invariant failures return 409 consistently
+- [x] Invalid UUID params return 400 with standardized envelope
+- [x] Unknown fields return 400 because forbidNonWhitelisted is enabled
+- [x] Invalid enum/range/length values return 400
+- [x] Well-formed but non-existent IDs return 404 where resource is required
+- [x] Domain invariant failures return 409 consistently
 
 ### Boundary Verification
 
-- [ ] Services no longer duplicate request-shape validation already handled by DTO/pipes
-- [ ] Controllers no longer use raw body-field validation patterns for domain inputs
+- [x] Services no longer duplicate request-shape validation already handled by DTO/pipes
+- [x] Controllers no longer use raw body-field validation patterns for domain inputs
 - [x] Nullable read endpoints in scoped modules remain intentionally nullable (category/editor-type/search service reads)
 - [x] Throw-based endpoints are explicit and documented via controller-level API error response annotations
-- [ ] Exception filter output remains stable across all changed endpoints
+- [x] Exception filter output remains stable across all changed endpoints
 
 ### Regression Verification
 
-- [ ] Targeted tests pass (export/search/category/editor-type)
-- [ ] Full backend tests pass
-- [ ] No unexpected API contract regressions found in manual smoke checks
+- [x] Targeted tests pass (export/search/category/editor-type)
+- [x] Full backend tests pass
+- [x] No unexpected API contract regressions found in manual smoke checks
 
 ## Scope Boundaries
 
@@ -186,4 +192,4 @@ Excluded:
 - [x] 2026-09-09 - Step 2 completed (UUID pipes + DTO boundary hardening)
 - [x] 2026-09-09 - Step 3 completed (service exception normalization for export/category/search/editor-type)
 - [x] 2026-09-09 - Step 4 completed (controller boundary alignment and explicit throw-contract documentation)
-- [ ] YYYY-MM-DD - Step 5 completed
+- [x] 2026-09-09 - Step 5 completed (validation/error contract tests and full-suite regression pass)
