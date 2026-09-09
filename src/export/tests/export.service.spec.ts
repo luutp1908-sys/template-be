@@ -3,7 +3,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { WorkspaceService } from '../../workspace/workspace.service';
 import { TemplateService } from '../../template/template.service';
 import { ExportService } from '../export.service';
-import { BadRequestException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 import { ExportFormat } from '../dto/create-export.dto';
 
 describe('ExportService', () => {
@@ -45,7 +45,7 @@ describe('ExportService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should reject invalid workspace id', async () => {
+  it('should reject missing workspace with not-found semantics', async () => {
     workspaceService.findById.mockResolvedValue(null);
 
     await expect(
@@ -57,7 +57,26 @@ describe('ExportService', () => {
         } as any,
         'user-1',
       ),
-    ).rejects.toThrow(BadRequestException);
+    ).rejects.toThrow(NotFoundException);
+
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('should propagate missing template as not-found', async () => {
+    workspaceService.findById.mockResolvedValue({ id: 'workspace-1' } as any);
+    templateService.findById.mockRejectedValue(new NotFoundException('Template not found'));
+
+    await expect(
+      service.createJob(
+        {
+          format: ExportFormat.PDF,
+          content: { pages: [] },
+          workspaceId: 'workspace-1',
+          templateId: 'template-1',
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
   });

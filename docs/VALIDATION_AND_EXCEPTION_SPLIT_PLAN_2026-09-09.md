@@ -63,7 +63,7 @@ Checker:
 
 Target output: services keep domain logic only and throw semantically correct exceptions.
 
-- [ ] Export service: remove mixed BadRequest usage for missing resources; map to resource semantics.
+- [x] Export service: remove mixed BadRequest usage for missing resources; map to resource semantics.
 - [ ] Category service: keep invariant checks in service and normalize to conflict semantics where appropriate.
 - [ ] Search service: remove redundant request-format guards already enforced by DTOs.
 - [ ] Editor-type service: remove or reduce redundant input checks already enforced upstream.
@@ -115,9 +115,9 @@ Checker:
 ### Export
 
 - [x] Update DTO constraints in be/src/export/dto/create-export.dto.ts
-- [ ] Refactor service exception semantics in be/src/export/export.service.ts
+- [x] Refactor service exception semantics in be/src/export/export.service.ts
 - [ ] Keep controller transport semantics clear in be/src/export/export.controller.ts
-- [ ] Update tests in be/src/export/tests/export.service.spec.ts
+- [x] Update tests in be/src/export/tests/export.service.spec.ts
 
 ### Search
 

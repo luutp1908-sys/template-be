@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { WorkspaceService } from '../workspace/workspace.service';
@@ -21,15 +21,12 @@ export class ExportService {
     if (payload.workspaceId) {
       const workspace = await this.workspaceService.findById(payload.workspaceId);
       if (!workspace) {
-        throw new BadRequestException(`Invalid workspaceId: ${payload.workspaceId}`);
+        throw new NotFoundException('Workspace not found');
       }
     }
 
     if (payload.templateId) {
-      const template = await this.templateService.findById(payload.templateId).catch(() => null);
-      if (!template) {
-        throw new BadRequestException(`Invalid templateId: ${payload.templateId}`);
-      }
+      await this.templateService.findById(payload.templateId);
     }
 
     const created = await this.repository.create(payload, userId);
