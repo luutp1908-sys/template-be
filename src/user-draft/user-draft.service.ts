@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, Inject, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { AccessDeniedError } from '../common/errors/authorization-error';
 import { CreateUserDraftDto } from './dto/create-user-draft.dto';
 import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
 import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
@@ -50,7 +51,7 @@ export class UserDraftService {
     }
 
     if (!workspaceIds.includes(requestedWorkspaceId)) {
-      throw new ForbiddenException('Workspace access denied');
+      throw new AccessDeniedError('Workspace access denied');
     }
   }
 

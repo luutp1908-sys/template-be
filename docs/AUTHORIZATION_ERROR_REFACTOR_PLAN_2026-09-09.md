@@ -10,7 +10,7 @@ Scope: Backend modules under be/src that currently express authorization decisio
 - Target completion date: __________
 - Owner: __________
 - Reviewer: __________
-- Last updated: 2026-09-09 (Step 1 completed)
+- Last updated: 2026-09-09 (Step 2 completed)
 
 ## Objective
 
@@ -43,16 +43,16 @@ Checker:
 
 Target output: workspace and draft authorization logic throw domain errors instead of NestJS HTTP exceptions.
 
-- [ ] Update WorkspaceAccessPolicy to express access denial through the new authorization error abstraction.
-- [ ] Update WorkspaceService permission checks to throw domain authorization errors for invite, update-role, and remove-member flows.
-- [ ] Update UserDraftService workspace access checks to throw domain authorization errors instead of ForbiddenException.
-- [ ] Keep resource-not-found and conflict cases on their existing semantics.
+- [x] Update WorkspaceAccessPolicy to express access denial through the new authorization error abstraction.
+- [x] Update WorkspaceService permission checks to throw domain authorization errors for invite, update-role, and remove-member flows.
+- [x] Update UserDraftService workspace access checks to throw domain authorization errors instead of ForbiddenException.
+- [x] Keep resource-not-found and conflict cases on their existing semantics.
 
 Checker:
-- [ ] Workspace policy updated
-- [ ] Workspace service updated
-- [ ] UserDraft service updated
-- [ ] Resource/conflict semantics preserved
+- [x] Workspace policy updated
+- [x] Workspace service updated
+- [x] UserDraft service updated
+- [x] Resource/conflict semantics preserved
 
 ### Step 3: Map authorization errors at the HTTP boundary
 
@@ -89,14 +89,14 @@ Checker:
 
 ### Workspace
 
-- [ ] Replace ForbiddenException usage in [be/src/workspace/policies/workspace-access.policy.ts](../src/workspace/policies/workspace-access.policy.ts)
-- [ ] Replace ForbiddenException usage in [be/src/workspace/workspace.service.ts](../src/workspace/workspace.service.ts)
+- [x] Replace ForbiddenException usage in [be/src/workspace/policies/workspace-access.policy.ts](../src/workspace/policies/workspace-access.policy.ts)
+- [x] Replace ForbiddenException usage in [be/src/workspace/workspace.service.ts](../src/workspace/workspace.service.ts)
 - [ ] Update workspace tests in [be/src/workspace/tests/workspace.service.spec.ts](../src/workspace/tests/workspace.service.spec.ts)
 - [ ] Update workspace guard tests in [be/src/workspace/tests/workspace-membership.guard.spec.ts](../src/workspace/tests/workspace-membership.guard.spec.ts)
 
 ### User Draft
 
-- [ ] Replace ForbiddenException usage in [be/src/user-draft/user-draft.service.ts](../src/user-draft/user-draft.service.ts)
+- [x] Replace ForbiddenException usage in [be/src/user-draft/user-draft.service.ts](../src/user-draft/user-draft.service.ts)
 - [ ] Update user-draft access tests if present under [be/src/user-draft/tests](../src/user-draft/tests)
 
 ### HTTP Boundary
@@ -115,3 +115,4 @@ Checker:
 
 - [x] 2026-09-09 - Initialized authorization error refactor plan
 - [x] 2026-09-09 - Step 1 completed (authorization error contract defined and documented)
+- [x] 2026-09-09 - Step 2 completed (workspace and user-draft authorization decisions moved to domain errors)

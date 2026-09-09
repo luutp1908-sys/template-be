@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import {
+  AccessDeniedError,
+  AuthenticationRequiredError,
+} from '../../common/errors/authorization-error';
 import { PrismaService } from '../../database/prisma.service';
 
 export type WorkspaceAccessRole = 'OWNER' | 'ADMIN' | 'MEMBER';
@@ -17,11 +21,11 @@ export class WorkspaceAccessPolicy {
     const { userId, workspaceId, requiredRoles } = request;
 
     if (!userId) {
-      throw new UnauthorizedException('Authentication required');
+      throw new AuthenticationRequiredError('Authentication required');
     }
 
     if (!workspaceId) {
-      throw new UnauthorizedException('Workspace identifier is required');
+      throw new AccessDeniedError('Workspace access denied');
     }
 
     const membership = await this.prisma.workspaceMember.findFirst({
@@ -35,7 +39,7 @@ export class WorkspaceAccessPolicy {
     });
 
     if (!membership) {
-      throw new ForbiddenException('You are not a member of this workspace');
+      throw new AccessDeniedError('You are not a member of this workspace');
     }
 
     if (!requiredRoles || requiredRoles.length === 0) {
@@ -43,7 +47,7 @@ export class WorkspaceAccessPolicy {
     }
 
     if (!requiredRoles.includes(membership.role as WorkspaceAccessRole)) {
-      throw new ForbiddenException('You do not have permission to access this workspace');
+      throw new AccessDeniedError('You do not have permission to access this workspace');
     }
 
     return membership.role as WorkspaceAccessRole;

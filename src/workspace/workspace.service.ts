@@ -1,5 +1,6 @@
-import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { AuthUser } from '../auth/types/auth-user.type';
+import { AccessDeniedError } from '../common/errors/authorization-error';
 import { UserService } from '../user/user.service';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
@@ -62,12 +63,12 @@ export class WorkspaceService {
     }
 
     if (workspace.type !== 'TEAM') {
-      throw new ForbiddenException('Invitations are only supported for team workspaces');
+      throw new AccessDeniedError('Invitations are only supported for team workspaces');
     }
 
     const inviterRole = await this.repository.findMemberRole(workspaceId, user.id);
     if (!inviterRole || !['OWNER', 'ADMIN'].includes(inviterRole)) {
-      throw new ForbiddenException('Only workspace owners and admins can invite members');
+      throw new AccessDeniedError('Only workspace owners and admins can invite members');
     }
 
     const invitedUser = await this.userService.findByEmail(payload.email);
@@ -93,7 +94,7 @@ export class WorkspaceService {
   async updateMemberRole(workspaceId: string, memberId: string, role: string, userId: string): Promise<unknown> {
     const actorRole = await this.repository.findMemberRole(workspaceId, userId);
     if (!actorRole || !['OWNER', 'ADMIN'].includes(actorRole)) {
-      throw new ForbiddenException('Only workspace owners and admins can change member roles');
+      throw new AccessDeniedError('Only workspace owners and admins can change member roles');
     }
 
     const targetMembership = await this.repository.findMembershipById(workspaceId, memberId);
@@ -102,7 +103,7 @@ export class WorkspaceService {
     }
 
     if (targetMembership.role === 'OWNER') {
-      throw new ForbiddenException('The workspace owner role cannot be changed');
+      throw new AccessDeniedError('The workspace owner role cannot be changed');
     }
 
     const normalizedRole = role === 'ADMIN' ? 'ADMIN' : 'MEMBER';
@@ -113,7 +114,7 @@ export class WorkspaceService {
   async removeMember(workspaceId: string, memberId: string, userId: string): Promise<boolean> {
     const actorRole = await this.repository.findMemberRole(workspaceId, userId);
     if (!actorRole || !['OWNER', 'ADMIN'].includes(actorRole)) {
-      throw new ForbiddenException('Only workspace owners and admins can remove members');
+      throw new AccessDeniedError('Only workspace owners and admins can remove members');
     }
 
     const targetMembership = await this.repository.findMembershipById(workspaceId, memberId);
@@ -122,7 +123,7 @@ export class WorkspaceService {
     }
 
     if (targetMembership.role === 'OWNER') {
-      throw new ForbiddenException('The workspace owner cannot be removed');
+      throw new AccessDeniedError('The workspace owner cannot be removed');
     }
 
     return this.repository.removeMemberById(memberId);
