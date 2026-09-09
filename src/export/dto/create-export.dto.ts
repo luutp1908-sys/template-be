@@ -7,6 +7,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  MinLength,
   ValidateNested,
 } from 'class-validator';
 
@@ -45,6 +46,7 @@ export class CreateExportDto {
 
   @IsString()
   @IsOptional()
+  @MinLength(1)
   @MaxLength(240)
   templateName?: string;
 }

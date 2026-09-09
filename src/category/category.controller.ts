@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Patch, Delete, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Patch, Delete, Query, ParseUUIDPipe } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -62,7 +62,7 @@ export class CategoryController {
   }
 
   @Get('stats/hierarchy/:id')
-  getHierarchyStats(@Param('id') id: string): Promise<any> {
+  getHierarchyStats(@Param('id', new ParseUUIDPipe()) id: string): Promise<any> {
     return this.service.getHierarchyStats(id);
   }
 
@@ -72,19 +72,22 @@ export class CategoryController {
   }
 
   @Get(':id')
-  async findById(@Param('id') id: string): Promise<CategoryResponseDto | null> {
+  async findById(@Param('id', new ParseUUIDPipe()) id: string): Promise<CategoryResponseDto | null> {
     const entity = await this.service.findById(id);
     return entity ? this.toCategoryResponse(entity) : null;
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() payload: UpdateCategoryDto): Promise<CategoryResponseDto> {
+  async update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() payload: UpdateCategoryDto,
+  ): Promise<CategoryResponseDto> {
     const entity = await this.service.update(id, payload);
     return this.toCategoryResponse(entity);
   }
 
   @Delete(':id')
-  delete(@Param('id') id: string): Promise<void> {
+  delete(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
     return this.service.delete(id);
   }
 
@@ -95,31 +98,37 @@ export class CategoryController {
   }
 
   @Post(':id/move')
-  async move(@Param('id') id: string, @Body() payload: MoveCategoryDto): Promise<CategoryResponseDto> {
+  async move(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() payload: MoveCategoryDto,
+  ): Promise<CategoryResponseDto> {
     const entity = await this.service.move(id, payload.newParentId ?? null);
     return this.toCategoryResponse(entity);
   }
 
   @Get(':id/breadcrumbs')
-  async breadcrumbs(@Param('id') id: string): Promise<CategoryResponseDto[]> {
+  async breadcrumbs(@Param('id', new ParseUUIDPipe()) id: string): Promise<CategoryResponseDto[]> {
     const entities = await this.service.getBreadcrumbs(id);
     return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/descendants')
-  async descendants(@Param('id') id: string): Promise<CategoryResponseDto[]> {
+  async descendants(@Param('id', new ParseUUIDPipe()) id: string): Promise<CategoryResponseDto[]> {
     const entities = await this.service.getDescendants(id);
     return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/ancestors')
-  async ancestors(@Param('id') id: string): Promise<CategoryResponseDto[]> {
+  async ancestors(@Param('id', new ParseUUIDPipe()) id: string): Promise<CategoryResponseDto[]> {
     const entities = await this.service.getAncestors(id);
     return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/templates')
-  templates(@Param('id') id: string, @Query('recursive') recursive?: string): Promise<any[]> {
+  templates(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Query('recursive') recursive?: string,
+  ): Promise<any[]> {
     // default to recursive behavior
     return this.service.getTemplatesRecursive(id);
   }

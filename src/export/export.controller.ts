@@ -6,6 +6,7 @@ import {
   Header,
   NotFoundException,
   Param,
+  ParseUUIDPipe,
   Post,
   Res,
   UseGuards,
@@ -40,7 +41,10 @@ export class ExportController {
   @Get('jobs/:id')
   @ApiOperation({ summary: 'Get export job status' })
   @ApiOkResponse({ type: Object })
-  async findJobStatus(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<ExportEntity> {
+  async findJobStatus(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @CurrentUser() user: AuthUser,
+  ): Promise<ExportEntity> {
     const exportJob = await this.service.findJobStatus(id, user.id);
     if (!exportJob) {
       throw new NotFoundException('Export job not found');
@@ -55,7 +59,7 @@ export class ExportController {
   @ApiConflictResponse({ description: 'Export job is not completed yet.' })
   @Header('Content-Type', 'application/pdf')
   async download(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
   ): Promise<void> {

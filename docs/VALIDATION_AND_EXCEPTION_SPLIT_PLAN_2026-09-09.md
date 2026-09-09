@@ -47,17 +47,17 @@ Checker:
 
 Target output: request-shape validation runs before service logic.
 
-- [ ] Add UUID param pipes for route IDs in target controllers where applicable.
-- [ ] Replace raw body-field validation patterns with DTO-backed bodies.
-- [ ] Tighten permissive DTOs with non-empty/length/enum/range constraints.
-- [ ] Verify global ValidationPipe behavior still matches expected envelope.
+- [x] Add UUID param pipes for route IDs in target controllers where applicable.
+- [x] Replace raw body-field validation patterns with DTO-backed bodies.
+- [x] Tighten permissive DTOs with non-empty/length/enum/range constraints.
+- [x] Verify global ValidationPipe behavior still matches expected envelope.
 
 Checker:
-- [ ] Export module input validation complete
-- [ ] Search module input validation complete
-- [ ] Category module input validation complete
-- [ ] Editor-type module input validation complete
-- [ ] Step 2 complete
+- [x] Export module input validation complete
+- [x] Search module input validation complete
+- [x] Category module input validation complete
+- [x] Editor-type module input validation complete
+- [x] Step 2 complete
 
 ### Step 3: Normalize Service-Layer Domain/Resource Exceptions
 
@@ -114,7 +114,7 @@ Checker:
 
 ### Export
 
-- [ ] Update DTO constraints in be/src/export/dto/create-export.dto.ts
+- [x] Update DTO constraints in be/src/export/dto/create-export.dto.ts
 - [ ] Refactor service exception semantics in be/src/export/export.service.ts
 - [ ] Keep controller transport semantics clear in be/src/export/export.controller.ts
 - [ ] Update tests in be/src/export/tests/export.service.spec.ts
@@ -127,8 +127,8 @@ Checker:
 
 ### Category
 
-- [ ] Tighten DTO constraints in be/src/category/dto/create-category.dto.ts
-- [ ] Tighten DTO constraints in be/src/category/dto/update-category.dto.ts
+- [x] Tighten DTO constraints in be/src/category/dto/create-category.dto.ts
+- [x] Tighten DTO constraints in be/src/category/dto/update-category.dto.ts
 - [ ] Normalize domain/resource exception semantics in be/src/category/category.service.ts
 - [ ] Align param validation and boundary behavior in be/src/category/category.controller.ts
 - [ ] Update tests in be/src/category/tests/category.service.spec.ts
@@ -181,7 +181,7 @@ Excluded:
 - [ ] YYYY-MM-DD - Initialized checklist version
 - [x] 2026-09-09 - Step 1 started (taxonomy + message convention drafted)
 - [x] 2026-09-09 - Step 1 completed (taxonomy + message convention signed off)
-- [ ] YYYY-MM-DD - Step 2 completed
+- [x] 2026-09-09 - Step 2 completed (UUID pipes + DTO boundary hardening)
 - [ ] YYYY-MM-DD - Step 3 completed
 - [ ] YYYY-MM-DD - Step 4 completed
 - [ ] YYYY-MM-DD - Step 5 completed

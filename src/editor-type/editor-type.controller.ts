@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CreateEditorTypeDto } from './dto/create-editor-type.dto';
 import { EditorTypeEntity } from './editor-type.entity';
@@ -16,7 +16,7 @@ export class EditorTypeController {
   }
 
   @Get(':id')
-  findById(@Param('id') id: string): Promise<EditorTypeEntity | null> {
+  findById(@Param('id', new ParseUUIDPipe()) id: string): Promise<EditorTypeEntity | null> {
     return this.service.findById(id);
   }
 }

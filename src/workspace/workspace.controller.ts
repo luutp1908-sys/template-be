@@ -1,10 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateWorkspaceDto } from './dto/create-workspace.dto';
 import { InviteWorkspaceMemberDto } from './dto/invite-workspace-member.dto';
+import { UpdateWorkspaceMemberRoleDto } from './dto/update-workspace-member-role.dto';
 import { UpdateWorkspaceDto } from './dto/update-workspace.dto';
 import { WorkspaceMembership } from './decorators/workspace-membership.decorator';
 import { WorkspaceMembershipGuard } from './guards/workspace-membership.guard';
@@ -67,7 +68,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id')
-  async findById(@Param('id') id: string): Promise<WorkspaceResponseDto | null> {
+  async findById(@Param('id', new ParseUUIDPipe()) id: string): Promise<WorkspaceResponseDto | null> {
     const entity = await this.service.findById(id);
     return entity ? this.toWorkspaceResponse(entity) : null;
   }
@@ -75,7 +76,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id/members')
-  async findMembers(@Param('id') id: string): Promise<WorkspaceMemberResponseDto[]> {
+  async findMembers(@Param('id', new ParseUUIDPipe()) id: string): Promise<WorkspaceMemberResponseDto[]> {
     const members = await this.service.findMembers(id);
     return members.map((member) => this.toWorkspaceMemberResponse(member));
   }
@@ -83,7 +84,10 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() payload: UpdateWorkspaceDto): Promise<WorkspaceResponseDto> {
+  async update(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Body() payload: UpdateWorkspaceDto,
+  ): Promise<WorkspaceResponseDto> {
     const entity = await this.service.update(id, payload);
     return this.toWorkspaceResponse(entity);
   }
@@ -91,7 +95,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id')
-  async remove(@Param('id') id: string): Promise<WorkspaceResponseDto> {
+  async remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<WorkspaceResponseDto> {
     const entity = await this.service.remove(id);
     return this.toWorkspaceResponse(entity);
   }
@@ -100,7 +104,7 @@ export class WorkspaceController {
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Post(':id/invite-member')
   inviteMember(
-    @Param('id') id: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: InviteWorkspaceMemberDto,
     @CurrentUser() user: AuthUser,
   ): Promise<unknown> {
@@ -111,20 +115,20 @@ export class WorkspaceController {
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id/members/:memberId')
   updateMemberRole(
-    @Param('id') id: string,
-    @Param('memberId') memberId: string,
-    @Body('role') role: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('memberId', new ParseUUIDPipe()) memberId: string,
+    @Body() payload: UpdateWorkspaceMemberRoleDto,
     @CurrentUser() user: AuthUser,
   ): Promise<unknown> {
-    return this.service.updateMemberRole(id, memberId, role, user.id);
+    return this.service.updateMemberRole(id, memberId, payload.role, user.id);
   }
 
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id/members/:memberId')
   removeMember(
-    @Param('id') id: string,
-    @Param('memberId') memberId: string,
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Param('memberId', new ParseUUIDPipe()) memberId: string,
     @CurrentUser() user: AuthUser,
   ): Promise<boolean> {
     return this.service.removeMember(id, memberId, user.id);

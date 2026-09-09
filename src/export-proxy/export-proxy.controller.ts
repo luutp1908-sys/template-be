@@ -4,6 +4,7 @@ import {
   Get,
   Header,
   Param,
+  ParseUUIDPipe,
   Post,
   Req,
   Res,
@@ -33,7 +34,10 @@ export class ExportProxyController {
   @Get('jobs/:id')
   @ApiOperation({ summary: 'Get export job status' })
   @ApiOkResponse({ type: Object })
-  async findJobStatus(@Param('id') id: string, @Req() req: Request): Promise<ExportEntity> {
+  async findJobStatus(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: Request,
+  ): Promise<ExportEntity> {
     return this.service.findJobStatus(id, req.headers.authorization);
   }
 
@@ -42,7 +46,11 @@ export class ExportProxyController {
   @ApiOkResponse({ type: Object })
   @ApiConflictResponse({ description: 'Export job is not completed yet.' })
   @Header('Content-Type', 'application/pdf')
-  async download(@Param('id') id: string, @Req() req: Request, @Res() res: Response): Promise<void> {
+  async download(
+    @Param('id', new ParseUUIDPipe()) id: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ): Promise<void> {
     const result = await this.service.download(id, req.headers.authorization);
 
     res.setHeader('Content-Type', result.contentType);
