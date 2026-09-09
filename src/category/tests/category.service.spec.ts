@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { CacheService } from '../../cache/cache.service';
 import { TemplateService } from '../../template/template.service';
+import { ConflictException } from '@nestjs/common';
 import { CategoryService } from '../category.service';
 import { CategoryRepository } from '../category.repository';
 
@@ -14,6 +15,7 @@ describe('CategoryService', () => {
     getTree: jest.fn(),
     update: jest.fn(),
     softDeleteSafe: jest.fn(),
+    findChildren: jest.fn(),
     move: jest.fn(),
     findAncestors: jest.fn(),
     findDescendants: jest.fn(),
@@ -151,5 +153,54 @@ describe('CategoryService', () => {
 
     expect(result).toEqual(stats);
     expect(repository.getOrphanedCategories).toHaveBeenCalled();
+  });
+
+  it('should throw conflict when deleting a category with child categories', async () => {
+    repository.findById.mockResolvedValue({ id: 'cat-1', name: 'Root' });
+    repository.findChildren.mockResolvedValue([{ id: 'cat-2', parentId: 'cat-1' }]);
+
+    await expect(service.delete('cat-1')).rejects.toThrow(ConflictException);
+    await expect(service.delete('cat-1')).rejects.toThrow(
+      'Cannot delete category: has child categories',
+    );
+
+    expect(templateService.hasTemplatesInCategory).not.toHaveBeenCalled();
+    expect(repository.softDeleteSafe).not.toHaveBeenCalled();
+  });
+
+  it('should throw conflict when deleting a category with templates', async () => {
+    repository.findById.mockResolvedValue({ id: 'cat-1', name: 'Root' });
+    repository.findChildren.mockResolvedValue([]);
+    templateService.hasTemplatesInCategory.mockResolvedValue(true);
+
+    await expect(service.delete('cat-1')).rejects.toThrow(ConflictException);
+    await expect(service.delete('cat-1')).rejects.toThrow(
+      'Cannot delete category: has templates',
+    );
+
+    expect(repository.softDeleteSafe).not.toHaveBeenCalled();
+  });
+
+  it('should throw conflict when moving category under itself', async () => {
+    repository.findById.mockResolvedValue({ id: 'cat-1', name: 'Root' });
+
+    await expect(service.move('cat-1', 'cat-1')).rejects.toThrow(ConflictException);
+    await expect(service.move('cat-1', 'cat-1')).rejects.toThrow(
+      'Cannot move category: cannot set parent to self',
+    );
+
+    expect(repository.move).not.toHaveBeenCalled();
+  });
+
+  it('should throw conflict when moving category into its own descendant', async () => {
+    repository.findById.mockResolvedValue({ id: 'cat-1', name: 'Root' });
+    repository.findDescendants.mockResolvedValue([{ id: 'cat-2' }, { id: 'cat-3' }]);
+
+    await expect(service.move('cat-1', 'cat-3')).rejects.toThrow(ConflictException);
+    await expect(service.move('cat-1', 'cat-3')).rejects.toThrow(
+      'Cannot move category: target parent is a descendant',
+    );
+
+    expect(repository.move).not.toHaveBeenCalled();
   });
 });

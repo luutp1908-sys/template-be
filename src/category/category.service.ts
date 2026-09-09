@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Inject, BadRequestException, ConflictException } from '@nestjs/common';
+import { Injectable, NotFoundException, Inject, ConflictException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
 import { CacheService } from '../cache/cache.service';
@@ -54,12 +54,12 @@ export class CategoryService {
 
     const children = await this.repository.findChildren(id);
     if (children.length > 0) {
-      throw new BadRequestException('Category has child categories; delete aborted');
+      throw new ConflictException('Cannot delete category: has child categories');
     }
 
     const templateExists = await this.templateService.hasTemplatesInCategory(id);
     if (templateExists) {
-      throw new BadRequestException('Category has templates; delete aborted');
+      throw new ConflictException('Cannot delete category: has templates');
     }
 
     await this.repository.softDeleteSafe(id);
@@ -100,13 +100,13 @@ export class CategoryService {
     }
 
     if (newParentId === id) {
-      throw new BadRequestException('Cannot set parent to self');
+      throw new ConflictException('Cannot move category: cannot set parent to self');
     }
 
     if (newParentId) {
       const descendants = await this.repository.findDescendants(id);
       if (descendants.some((d: CategoryEntity) => d.id === newParentId)) {
-        throw new BadRequestException('Cannot move category into its own descendant');
+        throw new ConflictException('Cannot move category: target parent is a descendant');
       }
     }
 
