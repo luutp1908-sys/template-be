@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
+import { AccessDeniedError } from '../../common/errors/authorization-error';
 import { WorkspaceService } from '../workspace.service';
 import { WorkspaceRepository } from '../workspace.repository';
 import { WorkspaceTypeDto } from '../dto/update-workspace.dto';
@@ -148,7 +149,7 @@ describe('WorkspaceService', () => {
         { email: 'invitee@example.com' },
         { id: 'user-1', email: 'member@example.com', role: 'MEMBER' } as any,
       ),
-    ).rejects.toThrow(ForbiddenException);
+    ).rejects.toThrow(AccessDeniedError);
   });
 
   it('updates member role after permission checks', async () => {
@@ -167,7 +168,36 @@ describe('WorkspaceService', () => {
     repository.findMembershipById.mockResolvedValue({ id: 'membership-1', role: 'OWNER' });
 
     await expect(service.removeMember('workspace-1', 'membership-1', 'owner-1')).rejects.toThrow(
-      ForbiddenException,
+      AccessDeniedError,
+    );
+  });
+
+  it('rejects invites for personal workspaces with a domain authorization error', async () => {
+    repository.findById.mockResolvedValue({ id: 'workspace-1', type: 'PERSONAL' });
+
+    await expect(
+      service.inviteMember(
+        'workspace-1',
+        { email: 'invitee@example.com' },
+        { id: 'user-1', email: 'owner@example.com', role: 'OWNER' } as any,
+      ),
+    ).rejects.toThrow(AccessDeniedError);
+  });
+
+  it('rejects member role changes when actor lacks permission', async () => {
+    repository.findMemberRole.mockResolvedValue('MEMBER');
+
+    await expect(service.updateMemberRole('workspace-1', 'membership-1', 'ADMIN', 'user-1')).rejects.toThrow(
+      AccessDeniedError,
+    );
+  });
+
+  it('rejects changing the owner role with a domain authorization error', async () => {
+    repository.findMemberRole.mockResolvedValue('OWNER');
+    repository.findMembershipById.mockResolvedValue({ id: 'membership-1', role: 'OWNER' });
+
+    await expect(service.updateMemberRole('workspace-1', 'membership-1', 'ADMIN', 'owner-1')).rejects.toThrow(
+      AccessDeniedError,
     );
   });
 

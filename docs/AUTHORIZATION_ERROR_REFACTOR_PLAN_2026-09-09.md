@@ -5,23 +5,23 @@ Scope: Backend modules under be/src that currently express authorization decisio
 
 ## Progress Tracker
 
-- Overall status: [ ] Not started [x] In progress [ ] Blocked [ ] Completed
+- Overall status: [ ] Not started [ ] In progress [ ] Blocked [x] Completed
 - Start date: 2026-09-09
 - Target completion date: __________
 - Owner: __________
 - Reviewer: __________
-- Last updated: 2026-09-09 (Step 3 completed)
+- Last updated: 2026-09-09 (Step 4 completed)
 
 ## Objective
 
 Refactor backend authorization handling so services and policies use framework-agnostic authorization errors, while HTTP status mapping remains in the NestJS boundary. This keeps the domain/application layer independent from NestJS HTTP exception types and preserves the current response envelope.
 
 Success criteria:
-- [ ] Authorization denials are represented by domain/application errors, not NestJS HTTP exceptions, inside services and policies.
-- [ ] Missing authentication maps to 401 at the HTTP boundary.
-- [ ] Access denied maps to 403 at the HTTP boundary.
-- [ ] Resource missing and conflict semantics remain distinct from authorization errors.
-- [ ] Tests cover the new domain error path and the HTTP mapping path.
+- [x] Authorization denials are represented by domain/application errors, not NestJS HTTP exceptions, inside services and policies.
+- [x] Missing authentication maps to 401 at the HTTP boundary.
+- [x] Access denied maps to 403 at the HTTP boundary.
+- [x] Resource missing and conflict semantics remain distinct from authorization errors.
+- [x] Tests cover the new domain error path and the HTTP mapping path.
 
 ## Step-by-Step Execution Plan
 
@@ -73,17 +73,17 @@ Checker:
 
 Target output: tests lock the new domain-to-HTTP boundary behavior.
 
-- [ ] Update workspace service and policy tests to expect domain authorization errors.
-- [ ] Update user-draft tests to expect domain authorization errors.
-- [ ] Add or update filter tests to assert the new authorization error classes map to 401/403.
-- [ ] Run targeted module tests first, then the full backend suite.
+- [x] Update workspace service and policy tests to expect domain authorization errors.
+- [x] Update user-draft tests to expect domain authorization errors.
+- [x] Add or update filter tests to assert the new authorization error classes map to 401/403.
+- [x] Run targeted module tests first, then the full backend suite.
 
 Checker:
-- [ ] Workspace tests updated
-- [ ] User-draft tests updated
-- [ ] Filter tests updated
-- [ ] Targeted tests passing
-- [ ] Full backend suite passing
+- [x] Workspace tests updated
+- [x] User-draft tests updated
+- [x] Filter tests updated
+- [x] Targeted tests passing
+- [x] Full backend suite passing
 
 ## Module-Level Checklist
 
@@ -91,18 +91,19 @@ Checker:
 
 - [x] Replace ForbiddenException usage in [be/src/workspace/policies/workspace-access.policy.ts](../src/workspace/policies/workspace-access.policy.ts)
 - [x] Replace ForbiddenException usage in [be/src/workspace/workspace.service.ts](../src/workspace/workspace.service.ts)
-- [ ] Update workspace tests in [be/src/workspace/tests/workspace.service.spec.ts](../src/workspace/tests/workspace.service.spec.ts)
-- [ ] Update workspace guard tests in [be/src/workspace/tests/workspace-membership.guard.spec.ts](../src/workspace/tests/workspace-membership.guard.spec.ts)
+- [x] Update workspace tests in [be/src/workspace/tests/workspace.service.spec.ts](../src/workspace/tests/workspace.service.spec.ts)
+- [x] Update workspace guard tests in [be/src/workspace/tests/workspace-membership.guard.spec.ts](../src/workspace/tests/workspace-membership.guard.spec.ts)
+- [x] Add policy tests in [be/src/workspace/tests/workspace-access.policy.spec.ts](../src/workspace/tests/workspace-access.policy.spec.ts)
 
 ### User Draft
 
 - [x] Replace ForbiddenException usage in [be/src/user-draft/user-draft.service.ts](../src/user-draft/user-draft.service.ts)
-- [ ] Update user-draft access tests if present under [be/src/user-draft/tests](../src/user-draft/tests)
+- [x] Add service coverage in [be/src/user-draft/user-draft.service.spec.ts](../src/user-draft/user-draft.service.spec.ts)
 
 ### HTTP Boundary
 
 - [x] Extend [be/src/common/filters/http-exception.filter.ts](../src/common/filters/http-exception.filter.ts) for authorization error mapping
-- [ ] Extend [be/src/common/filters/http-exception.filter.spec.ts](../src/common/filters/http-exception.filter.spec.ts) for mapping coverage
+- [x] Extend [be/src/common/filters/http-exception.filter.spec.ts](../src/common/filters/http-exception.filter.spec.ts) for mapping coverage
 
 ## Notes and Risks
 
@@ -117,3 +118,4 @@ Checker:
 - [x] 2026-09-09 - Step 1 completed (authorization error contract defined and documented)
 - [x] 2026-09-09 - Step 2 completed (workspace and user-draft authorization decisions moved to domain errors)
 - [x] 2026-09-09 - Step 3 completed (authorization errors mapped to HTTP 401/403 at the global boundary)
+- [x] 2026-09-09 - Step 4 completed (authorization regression tests updated and backend suite passing)

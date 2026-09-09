@@ -1,4 +1,7 @@
-import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
+import {
+  AccessDeniedError,
+  AuthenticationRequiredError,
+} from '../../common/errors/authorization-error';
 import { WorkspaceMembershipGuard } from '../guards/workspace-membership.guard';
 import { WorkspaceAccessPolicy } from '../policies/workspace-access.policy';
 
@@ -36,7 +39,7 @@ describe('WorkspaceMembershipGuard', () => {
 
   it('requires authentication before checking workspace membership', async () => {
     await expect(guard.canActivate(buildContext(undefined, 'workspace-1') as any)).rejects.toThrow(
-      UnauthorizedException,
+      AuthenticationRequiredError,
     );
   });
 
@@ -44,7 +47,7 @@ describe('WorkspaceMembershipGuard', () => {
     prisma.workspaceMember.findFirst.mockResolvedValue(null);
 
     await expect(guard.canActivate(buildContext('user-1', 'workspace-1') as any)).rejects.toThrow(
-      ForbiddenException,
+      AccessDeniedError,
     );
   });
 
@@ -59,7 +62,7 @@ describe('WorkspaceMembershipGuard', () => {
     prisma.workspaceMember.findFirst.mockResolvedValue({ role: 'MEMBER' });
 
     await expect(guard.canActivate(buildContext('user-1', 'workspace-1') as any)).rejects.toThrow(
-      ForbiddenException,
+      AccessDeniedError,
     );
   });
 
