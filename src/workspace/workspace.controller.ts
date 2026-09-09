@@ -1,5 +1,11 @@
 import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiForbiddenResponse,
+  ApiNotFoundResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthUser } from '../auth/types/auth-user.type';
@@ -76,6 +82,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN', 'MEMBER')
   @Get(':id/members')
+  @ApiNotFoundResponse({ description: 'Workspace not found.' })
   async findMembers(@Param('id', new ParseUUIDPipe()) id: string): Promise<WorkspaceMemberResponseDto[]> {
     const members = await this.service.findMembers(id);
     return members.map((member) => this.toWorkspaceMemberResponse(member));
@@ -84,6 +91,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id')
+  @ApiNotFoundResponse({ description: 'Workspace not found.' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: UpdateWorkspaceDto,
@@ -95,6 +103,7 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id')
+  @ApiNotFoundResponse({ description: 'Workspace not found.' })
   async remove(@Param('id', new ParseUUIDPipe()) id: string): Promise<WorkspaceResponseDto> {
     const entity = await this.service.remove(id);
     return this.toWorkspaceResponse(entity);
@@ -103,6 +112,9 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Post(':id/invite-member')
+  @ApiNotFoundResponse({ description: 'Workspace or user not found.' })
+  @ApiForbiddenResponse({ description: 'Insufficient permission or workspace type disallows invites.' })
+  @ApiConflictResponse({ description: 'Membership conflict, such as self-invite or existing membership.' })
   inviteMember(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: InviteWorkspaceMemberDto,
@@ -114,6 +126,8 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Patch(':id/members/:memberId')
+  @ApiNotFoundResponse({ description: 'Workspace member not found.' })
+  @ApiForbiddenResponse({ description: 'Insufficient permission or target member role cannot be changed.' })
   updateMemberRole(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('memberId', new ParseUUIDPipe()) memberId: string,
@@ -126,6 +140,8 @@ export class WorkspaceController {
   @UseGuards(WorkspaceMembershipGuard)
   @WorkspaceMembership('OWNER', 'ADMIN')
   @Delete(':id/members/:memberId')
+  @ApiNotFoundResponse({ description: 'Workspace member not found.' })
+  @ApiForbiddenResponse({ description: 'Insufficient permission or target member cannot be removed.' })
   removeMember(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Param('memberId', new ParseUUIDPipe()) memberId: string,

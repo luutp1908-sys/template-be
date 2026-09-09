@@ -83,13 +83,13 @@ Target output: controllers focus on transport concerns, not business/request-sha
 - [x] Remove ad-hoc validation that belongs in DTOs/pipes.
 - [x] Keep controller responsibilities limited to request/response transport concerns.
 - [x] Confirm nullable-read endpoints remain intentionally nullable.
-- [ ] Confirm throw-based endpoints remain explicit and documented.
+- [x] Confirm throw-based endpoints remain explicit and documented.
 
 Checker:
-- [ ] Export controller alignment complete
-- [ ] Category controller alignment complete
-- [ ] Workspace controller alignment complete
-- [ ] Step 4 complete
+- [x] Export controller alignment complete
+- [x] Category controller alignment complete
+- [x] Workspace controller alignment complete
+- [x] Step 4 complete
 
 ### Step 5: Tests and Regression Safety Net
 
@@ -153,6 +153,7 @@ Checker:
 - [ ] Services no longer duplicate request-shape validation already handled by DTO/pipes
 - [ ] Controllers no longer use raw body-field validation patterns for domain inputs
 - [x] Nullable read endpoints in scoped modules remain intentionally nullable (category/editor-type/search service reads)
+- [x] Throw-based endpoints are explicit and documented via controller-level API error response annotations
 - [ ] Exception filter output remains stable across all changed endpoints
 
 ### Regression Verification
@@ -184,5 +185,5 @@ Excluded:
 - [x] 2026-09-09 - Step 1 completed (taxonomy + message convention signed off)
 - [x] 2026-09-09 - Step 2 completed (UUID pipes + DTO boundary hardening)
 - [x] 2026-09-09 - Step 3 completed (service exception normalization for export/category/search/editor-type)
-- [ ] YYYY-MM-DD - Step 4 completed
+- [x] 2026-09-09 - Step 4 completed (controller boundary alignment and explicit throw-contract documentation)
 - [ ] YYYY-MM-DD - Step 5 completed

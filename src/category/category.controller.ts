@@ -1,5 +1,10 @@
 import { Body, Controller, Get, Param, Post, Patch, Delete, Query, ParseUUIDPipe } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CategoryListQueryDto } from './dto/category-list-query.dto';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -62,6 +67,7 @@ export class CategoryController {
   }
 
   @Get('stats/hierarchy/:id')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
   getHierarchyStats(@Param('id', new ParseUUIDPipe()) id: string): Promise<any> {
     return this.service.getHierarchyStats(id);
   }
@@ -78,6 +84,7 @@ export class CategoryController {
   }
 
   @Patch(':id')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
   async update(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: UpdateCategoryDto,
@@ -87,6 +94,8 @@ export class CategoryController {
   }
 
   @Delete(':id')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
+  @ApiConflictResponse({ description: 'Category cannot be deleted due to dependent state.' })
   delete(@Param('id', new ParseUUIDPipe()) id: string): Promise<void> {
     return this.service.delete(id);
   }
@@ -98,6 +107,8 @@ export class CategoryController {
   }
 
   @Post(':id/move')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
+  @ApiConflictResponse({ description: 'Category move violates hierarchy constraints.' })
   async move(
     @Param('id', new ParseUUIDPipe()) id: string,
     @Body() payload: MoveCategoryDto,
@@ -107,6 +118,7 @@ export class CategoryController {
   }
 
   @Get(':id/breadcrumbs')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
   async breadcrumbs(@Param('id', new ParseUUIDPipe()) id: string): Promise<CategoryResponseDto[]> {
     const entities = await this.service.getBreadcrumbs(id);
     return entities.map((entity) => this.toCategoryResponse(entity));
@@ -119,12 +131,14 @@ export class CategoryController {
   }
 
   @Get(':id/ancestors')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
   async ancestors(@Param('id', new ParseUUIDPipe()) id: string): Promise<CategoryResponseDto[]> {
     const entities = await this.service.getAncestors(id);
     return entities.map((entity) => this.toCategoryResponse(entity));
   }
 
   @Get(':id/templates')
+  @ApiNotFoundResponse({ description: 'Category not found.' })
   templates(@Param('id', new ParseUUIDPipe()) id: string): Promise<any[]> {
     return this.service.getTemplatesRecursive(id);
   }

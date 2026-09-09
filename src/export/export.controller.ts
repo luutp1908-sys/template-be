@@ -9,7 +9,14 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiConflictResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiConflictResponse,
+  ApiNotFoundResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -28,6 +35,7 @@ export class ExportController {
   @Post('jobs')
   @ApiOperation({ summary: 'Create an async export job' })
   @ApiOkResponse({ type: Object })
+  @ApiNotFoundResponse({ description: 'Workspace or template not found.' })
   async createJob(
     @Body() payload: CreateExportDto,
     @CurrentUser() user: AuthUser,
@@ -38,6 +46,7 @@ export class ExportController {
   @Get('jobs/:id')
   @ApiOperation({ summary: 'Get export job status' })
   @ApiOkResponse({ type: Object })
+  @ApiNotFoundResponse({ description: 'Export job not found.' })
   async findJobStatus(
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthUser,
@@ -48,6 +57,7 @@ export class ExportController {
   @Get('jobs/:id/download')
   @ApiOperation({ summary: 'Download generated export file when completed' })
   @ApiOkResponse({ type: Object })
+  @ApiNotFoundResponse({ description: 'Export job not found.' })
   @ApiConflictResponse({ description: 'Export job is not completed yet.' })
   @Header('Content-Type', 'application/pdf')
   async download(
@@ -58,6 +68,6 @@ export class ExportController {
     const exportJob = await this.service.resolveDownloadableJobOrThrow(id, user.id);
 
     res.setHeader('Content-Disposition', `attachment; filename="${exportJob.fileName}"`);
-    res.sendFile(exportJob.downloadPath);
+    res.sendFile(exportJob.downloadPath!);
   }
 }
