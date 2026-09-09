@@ -9,6 +9,16 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { CategoryEntity } from './category.entity';
 import { CategoryRepository } from './category.repository';
 
+const CATEGORY_NOT_FOUND_MESSAGE = 'Category not found';
+const CATEGORY_DELETE_HAS_CHILDREN_CONFLICT_MESSAGE =
+  'Cannot delete category: has child categories';
+const CATEGORY_DELETE_HAS_TEMPLATES_CONFLICT_MESSAGE =
+  'Cannot delete category: has templates';
+const CATEGORY_MOVE_SELF_CONFLICT_MESSAGE =
+  'Cannot move category: cannot set parent to self';
+const CATEGORY_MOVE_DESCENDANT_CONFLICT_MESSAGE =
+  'Cannot move category: target parent is a descendant';
+
 @Injectable()
 export class CategoryService {
   private readonly categoryTreeCacheKey = 'category:tree';
@@ -34,10 +44,11 @@ export class CategoryService {
   async findById(id: string): Promise<CategoryEntity | null> {
     const category = await this.repository.findById(id);
 
-    if (!category) 
-      throw new NotFoundException('The template with this id does not exist')
+    if (!category) {
+      throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
+    }
 
-    return category
+    return category;
   }
 
   async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
@@ -49,17 +60,17 @@ export class CategoryService {
   async delete(id: string): Promise<void> {
     const category = await this.repository.findById(id);
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
     }
 
     const children = await this.repository.findChildren(id);
     if (children.length > 0) {
-      throw new ConflictException('Cannot delete category: has child categories');
+      throw new ConflictException(CATEGORY_DELETE_HAS_CHILDREN_CONFLICT_MESSAGE);
     }
 
     const templateExists = await this.templateService.hasTemplatesInCategory(id);
     if (templateExists) {
-      throw new ConflictException('Cannot delete category: has templates');
+      throw new ConflictException(CATEGORY_DELETE_HAS_TEMPLATES_CONFLICT_MESSAGE);
     }
 
     await this.repository.softDeleteSafe(id);
@@ -96,17 +107,17 @@ export class CategoryService {
   async move(id: string, newParentId: string | null): Promise<CategoryEntity> {
     const category = await this.repository.findById(id);
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
     }
 
     if (newParentId === id) {
-      throw new ConflictException('Cannot move category: cannot set parent to self');
+      throw new ConflictException(CATEGORY_MOVE_SELF_CONFLICT_MESSAGE);
     }
 
     if (newParentId) {
       const descendants = await this.repository.findDescendants(id);
       if (descendants.some((d: CategoryEntity) => d.id === newParentId)) {
-        throw new ConflictException('Cannot move category: target parent is a descendant');
+        throw new ConflictException(CATEGORY_MOVE_DESCENDANT_CONFLICT_MESSAGE);
       }
     }
 
@@ -118,7 +129,7 @@ export class CategoryService {
   async getBreadcrumbs(id: string): Promise<CategoryEntity[]> {
     const ancestors = await this.repository.findAncestors(id);
     const self = await this.repository.findById(id);
-    if (!self) throw new NotFoundException('Category not found');
+    if (!self) throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
     return [...ancestors, self];
   }
 
@@ -128,13 +139,13 @@ export class CategoryService {
 
   async getAncestors(id: string): Promise<CategoryEntity[]> {
     const self = await this.repository.findById(id);
-    if (!self) throw new NotFoundException('Category not found');
+    if (!self) throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
     return this.repository.findAncestors(id);
   }
 
   async getTemplatesRecursive(id: string): Promise<any[]> {
     const self = await this.repository.findById(id);
-    if (!self) throw new NotFoundException('Category not found');
+    if (!self) throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
     const descendants = await this.repository.findDescendants(id);
     const ids = [id, ...descendants.map((d: CategoryEntity) => d.id)];
     return this.templateService.findByCategoryIds(ids);
@@ -143,7 +154,7 @@ export class CategoryService {
   async getHierarchyStats(id: string): Promise<any> {
     const category = await this.repository.findById(id);
     if (!category) {
-      throw new NotFoundException('Category not found');
+      throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
     }
 
     return this.repository.getHierarchyStats(id);

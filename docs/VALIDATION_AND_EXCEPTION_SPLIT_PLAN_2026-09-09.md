@@ -66,15 +66,15 @@ Target output: services keep domain logic only and throw semantically correct ex
 - [x] Export service: remove mixed BadRequest usage for missing resources; map to resource semantics.
 - [x] Category service: keep invariant checks in service and normalize to conflict semantics where appropriate.
 - [x] Search service: remove redundant request-format guards already enforced by DTOs.
-- [ ] Editor-type service: remove or reduce redundant input checks already enforced upstream.
-- [ ] Standardize error messages for repeated not-found/conflict cases.
+- [x] Editor-type service: remove or reduce redundant input checks already enforced upstream.
+- [x] Standardize error messages for repeated not-found/conflict cases.
 
 Checker:
-- [ ] Export service refactor complete
-- [ ] Category service refactor complete
-- [ ] Search service refactor complete
-- [ ] Editor-type service refactor complete
-- [ ] Step 3 complete
+- [x] Export service refactor complete
+- [x] Category service refactor complete
+- [x] Search service refactor complete
+- [x] Editor-type service refactor complete
+- [x] Step 3 complete
 
 ### Step 4: Align Controller Boundaries
 
@@ -135,7 +135,7 @@ Checker:
 
 ### Editor Type
 
-- [ ] Remove redundant request-validation checks in be/src/editor-type/editor-type.service.ts
+- [x] Remove redundant request-validation checks in be/src/editor-type/editor-type.service.ts
 - [ ] Verify callers enforce editorTypeId constraints via DTO validation
 
 ## Verification Checklist
@@ -182,6 +182,6 @@ Excluded:
 - [x] 2026-09-09 - Step 1 started (taxonomy + message convention drafted)
 - [x] 2026-09-09 - Step 1 completed (taxonomy + message convention signed off)
 - [x] 2026-09-09 - Step 2 completed (UUID pipes + DTO boundary hardening)
-- [ ] YYYY-MM-DD - Step 3 completed
+- [x] 2026-09-09 - Step 3 completed (service exception normalization for export/category/search/editor-type)
 - [ ] YYYY-MM-DD - Step 4 completed
 - [ ] YYYY-MM-DD - Step 5 completed

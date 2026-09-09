@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from 'nestjs-pino';
+import { NotFoundException } from '@nestjs/common';
 import { CacheService } from '../../cache/cache.service';
 import { TemplateService } from '../../template/template.service';
 import { ConflictException } from '@nestjs/common';
@@ -153,6 +154,13 @@ describe('CategoryService', () => {
 
     expect(result).toEqual(stats);
     expect(repository.getOrphanedCategories).toHaveBeenCalled();
+  });
+
+  it('should use standardized category not-found message', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.findById('missing-category-id')).rejects.toThrow(NotFoundException);
+    await expect(service.findById('missing-category-id')).rejects.toThrow('Category not found');
   });
 
   it('should throw conflict when deleting a category with child categories', async () => {
