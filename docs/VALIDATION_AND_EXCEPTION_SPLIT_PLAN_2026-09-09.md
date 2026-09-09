@@ -81,7 +81,7 @@ Checker:
 Target output: controllers focus on transport concerns, not business/request-shape validation.
 
 - [x] Remove ad-hoc validation that belongs in DTOs/pipes.
-- [ ] Keep controller responsibilities limited to request/response transport concerns.
+- [x] Keep controller responsibilities limited to request/response transport concerns.
 - [ ] Confirm nullable-read endpoints remain intentionally nullable.
 - [ ] Confirm throw-based endpoints remain explicit and documented.
 
@@ -116,7 +116,7 @@ Checker:
 
 - [x] Update DTO constraints in be/src/export/dto/create-export.dto.ts
 - [x] Refactor service exception semantics in be/src/export/export.service.ts
-- [ ] Keep controller transport semantics clear in be/src/export/export.controller.ts
+- [x] Keep controller transport semantics clear in be/src/export/export.controller.ts
 - [x] Update tests in be/src/export/tests/export.service.spec.ts
 
 ### Search

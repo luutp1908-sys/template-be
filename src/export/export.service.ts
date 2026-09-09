@@ -1,6 +1,7 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { existsSync } from 'fs';
 import { WorkspaceService } from '../workspace/workspace.service';
 import { TemplateService } from '../template/template.service';
 import { CreateExportDto } from './dto/create-export.dto';
@@ -36,5 +37,28 @@ export class ExportService {
 
   async findJobStatus(id: string, userId: string): Promise<ExportEntity | null> {
     return this.repository.findById(id, userId);
+  }
+
+  async findJobStatusOrThrow(id: string, userId: string): Promise<ExportEntity> {
+    const exportJob = await this.findJobStatus(id, userId);
+    if (!exportJob) {
+      throw new NotFoundException('Export job not found');
+    }
+
+    return exportJob;
+  }
+
+  async resolveDownloadableJobOrThrow(id: string, userId: string): Promise<ExportEntity> {
+    const exportJob = await this.findJobStatusOrThrow(id, userId);
+
+    if (exportJob.status !== 'completed' || !exportJob.downloadPath) {
+      throw new ConflictException('Export job is not completed yet');
+    }
+
+    if (!existsSync(exportJob.downloadPath)) {
+      throw new ConflictException('Export file has not been generated yet');
+    }
+
+    return exportJob;
   }
 }

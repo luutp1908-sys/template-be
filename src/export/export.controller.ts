@@ -1,10 +1,8 @@
 import {
   Body,
-  ConflictException,
   Controller,
   Get,
   Header,
-  NotFoundException,
   Param,
   ParseUUIDPipe,
   Post,
@@ -13,12 +11,11 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Response } from 'express';
-import { existsSync } from 'fs';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthUser } from '../auth/types/auth-user.type';
 import { CreateExportDto } from './dto/create-export.dto';
-import { ExportEntity, ExportStatus } from './export.entity';
+import { ExportEntity } from './export.entity';
 import { ExportService } from './export.service';
 
 @ApiTags('export')
@@ -45,12 +42,7 @@ export class ExportController {
     @Param('id', new ParseUUIDPipe()) id: string,
     @CurrentUser() user: AuthUser,
   ): Promise<ExportEntity> {
-    const exportJob = await this.service.findJobStatus(id, user.id);
-    if (!exportJob) {
-      throw new NotFoundException('Export job not found');
-    }
-
-    return exportJob;
+    return this.service.findJobStatusOrThrow(id, user.id);
   }
 
   @Get('jobs/:id/download')
@@ -63,18 +55,7 @@ export class ExportController {
     @CurrentUser() user: AuthUser,
     @Res() res: Response,
   ): Promise<void> {
-    const exportJob = await this.service.findJobStatus(id, user.id);
-    if (!exportJob) {
-      throw new NotFoundException('Export job not found');
-    }
-
-    if (exportJob.status !== ExportStatus.COMPLETED || !exportJob.downloadPath) {
-      throw new ConflictException('Export job is not completed yet');
-    }
-
-    if (!existsSync(exportJob.downloadPath)) {
-      throw new ConflictException('Export file has not been generated yet');
-    }
+    const exportJob = await this.service.resolveDownloadableJobOrThrow(id, user.id);
 
     res.setHeader('Content-Disposition', `attachment; filename="${exportJob.fileName}"`);
     res.sendFile(exportJob.downloadPath);

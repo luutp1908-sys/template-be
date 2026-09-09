@@ -3,8 +3,12 @@ import { getQueueToken } from '@nestjs/bullmq';
 import { WorkspaceService } from '../../workspace/workspace.service';
 import { TemplateService } from '../../template/template.service';
 import { ExportService } from '../export.service';
-import { NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { ExportFormat } from '../dto/create-export.dto';
+import { ExportStatus } from '../export.entity';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
 describe('ExportService', () => {
   let service: ExportService;
@@ -79,5 +83,61 @@ describe('ExportService', () => {
     ).rejects.toThrow(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('should throw not-found when status job does not exist', async () => {
+    repository.findById.mockResolvedValue(null);
+
+    await expect(service.findJobStatusOrThrow('job-1', 'user-1')).rejects.toThrow(NotFoundException);
+  });
+
+  it('should return job when status job exists', async () => {
+    const job = { id: 'job-1', status: ExportStatus.PENDING } as any;
+    repository.findById.mockResolvedValue(job);
+
+    await expect(service.findJobStatusOrThrow('job-1', 'user-1')).resolves.toEqual(job);
+  });
+
+  it('should throw conflict when download job is not completed', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'job-1',
+      status: ExportStatus.PROCESSING,
+      downloadPath: null,
+    });
+
+    await expect(service.resolveDownloadableJobOrThrow('job-1', 'user-1')).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('should throw conflict when completed job file does not exist', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'job-1',
+      status: ExportStatus.COMPLETED,
+      downloadPath: '/tmp/missing.pdf',
+    });
+
+    await expect(service.resolveDownloadableJobOrThrow('job-1', 'user-1')).rejects.toThrow(
+      ConflictException,
+    );
+  });
+
+  it('should return completed job when download file exists', async () => {
+    const tempDir = mkdtempSync(join(tmpdir(), 'export-service-test-'));
+    const existingPath = join(tempDir, 'file.pdf');
+    writeFileSync(existingPath, 'ok');
+
+    const job = {
+      id: 'job-1',
+      status: ExportStatus.COMPLETED,
+      downloadPath: existingPath,
+    } as any;
+    repository.findById.mockResolvedValue(job);
+
+    try {
+      await expect(service.resolveDownloadableJobOrThrow('job-1', 'user-1')).resolves.toEqual(job);
+    } finally {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
   });
 });
