@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { SearchQueryDto } from './dto/search-query.dto';
 import { SearchEntity, SearchListEntity } from './search.entity';
 import { SearchRepository } from './search.repository';
@@ -14,10 +14,6 @@ export class SearchService {
       page: query.page ?? 1,
       pageSize: query.pageSize ?? 10,
     };
-
-    if (q.length > 240) {
-      throw new BadRequestException('Search term must be 240 characters or fewer');
-    }
 
     if (query.status) normalized.status = query.status;
     if (query.editorTypeId !== undefined) normalized.editorTypeId = query.editorTypeId;

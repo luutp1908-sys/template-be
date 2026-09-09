@@ -65,7 +65,7 @@ Target output: services keep domain logic only and throw semantically correct ex
 
 - [x] Export service: remove mixed BadRequest usage for missing resources; map to resource semantics.
 - [x] Category service: keep invariant checks in service and normalize to conflict semantics where appropriate.
-- [ ] Search service: remove redundant request-format guards already enforced by DTOs.
+- [x] Search service: remove redundant request-format guards already enforced by DTOs.
 - [ ] Editor-type service: remove or reduce redundant input checks already enforced upstream.
 - [ ] Standardize error messages for repeated not-found/conflict cases.
 
@@ -121,9 +121,9 @@ Checker:
 
 ### Search
 
-- [ ] Keep all request-shape checks in be/src/search/dto/search-query.dto.ts
-- [ ] Remove redundant manual checks in be/src/search/search.service.ts
-- [ ] Update tests in be/src/search/tests/search.service.spec.ts
+- [x] Keep all request-shape checks in be/src/search/dto/search-query.dto.ts
+- [x] Remove redundant manual checks in be/src/search/search.service.ts
+- [x] Update tests in be/src/search/tests/search.service.spec.ts
 
 ### Category
 
