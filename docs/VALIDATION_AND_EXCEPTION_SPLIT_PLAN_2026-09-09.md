@@ -82,7 +82,7 @@ Target output: controllers focus on transport concerns, not business/request-sha
 
 - [x] Remove ad-hoc validation that belongs in DTOs/pipes.
 - [x] Keep controller responsibilities limited to request/response transport concerns.
-- [ ] Confirm nullable-read endpoints remain intentionally nullable.
+- [x] Confirm nullable-read endpoints remain intentionally nullable.
 - [ ] Confirm throw-based endpoints remain explicit and documented.
 
 Checker:
@@ -152,6 +152,7 @@ Checker:
 
 - [ ] Services no longer duplicate request-shape validation already handled by DTO/pipes
 - [ ] Controllers no longer use raw body-field validation patterns for domain inputs
+- [x] Nullable read endpoints in scoped modules remain intentionally nullable (category/editor-type/search service reads)
 - [ ] Exception filter output remains stable across all changed endpoints
 
 ### Regression Verification

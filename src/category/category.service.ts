@@ -42,13 +42,7 @@ export class CategoryService {
   }
 
   async findById(id: string): Promise<CategoryEntity | null> {
-    const category = await this.repository.findById(id);
-
-    if (!category) {
-      throw new NotFoundException(CATEGORY_NOT_FOUND_MESSAGE);
-    }
-
-    return category;
+    return this.repository.findById(id);
   }
 
   async update(id: string, payload: UpdateCategoryDto): Promise<CategoryEntity> {
