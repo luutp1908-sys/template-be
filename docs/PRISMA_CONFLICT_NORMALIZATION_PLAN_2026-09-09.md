@@ -5,12 +5,12 @@ Scope: Backend Prisma write paths under be/src that can return unique-constraint
 
 ## Progress Tracker
 
-- Overall status: [ ] Not started [x] In progress [ ] Blocked [ ] Completed
+- Overall status: [ ] Not started [ ] In progress [ ] Blocked [x] Completed
 - Start date: 2026-09-09
 - Target completion date: __________
 - Owner: __________
 - Reviewer: __________
-- Last updated: 2026-09-09 (Step 3 completed)
+- Last updated: 2026-09-09 (Step 4 completed)
 
 ## Objective
 
@@ -79,51 +79,51 @@ Checker:
 
 Target output: the conflict mapping behavior is locked in by tests.
 
-- [ ] Update repository tests for the touched write paths.
-- [ ] Add tests for P2002 mapping to ConflictException.
-- [ ] Add tests for P2025 mapping to NotFoundException where applicable.
-- [ ] Add regression coverage for duplicate-message consistency when the same constraint appears in multiple layers.
-- [ ] Run targeted repository tests first, then run the full backend suite.
+- [x] Update repository tests for the touched write paths.
+- [x] Add tests for P2002 mapping to ConflictException.
+- [x] Add tests for P2025 mapping to NotFoundException where applicable.
+- [x] Add regression coverage for duplicate-message consistency when the same constraint appears in multiple layers.
+- [x] Run targeted repository tests first, then run the full backend suite.
 
 Checker:
-- [ ] Repository tests updated
-- [ ] P2002 coverage added
-- [ ] P2025 coverage added
-- [ ] Targeted tests passing
-- [ ] Full backend suite passing
+- [x] Repository tests updated
+- [x] P2002 coverage added
+- [x] P2025 coverage added
+- [x] Targeted tests passing
+- [x] Full backend suite passing
 
 ## Module-Level Checklist
 
 ### Auth / User
 
-- [ ] Keep auth repository Prisma mapping consistent for user registration and token updates.
+- [x] Keep auth repository Prisma mapping consistent for user registration and token updates.
 - [x] Confirm user repository write paths continue to use the shared mapper.
 - [x] Standardize user email uniqueness wording across auth and user repositories.
 
 ### Workspace
 
-- [ ] Update workspace repository write paths that can hit workspace membership or workspace unique constraints.
+- [x] Update workspace repository write paths that can hit workspace membership or workspace unique constraints.
 - [x] Align workspace conflict messages with the service-level membership semantics.
 
 ### Category
 
 - [x] Update category repository write paths to use shared Prisma conflict mapping.
-- [ ] Add regression tests for category slug or other uniqueness violations.
+- [x] Add regression tests for category slug or other uniqueness violations.
 
 ### Template
 
 - [x] Update template repository write paths to use shared Prisma conflict mapping.
-- [ ] Add regression tests for template slug uniqueness behavior.
+- [x] Add regression tests for template slug uniqueness behavior.
 
 ### Editor Type
 
 - [x] Update editor-type repository write paths to use shared Prisma conflict mapping.
-- [ ] Add regression tests for editor-type key uniqueness behavior.
+- [x] Add regression tests for editor-type key uniqueness behavior.
 
 ### Template Content / Export / User Draft
 
-- [ ] Review whether these repositories can surface Prisma uniqueness errors in normal writes.
-- [ ] Apply the shared mapper only where the schema or write path makes P2002/P2025 realistic.
+- [x] Review whether these repositories can surface Prisma uniqueness errors in normal writes.
+- [x] Apply the shared mapper only where the schema or write path makes P2002/P2025 realistic.
 
 ## Notes and Risks
 
@@ -138,3 +138,4 @@ Checker:
 - [x] 2026-09-09 - Step 1 audit completed (hotspots documented and mapper coverage inventory recorded)
 - [x] 2026-09-09 - Step 2 completed (shared Prisma write-error mapper applied to category/template/editor-type repositories)
 - [x] 2026-09-09 - Step 3 completed (email and workspace membership conflict wording standardized)
+- [x] 2026-09-09 - Step 4 completed (repository regression tests added and passing)

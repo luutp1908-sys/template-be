@@ -48,4 +48,20 @@ describe('UserRepository', () => {
 
     await expect(repository.getProfile('missing-user')).resolves.toBeNull();
   });
+
+  it('maps duplicate user writes to the shared email conflict message', async () => {
+    const error = new Error('duplicate') as Error & { code?: string };
+    error.code = 'P2002';
+    const prisma = {
+      user: {
+        create: jest.fn().mockRejectedValue(error),
+      },
+    };
+
+    const repository = new UserRepository(prisma as any);
+
+    await expect(
+      repository.create({ email: 'user@example.com', passwordHash: 'hash' } as any),
+    ).rejects.toMatchObject({ message: 'Email already registered' });
+  });
 });

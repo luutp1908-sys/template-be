@@ -99,4 +99,31 @@ describe('AuthRepository cache', () => {
 
     await expect(repository.findUserById('missing-user')).resolves.toBeNull();
   });
+
+  it('maps duplicate email writes to the shared conflict message', async () => {
+    const error = new Error('duplicate') as Error & { code?: string };
+    error.code = 'P2002';
+    const prisma: any = {
+      user: {
+        create: jest.fn().mockRejectedValue(error),
+      },
+      role: {
+        findFirst: jest.fn(),
+      },
+      userRole: {
+        create: jest.fn(),
+      },
+    };
+    prisma.$transaction = jest.fn(async (callback: any) => callback(prisma));
+
+    const configService = {
+      get: jest.fn((_: string, defaultValue?: unknown) => defaultValue),
+    };
+
+    const repository = new AuthRepository(prisma as any, configService as any);
+
+    await expect(
+      repository.createUser({ email: 'user@example.com', password: 'secret' } as any, 'hash'),
+    ).rejects.toMatchObject({ message: 'Email already registered' });
+  });
 });

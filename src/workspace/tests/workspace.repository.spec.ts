@@ -83,6 +83,16 @@ describe('WorkspaceRepository', () => {
     );
   });
 
+  it('maps duplicate workspace member writes to the shared membership conflict message', async () => {
+    const error = new Error('duplicate') as Error & { code?: string };
+    error.code = 'P2002';
+    prisma.workspaceMember.create.mockRejectedValue(error);
+
+    await expect(repository.createMember('workspace-1', 'user-2', 'MEMBER', 'user-1')).rejects.toMatchObject({
+      message: 'User is already a member of this workspace',
+    });
+  });
+
   it('updates a member role by member id', async () => {
     prisma.workspaceMember.update.mockResolvedValue({
       id: 'membership-2',
