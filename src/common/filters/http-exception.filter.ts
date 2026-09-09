@@ -7,6 +7,10 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Logger } from 'nestjs-pino';
+import {
+  AuthorizationError,
+  isAuthorizationError,
+} from '../errors/authorization-error';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -19,15 +23,12 @@ export class HttpExceptionFilter implements ExceptionFilter {
     const requestId = (request.headers['x-request-id'] as string | undefined) ?? 'unknown';
     const path = request.originalUrl ?? request.url;
 
-    const status =
-      exception instanceof HttpException ? exception.getStatus() : HttpStatus.INTERNAL_SERVER_ERROR;
-
-    const exceptionResponse = exception instanceof HttpException ? exception.getResponse() : null;
+    const { status, responseBody, code } = this.resolveExceptionContext(exception);
 
     const isObjectResponse =
-      typeof exceptionResponse === 'object' && exceptionResponse !== null && !Array.isArray(exceptionResponse);
+      typeof responseBody === 'object' && responseBody !== null && !Array.isArray(responseBody);
 
-    const rawMessage = this.resolveRawMessage(exceptionResponse, status);
+    const rawMessage = this.resolveRawMessage(responseBody, status);
 
     const message = Array.isArray(rawMessage) ? rawMessage.join(', ') : rawMessage;
     const details =
@@ -35,24 +36,23 @@ export class HttpExceptionFilter implements ExceptionFilter {
         ? undefined
         : Array.isArray(rawMessage)
           ? rawMessage
-          : isObjectResponse && 'details' in exceptionResponse
-            ? (exceptionResponse as { details?: unknown }).details
+          : isObjectResponse && 'details' in responseBody
+            ? (responseBody as { details?: unknown }).details
             : undefined;
-    const errorCode = HttpStatus[status] ?? 'HTTP_EXCEPTION';
 
     this.logException(exception, {
       requestId,
       method: request.method,
       path,
       status,
-      code: errorCode,
+      code,
       userId: (request as Request & { user?: { id?: string } }).user?.id,
     });
 
     response.status(status).json({
       success: false,
       error: {
-        code: errorCode,
+        code,
         message,
         details,
       },
@@ -60,6 +60,45 @@ export class HttpExceptionFilter implements ExceptionFilter {
       path,
       requestId,
     });
+  }
+
+  private resolveExceptionContext(
+    exception: unknown,
+  ): { status: number; responseBody: unknown; code: string } {
+    if (exception instanceof HttpException) {
+      const status = exception.getStatus();
+
+      return {
+        status,
+        responseBody: exception.getResponse(),
+        code: HttpStatus[status] ?? 'HTTP_EXCEPTION',
+      };
+    }
+
+    if (isAuthorizationError(exception)) {
+      return {
+        status: this.resolveAuthorizationStatus(exception),
+        responseBody: {
+          message: exception.message,
+          details: exception.details,
+        },
+        code: exception.code,
+      };
+    }
+
+    return {
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+      responseBody: null,
+      code: HttpStatus[HttpStatus.INTERNAL_SERVER_ERROR] ?? 'HTTP_EXCEPTION',
+    };
+  }
+
+  private resolveAuthorizationStatus(exception: AuthorizationError): number {
+    if (exception.code === 'AUTHENTICATION_REQUIRED') {
+      return HttpStatus.UNAUTHORIZED;
+    }
+
+    return HttpStatus.FORBIDDEN;
   }
 
   private resolveRawMessage(exceptionResponse: unknown, status: number): string | string[] {

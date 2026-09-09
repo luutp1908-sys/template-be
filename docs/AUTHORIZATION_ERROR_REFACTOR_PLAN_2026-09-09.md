@@ -10,7 +10,7 @@ Scope: Backend modules under be/src that currently express authorization decisio
 - Target completion date: __________
 - Owner: __________
 - Reviewer: __________
-- Last updated: 2026-09-09 (Step 2 completed)
+- Last updated: 2026-09-09 (Step 3 completed)
 
 ## Objective
 
@@ -58,16 +58,16 @@ Checker:
 
 Target output: HTTP status translation happens only in the NestJS filter/boundary layer.
 
-- [ ] Extend the global exception filter to map the new authorization error classes to 401/403.
-- [ ] Preserve the existing canonical error envelope and logging fields.
-- [ ] Keep the filter fallback behavior for unknown errors unchanged.
-- [ ] Confirm controllers and guards remain thin transport layers.
+- [x] Extend the global exception filter to map the new authorization error classes to 401/403.
+- [x] Preserve the existing canonical error envelope and logging fields.
+- [x] Keep the filter fallback behavior for unknown errors unchanged.
+- [x] Confirm controllers and guards remain thin transport layers.
 
 Checker:
-- [ ] 401 mapping added
-- [ ] 403 mapping added
-- [ ] Envelope shape preserved
-- [ ] Unknown error fallback unchanged
+- [x] 401 mapping added
+- [x] 403 mapping added
+- [x] Envelope shape preserved
+- [x] Unknown error fallback unchanged
 
 ### Step 4: Update tests and regression coverage
 
@@ -101,7 +101,7 @@ Checker:
 
 ### HTTP Boundary
 
-- [ ] Extend [be/src/common/filters/http-exception.filter.ts](../src/common/filters/http-exception.filter.ts) for authorization error mapping
+- [x] Extend [be/src/common/filters/http-exception.filter.ts](../src/common/filters/http-exception.filter.ts) for authorization error mapping
 - [ ] Extend [be/src/common/filters/http-exception.filter.spec.ts](../src/common/filters/http-exception.filter.spec.ts) for mapping coverage
 
 ## Notes and Risks
@@ -116,3 +116,4 @@ Checker:
 - [x] 2026-09-09 - Initialized authorization error refactor plan
 - [x] 2026-09-09 - Step 1 completed (authorization error contract defined and documented)
 - [x] 2026-09-09 - Step 2 completed (workspace and user-draft authorization decisions moved to domain errors)
+- [x] 2026-09-09 - Step 3 completed (authorization errors mapped to HTTP 401/403 at the global boundary)
