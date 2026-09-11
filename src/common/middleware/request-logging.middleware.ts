@@ -1,4 +1,5 @@
 import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { Logger } from 'nestjs-pino';
@@ -6,10 +7,15 @@ import { MetricsService } from '../metrics/metrics.service';
 
 @Injectable()
 export class RequestLoggingMiddleware implements NestMiddleware {
+  private readonly enableRequestLogs: boolean;
+
   constructor(
     private readonly logger: Logger,
+    private readonly configService: ConfigService,
     private readonly metricsService: MetricsService,
-  ) {}
+  ) {
+    this.enableRequestLogs = this.configService.get<boolean>('log.enableRequestLogs', false);
+  }
 
   use(req: Request, res: Response, next: NextFunction): void {
     const startedAt = Date.now();
@@ -22,6 +28,11 @@ export class RequestLoggingMiddleware implements NestMiddleware {
     res.on('finish', () => {
       const duration = Date.now() - startedAt;
       this.metricsService.recordRequest(res.statusCode, duration);
+
+      if (!this.enableRequestLogs) {
+        return;
+      }
+
       this.logger.log(
         {
           requestId,
