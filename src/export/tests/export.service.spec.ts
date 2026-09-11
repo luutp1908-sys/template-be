@@ -227,6 +227,7 @@ describe('ExportService', () => {
           count: 250,
         },
         removeOnFail: false,
+        jobId: 'export-1',
       },
     );
   });

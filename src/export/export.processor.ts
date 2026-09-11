@@ -71,6 +71,36 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       return;
     }
 
+    if (exportJob.status === ExportStatus.COMPLETED) {
+      this.logger.log(
+        {
+          module: 'queue',
+          operation: 'export.process',
+          queue: this.queueName,
+          exportId,
+          attemptCount,
+          state: exportJob.status,
+        },
+        'queue.job.idempotent.skip_completed',
+      );
+      return;
+    }
+
+    if (exportJob.status === ExportStatus.PROCESSING) {
+      this.logger.warn(
+        {
+          module: 'queue',
+          operation: 'export.process',
+          queue: this.queueName,
+          exportId,
+          attemptCount,
+          state: exportJob.status,
+        },
+        'queue.job.idempotent.skip_processing',
+      );
+      return;
+    }
+
     try {
       await this.repository.updateStatus(exportId, ExportStatus.PROCESSING, {
         status: ExportStatus.PROCESSING,

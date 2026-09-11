@@ -271,4 +271,62 @@ describe('ExportProcessor', () => {
       'queue.job.failed.terminal',
     );
   });
+
+  it('should skip duplicate replay when export is already completed', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'export-6',
+      fileName: 'file.pdf',
+      status: ExportStatus.COMPLETED,
+    });
+
+    const job = {
+      data: { exportId: 'export-6' },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).resolves.toBeUndefined();
+
+    expect(repository.updateStatus).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId: 'export-6',
+        attemptCount: 2,
+        state: ExportStatus.COMPLETED,
+      }),
+      'queue.job.idempotent.skip_completed',
+    );
+  });
+
+  it('should skip concurrent duplicate when export is already processing', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'export-7',
+      fileName: 'file.pdf',
+      status: ExportStatus.PROCESSING,
+    });
+
+    const job = {
+      data: { exportId: 'export-7' },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).resolves.toBeUndefined();
+
+    expect(repository.updateStatus).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId: 'export-7',
+        attemptCount: 1,
+        state: ExportStatus.PROCESSING,
+      }),
+      'queue.job.idempotent.skip_processing',
+    );
+  });
 });

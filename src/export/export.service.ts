@@ -101,10 +101,15 @@ export class ExportService {
     );
 
     try {
+      const enqueueOptions: JobsOptions = {
+        ...this.getExportJobOptions(),
+        jobId: created.id,
+      };
+
       const job = await this.exportQueue.add(
         this.queueName,
         { exportId: created.id },
-        this.getExportJobOptions(),
+        enqueueOptions,
       );
       this.logger.log(
         {

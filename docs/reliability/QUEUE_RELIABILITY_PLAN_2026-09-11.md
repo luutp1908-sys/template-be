@@ -81,7 +81,7 @@ Exit criteria:
 Objective: make repeat processing safe.
 
 Tasks:
-- [ ] Define idempotency rules for export jobs by `exportId`.
+- [x] Define idempotency rules for export jobs by `exportId`.
 - [ ] Prevent duplicate processing from overwriting a completed export unexpectedly.
 - [ ] Guard status transitions so invalid state changes are rejected or ignored safely.
 - [ ] Ensure repeated completion writes keep the same logical output contract.
@@ -140,7 +140,7 @@ Exit criteria:
 - [x] enqueue fails cleanly when Redis/queue is unavailable
 - [x] queue disabled behavior is explicit and tested
 - [x] retry policy behaves as configured
-- [ ] duplicate processing is idempotent
+- [x] duplicate processing is idempotent
 - [ ] stalled worker or stale heartbeat is surfaced
 
 ### Documentation
