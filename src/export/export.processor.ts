@@ -104,6 +104,8 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       );
     } catch (error) {
       const terminalFailure = this.isTerminalFailure(error);
+      const maxAttempts = this.resolveMaxAttempts(job, attemptCount);
+      const retriesExhausted = !terminalFailure && attemptCount >= maxAttempts;
 
       await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
         status: ExportStatus.FAILED,
@@ -118,11 +120,41 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
           queue: this.queueName,
           exportId,
           attemptCount,
+          maxAttempts,
           failureType: terminalFailure ? 'terminal' : 'retryable',
           err: error instanceof Error ? error : undefined,
         },
         terminalFailure ? 'queue.job.failed.terminal' : 'queue.job.failed.retryable',
       );
+
+      if (!terminalFailure && retriesExhausted) {
+        this.logger.error(
+          {
+            module: 'queue',
+            operation: 'export.process',
+            queue: this.queueName,
+            exportId,
+            attemptCount,
+            maxAttempts,
+          },
+          'queue.job.retry.exhausted',
+        );
+      }
+
+      if (!terminalFailure && !retriesExhausted) {
+        this.logger.warn(
+          {
+            module: 'queue',
+            operation: 'export.process',
+            queue: this.queueName,
+            exportId,
+            attemptCount,
+            maxAttempts,
+            nextAttempt: attemptCount + 1,
+          },
+          'queue.job.retry.scheduled',
+        );
+      }
 
       if (terminalFailure) {
         const message = error instanceof Error ? error.message : 'Terminal PDF export error';
@@ -150,5 +182,14 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
 
   private resolveAttemptCount(job: Job<{ exportId: string }>): number {
     return Number.isFinite(job.attemptsMade) ? job.attemptsMade + 1 : 1;
+  }
+
+  private resolveMaxAttempts(job: Job<{ exportId: string }>, fallback: number): number {
+    const attempts = job.opts?.attempts;
+    if (typeof attempts === 'number' && Number.isFinite(attempts) && attempts > 0) {
+      return attempts;
+    }
+
+    return fallback;
   }
 }
