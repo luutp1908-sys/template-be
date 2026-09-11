@@ -1,6 +1,8 @@
 import { Global, Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { BullModule } from '@nestjs/bullmq';
+import { QueueHealthService } from './queue-health.service';
+import { WorkerHealthRegistry } from './worker-health.registry';
 
 @Global()
 @Module({
@@ -21,6 +23,7 @@ import { BullModule } from '@nestjs/bullmq';
       },
     }),
   ],
-  exports: [BullModule],
+  providers: [QueueHealthService, WorkerHealthRegistry],
+  exports: [BullModule, QueueHealthService, WorkerHealthRegistry],
 })
 export class QueueModule {}

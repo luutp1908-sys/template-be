@@ -33,6 +33,7 @@ const envSchema = Joi.object({
     then: Joi.string().valid('fail-fast', 'warn').default('fail-fast'),
     otherwise: Joi.string().valid('fail-fast', 'warn').default('warn'),
   }),
+  QUEUE_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   DATABASE_URL: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().optional(),
