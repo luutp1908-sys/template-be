@@ -4,6 +4,12 @@ describe('HealthController', () => {
   it('exposes latency, error-rate, and saturation data through the metrics endpoint', () => {
     const controller = new HealthController(
       {
+        get: jest.fn(),
+      } as any,
+      {
+        $queryRaw: jest.fn(),
+      } as any,
+      {
         snapshot: () => ({
           requestsTotal: 2,
           requestsByStatus: { '200': 1, '500': 1 },
@@ -37,6 +43,7 @@ describe('HealthController', () => {
           forceRefreshEnabled: false,
         }),
       } as any,
+      undefined,
     );
 
     const result = controller.metrics();

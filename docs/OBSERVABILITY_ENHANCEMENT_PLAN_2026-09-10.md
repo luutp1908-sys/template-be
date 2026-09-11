@@ -185,8 +185,8 @@ Exit criteria:
 ## Tracking Checklist
 
 ### Foundation
-- [ ] Readiness endpoint implemented
-- [ ] Liveness endpoint kept process-only
+- [x] Readiness endpoint implemented
+- [x] Liveness endpoint kept process-only
 - [ ] Deploy workflow gates on readiness
 - [ ] Structured logging controls wired to config
 - [ ] Redaction rules validated with tests

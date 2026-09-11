@@ -19,11 +19,6 @@ export class HealthController {
     @Optional() private readonly queueHealthService?: QueueHealthService,
   ) {}
 
-  @Get()
-  check(): { status: string } {
-    return { status: 'ok' };
-  }
-
   @Get('ready')
   async readiness() {
     const [database, redis, queue] = await Promise.all([
