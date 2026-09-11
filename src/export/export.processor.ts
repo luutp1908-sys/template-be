@@ -3,6 +3,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { Logger } from 'nestjs-pino';
 import { ExportStatus } from './export.entity';
 import { IExportRepository } from './interfaces/export.repository.interface';
 import { EXPORT_REPOSITORY } from './export.tokens';
@@ -15,6 +16,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
   constructor(
     @Inject(EXPORT_REPOSITORY) private readonly repository: IExportRepository,
     private readonly workerHealthRegistry: WorkerHealthRegistry,
+    private readonly logger: Logger,
   ) {
     super();
   }
@@ -35,8 +37,26 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
   async process(job: Job<{ exportId: string }>): Promise<void> {
     this.reportHeartbeat();
     const exportId = job.data.exportId;
+    this.logger.log(
+      {
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId,
+      },
+      'queue.job.started',
+    );
     const exportJob = await this.repository.findById(exportId);
     if (!exportJob) {
+      this.logger.warn(
+        {
+          module: 'queue',
+          operation: 'export.process',
+          queue: 'pdf-export',
+          exportId,
+        },
+        'queue.job.export_not_found',
+      );
       return;
     }
 
@@ -58,11 +78,31 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
         fileName: exportJob.fileName,
         completedAt: new Date(),
       });
+      this.logger.log(
+        {
+          module: 'queue',
+          operation: 'export.process',
+          queue: 'pdf-export',
+          exportId,
+          filePath,
+        },
+        'queue.job.completed',
+      );
     } catch (error) {
       await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
         status: ExportStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
       });
+      this.logger.error(
+        {
+          module: 'queue',
+          operation: 'export.process',
+          queue: 'pdf-export',
+          exportId,
+          err: error instanceof Error ? error : undefined,
+        },
+        'queue.job.failed',
+      );
       throw error;
     } finally {
       this.reportHeartbeat();

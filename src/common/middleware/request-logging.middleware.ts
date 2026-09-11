@@ -35,6 +35,8 @@ export class RequestLoggingMiddleware implements NestMiddleware {
 
       this.logger.log(
         {
+          module: 'http',
+          operation: 'request.completed',
           requestId,
           method: req.method,
           path: req.originalUrl,

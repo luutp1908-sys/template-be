@@ -19,7 +19,14 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
 
     try {
       await this.$connect();
-      this.logger.log('Prisma connected successfully');
+      this.logger.log(
+        {
+          module: 'database',
+          operation: 'prisma.connect',
+          startupMode: this.configService.get<'fail-fast' | 'warn'>('database.startupMode', 'warn'),
+        },
+        'database.connected',
+      );
     } catch (error) {
       const startupMode = this.configService.get<'fail-fast' | 'warn'>(
         'database.startupMode',
@@ -28,11 +35,27 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       const reason = (error as Error).message;
 
       if (startupMode === 'fail-fast') {
-        this.logger.error(`Prisma connection failed at startup: ${reason}`);
+        this.logger.error(
+          {
+            module: 'database',
+            operation: 'prisma.connect',
+            startupMode,
+            reason,
+          },
+          'database.connection.failed',
+        );
         throw error;
       }
 
-      this.logger.warn(`Prisma connection skipped at startup: ${reason}`);
+      this.logger.warn(
+        {
+          module: 'database',
+          operation: 'prisma.connect',
+          startupMode,
+          reason,
+        },
+        'database.connection.skipped',
+      );
     }
   }
 }

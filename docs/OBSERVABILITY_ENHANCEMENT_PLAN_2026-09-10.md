@@ -183,7 +183,7 @@ Exit criteria:
 - [x] Update deploy workflow to gate on /api/v1/health/ready instead of /api/v1/health.
 - [x] Add deploy workflow smoke assertion for readiness response status field.
 - [x] Wire ENABLE_REQUEST_LOGS to control request.completed log emission.
-- [ ] Add structured log field standards for module and operation on key flows.
+- [x] Add structured log field standards for module and operation on key flows.
 - [ ] Extend redaction coverage for cookies and token-like payload fields.
 - [ ] Add tests that fail when sensitive values appear in logs.
 - [ ] Publish metrics taxonomy document for names, types, units, labels.

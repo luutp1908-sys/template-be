@@ -139,6 +139,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
         : undefined;
 
     const payload = {
+      module: 'http',
+      operation: 'request.exception',
       requestId: context.requestId,
       method: context.method,
       path: context.path,
