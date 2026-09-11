@@ -42,7 +42,7 @@ describe('ExportProcessor', () => {
       return { id: 'export-1', status };
     });
 
-    const job = { data: { exportId: 'export-1' } } as Job<{ exportId: string }>;
+    const job = { data: { exportId: 'export-1' }, attemptsMade: 0 } as Job<{ exportId: string }>;
 
     let thrown: unknown;
     try {
@@ -56,6 +56,7 @@ describe('ExportProcessor', () => {
     expect(repository.updateStatus).toHaveBeenCalledWith('export-1', ExportStatus.FAILED, {
       status: ExportStatus.FAILED,
       errorMessage: 'Temporary storage write failure',
+      attemptCount: 1,
     });
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -63,6 +64,7 @@ describe('ExportProcessor', () => {
         operation: 'export.process',
         queue: 'pdf-export',
         exportId: 'export-1',
+        attemptCount: 1,
         failureType: 'retryable',
       }),
       'queue.job.failed.retryable',
@@ -79,7 +81,7 @@ describe('ExportProcessor', () => {
       return { id: 'export-2', status };
     });
 
-    const job = { data: { exportId: 'export-2' } } as Job<{ exportId: string }>;
+    const job = { data: { exportId: 'export-2' }, attemptsMade: 1 } as Job<{ exportId: string }>;
 
     let thrown: unknown;
     try {
@@ -93,6 +95,7 @@ describe('ExportProcessor', () => {
     expect(repository.updateStatus).toHaveBeenCalledWith('export-2', ExportStatus.FAILED, {
       status: ExportStatus.FAILED,
       errorMessage: 'Invalid export status transition',
+      attemptCount: 2,
     });
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -100,6 +103,7 @@ describe('ExportProcessor', () => {
         operation: 'export.process',
         queue: 'pdf-export',
         exportId: 'export-2',
+        attemptCount: 2,
         failureType: 'terminal',
       }),
       'queue.job.failed.terminal',

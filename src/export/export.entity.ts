@@ -19,6 +19,7 @@ export class ExportEntity {
   workspaceId?: string;
   downloadPath?: string;
   errorMessage?: string;
+  attemptCount?: number;
   completedAt?: Date;
   createdAt!: Date;
   updatedAt!: Date;

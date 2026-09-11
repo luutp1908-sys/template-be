@@ -325,6 +325,7 @@ model Export {
   downloadPath     String?   @db.VarChar(2048)
   content          Json
   errorMessage     String?   @db.VarChar(1000)
+  attemptCount     Int       @default(0)
   completedAt      DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt

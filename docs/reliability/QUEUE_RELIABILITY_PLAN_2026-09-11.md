@@ -69,7 +69,7 @@ Tasks:
   - remove-on-complete policy
   - retain-on-fail policy
 - [x] Distinguish retryable failures from terminal failures in the worker.
-- [ ] Persist failure reason and attempt count in export job state where useful.
+- [x] Persist failure reason and attempt count in export job state where useful.
 - [ ] Add worker logs for retry, terminal failure, and exhaustion of attempts.
 - [ ] Add tests for transient failure then success, and repeated failure until terminal state.
 
@@ -133,7 +133,7 @@ Exit criteria:
 - [x] `be/src/export/export.processor.ts`
 - [ ] `be/src/queue/queue.module.ts`
 - [ ] `be/src/queue/queue-health.service.ts`
-- [ ] `be/src/export/export.repository.prisma.ts`
+- [x] `be/src/export/export.repository.prisma.ts`
 - [ ] `be/src/common/health/health.controller.ts`
 
 ### Tests

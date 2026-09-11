@@ -46,12 +46,14 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
   async process(job: Job<{ exportId: string }>): Promise<void> {
     this.reportHeartbeat();
     const exportId = job.data.exportId;
+    const attemptCount = this.resolveAttemptCount(job);
     this.logger.log(
       {
         module: 'queue',
         operation: 'export.process',
         queue: this.queueName,
         exportId,
+        attemptCount,
       },
       'queue.job.started',
     );
@@ -72,6 +74,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     try {
       await this.repository.updateStatus(exportId, ExportStatus.PROCESSING, {
         status: ExportStatus.PROCESSING,
+        attemptCount,
       });
 
       const outDir = join(process.cwd(), 'tmp', 'exports');
@@ -85,6 +88,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
         status: ExportStatus.COMPLETED,
         downloadPath: filePath,
         fileName: exportJob.fileName,
+        attemptCount,
         completedAt: new Date(),
       });
       this.logger.log(
@@ -93,6 +97,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
           operation: 'export.process',
           queue: this.queueName,
           exportId,
+          attemptCount,
           filePath,
         },
         'queue.job.completed',
@@ -103,6 +108,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
         status: ExportStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
+        attemptCount,
       });
 
       this.logger.error(
@@ -111,6 +117,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
           operation: 'export.process',
           queue: this.queueName,
           exportId,
+          attemptCount,
           failureType: terminalFailure ? 'terminal' : 'retryable',
           err: error instanceof Error ? error : undefined,
         },
@@ -139,5 +146,9 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       error instanceof NotFoundException ||
       error instanceof UnprocessableEntityException
     );
+  }
+
+  private resolveAttemptCount(job: Job<{ exportId: string }>): number {
+    return Number.isFinite(job.attemptsMade) ? job.attemptsMade + 1 : 1;
   }
 }

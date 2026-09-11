@@ -29,6 +29,7 @@ export class ExportRepository {
         status: ExportStatus.PENDING,
         fileName: this.toPdfFileName(payload.templateName),
         content: payload.content as unknown as Prisma.InputJsonValue,
+        attemptCount: 0,
       },
     });
 
@@ -51,6 +52,7 @@ export class ExportRepository {
         ...(data.downloadPath !== undefined ? { downloadPath: data.downloadPath } : {}),
         ...(data.fileName !== undefined ? { fileName: data.fileName } : {}),
         ...(data.errorMessage !== undefined ? { errorMessage: data.errorMessage } : {}),
+        ...(data.attemptCount !== undefined ? { attemptCount: data.attemptCount } : {}),
         ...(data.completedAt !== undefined ? { completedAt: data.completedAt } : {}),
       },
     });

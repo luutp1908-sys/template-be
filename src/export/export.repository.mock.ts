@@ -25,6 +25,7 @@ export class ExportRepository {
         requestedByUserId: userId,
         status: ExportStatus.PENDING,
         fileName: this.toPdfFileName(payload.templateName),
+        attemptCount: 0,
         ...payload,
       }),
     );
