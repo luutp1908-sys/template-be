@@ -175,6 +175,47 @@ Exit criteria:
 - One incident drill completed with evidence.
 - Root cause traceable across API and dependencies.
 
+## Implementation Task List
+
+### Phase 1 Tasks
+- [x] Implement readiness endpoint with DB, Redis, and queue worker checks.
+- [x] Keep liveness process-only on /api/v1/health and /api/v1/health/live.
+- [ ] Update deploy workflow to gate on /api/v1/health/ready instead of /api/v1/health.
+- [ ] Add deploy workflow smoke assertion for readiness response status field.
+- [ ] Wire ENABLE_REQUEST_LOGS to control request.completed log emission.
+- [ ] Add structured log field standards for module and operation on key flows.
+- [ ] Extend redaction coverage for cookies and token-like payload fields.
+- [ ] Add tests that fail when sensitive values appear in logs.
+- [ ] Publish metrics taxonomy document for names, types, units, labels.
+- [ ] Add label cardinality guardrails and naming conventions.
+
+### Phase 2 Tasks
+- [ ] Add durable metrics export endpoint compatible with scraping.
+- [ ] Implement HTTP request counter and latency histogram metrics.
+- [ ] Implement exception count metrics grouped by status class and code.
+- [ ] Add queue depth, enqueue rate, failure, and retry metrics.
+- [ ] Add DB operation latency and DB error metrics.
+- [ ] Add cache hit ratio and cache fallback event metrics.
+- [ ] Build API dashboard with latency, throughput, and error panels.
+- [ ] Build queue dashboard with backlog, failure, and retry panels.
+- [ ] Build DB and cache dashboard with saturation and error panels.
+- [ ] Define retention windows and downsampling strategy.
+- [ ] Configure first alert set for 5xx, latency, restarts, and saturation.
+- [ ] Run non-production alert trigger tests and tune thresholds.
+
+### Phase 3 Tasks
+- [ ] Add OpenTelemetry bootstrap and exporter configuration.
+- [ ] Instrument HTTP ingress with spans and request attributes.
+- [ ] Instrument Prisma calls with query latency spans.
+- [ ] Instrument Redis operations with client spans.
+- [ ] Instrument BullMQ lifecycle events with job spans.
+- [ ] Propagate correlation IDs from API request to queue jobs.
+- [ ] Include traceId and spanId in structured log events.
+- [ ] Publish incident runbook with per-alert triage actions.
+- [ ] Define severity matrix and escalation ownership.
+- [ ] Run one game day incident drill and capture findings.
+- [ ] Close post-drill action items and update runbook.
+
 ## Ownership and Operating Model
 
 - Engineering owner: Backend platform lead
