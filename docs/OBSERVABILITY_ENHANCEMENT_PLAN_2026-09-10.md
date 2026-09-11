@@ -186,7 +186,7 @@ Exit criteria:
 - [x] Add structured log field standards for module and operation on key flows.
 - [x] Extend redaction coverage for cookies and token-like payload fields.
 - [x] Add tests that fail when sensitive values appear in logs.
-- [ ] Publish metrics taxonomy document for names, types, units, labels.
+- [x] Publish metrics taxonomy document for names, types, units, labels.
 - [ ] Add label cardinality guardrails and naming conventions.
 
 ### Phase 2 Tasks
@@ -234,7 +234,7 @@ Exit criteria:
 
 ### Metrics
 - [ ] Durable metrics export enabled
-- [ ] HTTP metrics taxonomy finalized
+- [x] HTTP metrics taxonomy finalized
 - [ ] Queue metrics added
 - [ ] DB metrics added
 - [ ] Cache hit/fallback metrics validated
