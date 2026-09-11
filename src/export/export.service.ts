@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
-import { Queue } from 'bullmq';
+import { JobsOptions, Queue } from 'bullmq';
 import { existsSync } from 'fs';
 import { QueueHealthService } from '../queue/queue-health.service';
 import { WorkspaceService } from '../workspace/workspace.service';
@@ -21,6 +21,8 @@ import { EXPORT_REPOSITORY } from './export.tokens';
 
 @Injectable()
 export class ExportService {
+  private readonly queueName = 'pdf-export';
+
   constructor(
     @Inject(EXPORT_REPOSITORY) private readonly repository: IExportRepository,
     @InjectQueue('pdf-export') private readonly exportQueue: Queue,
@@ -30,6 +32,20 @@ export class ExportService {
     private readonly logger: Logger,
     @Optional() private readonly queueHealthService?: QueueHealthService,
   ) {}
+
+  private getExportJobOptions(): JobsOptions {
+    return {
+      attempts: this.configService.get<number>('queue.exportJob.attempts', 3),
+      backoff: {
+        type: this.configService.get<'fixed' | 'exponential'>('queue.exportJob.backoffType', 'exponential'),
+        delay: this.configService.get<number>('queue.exportJob.backoffDelayMs', 5000),
+      },
+      removeOnComplete: {
+        count: this.configService.get<number>('queue.exportJob.removeOnCompleteCount', 1000),
+      },
+      removeOnFail: this.configService.get<boolean>('queue.exportJob.removeOnFail', false),
+    };
+  }
 
   private async assertQueueSubmissionReady(): Promise<void> {
     const mockMode = this.configService.get<boolean>('app.mockMode', false);
@@ -77,7 +93,7 @@ export class ExportService {
       {
         module: 'queue',
         operation: 'export.enqueue',
-        queue: 'pdf-export',
+        queue: this.queueName,
         exportId: created.id,
         userId,
       },
@@ -85,12 +101,16 @@ export class ExportService {
     );
 
     try {
-      const job = await this.exportQueue.add('pdf-export', { exportId: created.id });
+      const job = await this.exportQueue.add(
+        this.queueName,
+        { exportId: created.id },
+        this.getExportJobOptions(),
+      );
       this.logger.log(
         {
           module: 'queue',
           operation: 'export.enqueue',
-          queue: 'pdf-export',
+          queue: this.queueName,
           exportId: created.id,
           userId,
           jobId: job.id,
@@ -102,7 +122,7 @@ export class ExportService {
         {
           module: 'queue',
           operation: 'export.enqueue',
-          queue: 'pdf-export',
+          queue: this.queueName,
           exportId: created.id,
           userId,
           err: error instanceof Error ? error : undefined,

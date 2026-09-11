@@ -22,6 +22,13 @@ export default () => ({
   },
   queue: {
     enabled: process.env.QUEUE_ENABLED !== 'false',
+    exportJob: {
+      attempts: Number(process.env.QUEUE_EXPORT_ATTEMPTS ?? 3),
+      backoffType: process.env.QUEUE_EXPORT_BACKOFF_TYPE ?? 'exponential',
+      backoffDelayMs: Number(process.env.QUEUE_EXPORT_BACKOFF_DELAY_MS ?? 5000),
+      removeOnCompleteCount: Number(process.env.QUEUE_EXPORT_REMOVE_ON_COMPLETE_COUNT ?? 1000),
+      removeOnFail: process.env.QUEUE_EXPORT_REMOVE_ON_FAIL === 'true',
+    },
   },
   redis: {
     host: process.env.REDIS_HOST ?? 'localhost',

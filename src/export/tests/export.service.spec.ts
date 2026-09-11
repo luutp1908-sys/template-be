@@ -161,6 +161,76 @@ describe('ExportService', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
+  it('should enqueue with configured BullMQ job options', async () => {
+    const createdJob = { id: 'export-1' };
+    queueHealthService.checkReadiness.mockResolvedValue({
+      required: true,
+      enabled: true,
+      healthy: true,
+      status: 'ok',
+    });
+    repository.create.mockResolvedValue(createdJob as any);
+    queue.add.mockResolvedValue({ id: 'bull-job-1' });
+
+    configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
+      if (key === 'app.mockMode') {
+        return false;
+      }
+
+      if (key === 'queue.enabled') {
+        return true;
+      }
+
+      if (key === 'queue.exportJob.attempts') {
+        return 5;
+      }
+
+      if (key === 'queue.exportJob.backoffType') {
+        return 'exponential';
+      }
+
+      if (key === 'queue.exportJob.backoffDelayMs') {
+        return 3000;
+      }
+
+      if (key === 'queue.exportJob.removeOnCompleteCount') {
+        return 250;
+      }
+
+      if (key === 'queue.exportJob.removeOnFail') {
+        return false;
+      }
+
+      return defaultValue;
+    });
+
+    await expect(
+      service.createJob(
+        {
+          format: ExportFormat.PDF,
+          content: { pages: [] },
+        } as any,
+        'user-1',
+      ),
+    ).resolves.toEqual(createdJob);
+
+    expect(queue.add).toHaveBeenCalledWith(
+      'pdf-export',
+      { exportId: 'export-1' },
+      {
+        attempts: 5,
+        backoff: {
+          type: 'exponential',
+          delay: 3000,
+        },
+        removeOnComplete: {
+          count: 250,
+        },
+        removeOnFail: false,
+      },
+    );
+  });
+
   it('should throw not-found when status job does not exist', async () => {
     repository.findById.mockResolvedValue(null);
 

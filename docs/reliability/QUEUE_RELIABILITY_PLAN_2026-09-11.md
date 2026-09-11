@@ -63,7 +63,7 @@ Exit criteria:
 Objective: make transient failures recover automatically and permanent failures diagnosable.
 
 Tasks:
-- [ ] Define BullMQ job options for:
+- [x] Define BullMQ job options for:
   - attempts
   - backoff strategy
   - remove-on-complete policy

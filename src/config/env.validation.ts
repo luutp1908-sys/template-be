@@ -34,6 +34,11 @@ const envSchema = Joi.object({
     otherwise: Joi.string().valid('fail-fast', 'warn').default('warn'),
   }),
   QUEUE_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
+  QUEUE_EXPORT_ATTEMPTS: Joi.number().integer().min(1).default(3),
+  QUEUE_EXPORT_BACKOFF_TYPE: Joi.string().valid('fixed', 'exponential').default('exponential'),
+  QUEUE_EXPORT_BACKOFF_DELAY_MS: Joi.number().integer().min(100).default(5000),
+  QUEUE_EXPORT_REMOVE_ON_COMPLETE_COUNT: Joi.number().integer().min(1).default(1000),
+  QUEUE_EXPORT_REMOVE_ON_FAIL: Joi.boolean().truthy('true').falsy('false').default(false),
   DATABASE_URL: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().optional(),
