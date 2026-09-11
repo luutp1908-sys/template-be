@@ -28,6 +28,7 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
 import { AuthenticationMiddleware } from './auth/middleware/authentication.middleware';
 import { MetricsModule } from './common/metrics/metrics.module';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
+import { LOG_REDACT_PATHS } from './common/logging/redaction-paths';
 
 const useExportProxy = Boolean(process.env.EXPORT_SERVICE_URL?.trim());
 const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
@@ -68,23 +69,7 @@ const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
                 },
               }
             : undefined,
-        redact: [
-          'req.headers.authorization',
-          'req.headers.cookie',
-          'req.headers.x-api-key',
-          'req.headers.x-auth-token',
-          'req.body.password',
-          'req.body.currentPassword',
-          'req.body.newPassword',
-          'req.body.accessToken',
-          'req.body.refreshToken',
-          'req.body.idToken',
-          'req.body.token',
-          'req.query.accessToken',
-          'req.query.refreshToken',
-          'req.query.token',
-          'res.headers.set-cookie',
-        ],
+        redact: LOG_REDACT_PATHS,
       },
     }),
     CacheModule,

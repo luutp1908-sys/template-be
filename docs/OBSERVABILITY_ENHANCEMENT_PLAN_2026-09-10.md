@@ -185,7 +185,7 @@ Exit criteria:
 - [x] Wire ENABLE_REQUEST_LOGS to control request.completed log emission.
 - [x] Add structured log field standards for module and operation on key flows.
 - [x] Extend redaction coverage for cookies and token-like payload fields.
-- [ ] Add tests that fail when sensitive values appear in logs.
+- [x] Add tests that fail when sensitive values appear in logs.
 - [ ] Publish metrics taxonomy document for names, types, units, labels.
 - [ ] Add label cardinality guardrails and naming conventions.
 
@@ -230,7 +230,7 @@ Exit criteria:
 - [x] Liveness endpoint kept process-only
 - [x] Deploy workflow gates on readiness
 - [x] Structured logging controls wired to config
-- [ ] Redaction rules validated with tests
+- [x] Redaction rules validated with tests
 
 ### Metrics
 - [ ] Durable metrics export enabled

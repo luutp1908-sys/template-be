@@ -1,0 +1,17 @@
+export const LOG_REDACT_PATHS: string[] = [
+  'req.headers.authorization',
+  'req.headers.cookie',
+  'req.headers["x-api-key"]',
+  'req.headers["x-auth-token"]',
+  'req.body.password',
+  'req.body.currentPassword',
+  'req.body.newPassword',
+  'req.body.accessToken',
+  'req.body.refreshToken',
+  'req.body.idToken',
+  'req.body.token',
+  'req.query.accessToken',
+  'req.query.refreshToken',
+  'req.query.token',
+  'res.headers["set-cookie"]',
+];
