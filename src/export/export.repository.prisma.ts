@@ -44,9 +44,17 @@ export class ExportRepository {
     return (exportJob as ExportEntity | null) ?? null;
   }
 
-  async updateStatus(id: string, status: string, data: Partial<ExportEntity> = {}): Promise<ExportEntity | null> {
-    const exportJob = await this.prisma.export.update({
-      where: { id },
+  async updateStatus(
+    id: string,
+    status: string,
+    data: Partial<ExportEntity> = {},
+    expectedCurrentStatuses: string[] = [],
+  ): Promise<ExportEntity | null> {
+    const updateResult = await this.prisma.export.updateMany({
+      where: {
+        id,
+        ...(expectedCurrentStatuses.length > 0 ? { status: { in: expectedCurrentStatuses } } : {}),
+      },
       data: {
         status,
         ...(data.downloadPath !== undefined ? { downloadPath: data.downloadPath } : {}),
@@ -55,6 +63,14 @@ export class ExportRepository {
         ...(data.attemptCount !== undefined ? { attemptCount: data.attemptCount } : {}),
         ...(data.completedAt !== undefined ? { completedAt: data.completedAt } : {}),
       },
+    });
+
+    if (updateResult.count === 0) {
+      return null;
+    }
+
+    const exportJob = await this.prisma.export.findUnique({
+      where: { id },
     });
 
     return exportJob as unknown as ExportEntity;

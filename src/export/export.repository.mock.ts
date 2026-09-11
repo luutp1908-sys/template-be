@@ -44,9 +44,18 @@ export class ExportRepository {
     return exportJob;
   }
 
-  async updateStatus(id: string, status: string, data: Partial<ExportEntity> = {}): Promise<ExportEntity | null> {
+  async updateStatus(
+    id: string,
+    status: string,
+    data: Partial<ExportEntity> = {},
+    expectedCurrentStatuses: string[] = [],
+  ): Promise<ExportEntity | null> {
     const current = this.store.findById(id);
     if (!current) {
+      return null;
+    }
+
+    if (expectedCurrentStatuses.length > 0 && !expectedCurrentStatuses.includes(current.status)) {
       return null;
     }
 

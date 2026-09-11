@@ -329,4 +329,49 @@ describe('ExportProcessor', () => {
       'queue.job.idempotent.skip_processing',
     );
   });
+
+  it('should not overwrite completed export when stale duplicate attempt finishes later', async () => {
+    repository.findById.mockResolvedValue({
+      id: 'export-8',
+      fileName: 'file.pdf',
+      status: ExportStatus.PENDING,
+    });
+
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.PROCESSING) {
+        return { id: 'export-8', status: ExportStatus.PROCESSING };
+      }
+
+      if (status === ExportStatus.COMPLETED) {
+        return null;
+      }
+
+      return { id: 'export-8', status };
+    });
+
+    const job = {
+      data: { exportId: 'export-8' },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).resolves.toBeUndefined();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId: 'export-8',
+        attemptCount: 2,
+      }),
+      'queue.job.idempotent.skip_stale_completion',
+    );
+    expect(logger.log).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-8',
+      }),
+      'queue.job.completed',
+    );
+  });
 });

@@ -17,5 +17,10 @@ export interface CreateExportRecord {
 export interface IExportRepository {
   create(_payload: CreateExportRecord, _userId: string): Promise<ExportEntity>;
   findById(_id: string, _userId?: string): Promise<ExportEntity | null>;
-  updateStatus(_id: string, _status: string, _data?: Partial<ExportEntity>): Promise<ExportEntity | null>;
+  updateStatus(
+    _id: string,
+    _status: string,
+    _data?: Partial<ExportEntity>,
+    _expectedCurrentStatuses?: string[],
+  ): Promise<ExportEntity | null>;
 }

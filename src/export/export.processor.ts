@@ -12,7 +12,7 @@ import { Job, UnrecoverableError } from 'bullmq';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { Logger } from 'nestjs-pino';
-import { ExportStatus } from './export.entity';
+import { ExportEntity, ExportStatus } from './export.entity';
 import { IExportRepository } from './interfaces/export.repository.interface';
 import { EXPORT_REPOSITORY } from './export.tokens';
 import { WorkerHealthRegistry } from '../queue/worker-health.registry';
@@ -21,6 +21,7 @@ import { WorkerHealthRegistry } from '../queue/worker-health.registry';
 export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModuleDestroy {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private readonly queueName = 'pdf-export';
+  private readonly operation = 'export.process';
 
   constructor(
     @Inject(EXPORT_REPOSITORY) private readonly repository: IExportRepository,
@@ -47,154 +48,196 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     this.reportHeartbeat();
     const exportId = job.data.exportId;
     const attemptCount = this.resolveAttemptCount(job);
-    this.logger.log(
-      {
-        module: 'queue',
-        operation: 'export.process',
-        queue: this.queueName,
-        exportId,
-        attemptCount,
-      },
-      'queue.job.started',
-    );
-    const exportJob = await this.repository.findById(exportId);
+    this.logger.log(this.logContext(exportId, attemptCount), 'queue.job.started');
+
+    const exportJob = await this.loadExportJobOrSkip(exportId);
     if (!exportJob) {
-      this.logger.warn(
-        {
-          module: 'queue',
-          operation: 'export.process',
-          queue: this.queueName,
-          exportId,
-        },
-        'queue.job.export_not_found',
-      );
       return;
     }
 
-    if (exportJob.status === ExportStatus.COMPLETED) {
-      this.logger.log(
-        {
-          module: 'queue',
-          operation: 'export.process',
-          queue: this.queueName,
-          exportId,
-          attemptCount,
-          state: exportJob.status,
-        },
-        'queue.job.idempotent.skip_completed',
-      );
-      return;
-    }
-
-    if (exportJob.status === ExportStatus.PROCESSING) {
-      this.logger.warn(
-        {
-          module: 'queue',
-          operation: 'export.process',
-          queue: this.queueName,
-          exportId,
-          attemptCount,
-          state: exportJob.status,
-        },
-        'queue.job.idempotent.skip_processing',
-      );
+    if (this.shouldSkipDuplicate(exportJob, exportId, attemptCount)) {
       return;
     }
 
     try {
-      await this.repository.updateStatus(exportId, ExportStatus.PROCESSING, {
-        status: ExportStatus.PROCESSING,
-        attemptCount,
-      });
+      const claimed = await this.claimProcessingState(exportId, attemptCount);
+      if (!claimed) {
+        return;
+      }
 
-      const outDir = join(process.cwd(), 'tmp', 'exports');
-      mkdirSync(outDir, { recursive: true });
+      const filePath = this.generatePdfFile(exportId);
 
-      const pdfBuffer = Buffer.from('PDF placeholder for export: ' + exportId, 'utf8');
-      const filePath = join(outDir, `${exportId}.pdf`);
-      writeFileSync(filePath, pdfBuffer);
+      const completed = await this.markCompleted(exportId, exportJob.fileName, attemptCount, filePath);
+      if (!completed) {
+        return;
+      }
 
-      await this.repository.updateStatus(exportId, ExportStatus.COMPLETED, {
-        status: ExportStatus.COMPLETED,
-        downloadPath: filePath,
-        fileName: exportJob.fileName,
-        attemptCount,
-        completedAt: new Date(),
-      });
       this.logger.log(
-        {
-          module: 'queue',
-          operation: 'export.process',
-          queue: this.queueName,
-          exportId,
-          attemptCount,
-          filePath,
-        },
+        this.logContext(exportId, attemptCount, { filePath }),
         'queue.job.completed',
       );
     } catch (error) {
-      const terminalFailure = this.isTerminalFailure(error);
-      const maxAttempts = this.resolveMaxAttempts(job, attemptCount);
-      const retriesExhausted = !terminalFailure && attemptCount >= maxAttempts;
-
-      await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
-        status: ExportStatus.FAILED,
-        errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
-        attemptCount,
-      });
-
-      this.logger.error(
-        {
-          module: 'queue',
-          operation: 'export.process',
-          queue: this.queueName,
-          exportId,
-          attemptCount,
-          maxAttempts,
-          failureType: terminalFailure ? 'terminal' : 'retryable',
-          err: error instanceof Error ? error : undefined,
-        },
-        terminalFailure ? 'queue.job.failed.terminal' : 'queue.job.failed.retryable',
-      );
-
-      if (!terminalFailure && retriesExhausted) {
-        this.logger.error(
-          {
-            module: 'queue',
-            operation: 'export.process',
-            queue: this.queueName,
-            exportId,
-            attemptCount,
-            maxAttempts,
-          },
-          'queue.job.retry.exhausted',
-        );
-      }
-
-      if (!terminalFailure && !retriesExhausted) {
-        this.logger.warn(
-          {
-            module: 'queue',
-            operation: 'export.process',
-            queue: this.queueName,
-            exportId,
-            attemptCount,
-            maxAttempts,
-            nextAttempt: attemptCount + 1,
-          },
-          'queue.job.retry.scheduled',
-        );
-      }
-
-      if (terminalFailure) {
-        const message = error instanceof Error ? error.message : 'Terminal PDF export error';
-        throw new UnrecoverableError(message);
-      }
-
-      throw error;
+      await this.handleProcessingError(error, job, exportId, attemptCount);
     } finally {
       this.reportHeartbeat();
     }
+  }
+
+  private async loadExportJobOrSkip(exportId: string): Promise<ExportEntity | null> {
+    const exportJob = await this.repository.findById(exportId);
+    if (exportJob) {
+      return exportJob;
+    }
+
+    this.logger.warn(this.logContext(exportId), 'queue.job.export_not_found');
+    return null;
+  }
+
+  private shouldSkipDuplicate(exportJob: ExportEntity, exportId: string, attemptCount: number): boolean {
+    if (exportJob.status === ExportStatus.COMPLETED) {
+      this.logger.log(
+        this.logContext(exportId, attemptCount, { state: exportJob.status }),
+        'queue.job.idempotent.skip_completed',
+      );
+      return true;
+    }
+
+    if (exportJob.status === ExportStatus.PROCESSING) {
+      this.logger.warn(
+        this.logContext(exportId, attemptCount, { state: exportJob.status }),
+        'queue.job.idempotent.skip_processing',
+      );
+      return true;
+    }
+
+    return false;
+  }
+
+  private async claimProcessingState(exportId: string, attemptCount: number): Promise<boolean> {
+    const processingClaim = await this.repository.updateStatus(
+      exportId,
+      ExportStatus.PROCESSING,
+      {
+        status: ExportStatus.PROCESSING,
+        attemptCount,
+      },
+      [ExportStatus.PENDING, ExportStatus.FAILED],
+    );
+
+    if (processingClaim) {
+      return true;
+    }
+
+    this.logger.warn(
+      this.logContext(exportId, attemptCount),
+      'queue.job.idempotent.skip_claim_lost',
+    );
+    return false;
+  }
+
+  private generatePdfFile(exportId: string): string {
+    const outDir = join(process.cwd(), 'tmp', 'exports');
+    mkdirSync(outDir, { recursive: true });
+
+    const pdfBuffer = Buffer.from('PDF placeholder for export: ' + exportId, 'utf8');
+    const filePath = join(outDir, `${exportId}.pdf`);
+    writeFileSync(filePath, pdfBuffer);
+    return filePath;
+  }
+
+  private async markCompleted(
+    exportId: string,
+    fileName: string,
+    attemptCount: number,
+    filePath: string,
+  ): Promise<boolean> {
+    const completed = await this.repository.updateStatus(
+      exportId,
+      ExportStatus.COMPLETED,
+      {
+        status: ExportStatus.COMPLETED,
+        downloadPath: filePath,
+        fileName,
+        attemptCount,
+        completedAt: new Date(),
+      },
+      [ExportStatus.PROCESSING],
+    );
+
+    if (completed) {
+      return true;
+    }
+
+    this.logger.warn(
+      this.logContext(exportId, attemptCount, { filePath }),
+      'queue.job.idempotent.skip_stale_completion',
+    );
+    return false;
+  }
+
+  private async handleProcessingError(
+    error: unknown,
+    job: Job<{ exportId: string }>,
+    exportId: string,
+    attemptCount: number,
+  ): Promise<never> {
+    const terminalFailure = this.isTerminalFailure(error);
+    const maxAttempts = this.resolveMaxAttempts(job, attemptCount);
+    const retriesExhausted = !terminalFailure && attemptCount >= maxAttempts;
+
+    await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
+      status: ExportStatus.FAILED,
+      errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
+      attemptCount,
+    });
+
+    this.logger.error(
+      this.logContext(exportId, attemptCount, {
+        maxAttempts,
+        failureType: terminalFailure ? 'terminal' : 'retryable',
+        err: error instanceof Error ? error : undefined,
+      }),
+      terminalFailure ? 'queue.job.failed.terminal' : 'queue.job.failed.retryable',
+    );
+
+    if (!terminalFailure && retriesExhausted) {
+      this.logger.error(
+        this.logContext(exportId, attemptCount, { maxAttempts }),
+        'queue.job.retry.exhausted',
+      );
+    }
+
+    if (!terminalFailure && !retriesExhausted) {
+      this.logger.warn(
+        this.logContext(exportId, attemptCount, {
+          maxAttempts,
+          nextAttempt: attemptCount + 1,
+        }),
+        'queue.job.retry.scheduled',
+      );
+    }
+
+    if (terminalFailure) {
+      const message = error instanceof Error ? error.message : 'Terminal PDF export error';
+      throw new UnrecoverableError(message);
+    }
+
+    throw error;
+  }
+
+  private logContext(
+    exportId: string,
+    attemptCount?: number,
+    extra: Record<string, unknown> = {},
+  ): Record<string, unknown> {
+    return {
+      module: 'queue',
+      operation: this.operation,
+      queue: this.queueName,
+      exportId,
+      ...(attemptCount !== undefined ? { attemptCount } : {}),
+      ...extra,
+    };
   }
 
   private reportHeartbeat(): void {

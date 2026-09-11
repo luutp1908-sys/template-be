@@ -82,7 +82,7 @@ Objective: make repeat processing safe.
 
 Tasks:
 - [x] Define idempotency rules for export jobs by `exportId`.
-- [ ] Prevent duplicate processing from overwriting a completed export unexpectedly.
+- [x] Prevent duplicate processing from overwriting a completed export unexpectedly.
 - [ ] Guard status transitions so invalid state changes are rejected or ignored safely.
 - [ ] Ensure repeated completion writes keep the same logical output contract.
 - [ ] Add tests for duplicate queue delivery and replayed worker execution.
