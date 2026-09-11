@@ -181,7 +181,7 @@ Exit criteria:
 - [x] Implement readiness endpoint with DB, Redis, and queue worker checks.
 - [x] Keep liveness process-only on /api/v1/health and /api/v1/health/live.
 - [x] Update deploy workflow to gate on /api/v1/health/ready instead of /api/v1/health.
-- [ ] Add deploy workflow smoke assertion for readiness response status field.
+- [x] Add deploy workflow smoke assertion for readiness response status field.
 - [ ] Wire ENABLE_REQUEST_LOGS to control request.completed log emission.
 - [ ] Add structured log field standards for module and operation on key flows.
 - [ ] Extend redaction coverage for cookies and token-like payload fields.

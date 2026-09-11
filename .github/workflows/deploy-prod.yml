@@ -247,6 +247,12 @@ jobs:
             exit 1
           fi
 
+          if ! jq -e '.success == true and .data.status == "ready"' /tmp/readiness.json >/dev/null; then
+            echo "Readiness check failed: unexpected readiness payload"
+            cat /tmp/readiness.json
+            exit 1
+          fi
+
           echo "Readiness check passed: $READY_URL"
 
       - name: Smoke checks for critical public routes
