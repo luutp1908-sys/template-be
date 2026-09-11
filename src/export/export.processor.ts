@@ -1,6 +1,14 @@
-import { Inject, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  NotFoundException,
+  OnModuleDestroy,
+  OnModuleInit,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { Logger } from 'nestjs-pino';
@@ -12,6 +20,7 @@ import { WorkerHealthRegistry } from '../queue/worker-health.registry';
 @Processor('pdf-export')
 export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModuleDestroy {
   private heartbeatTimer: NodeJS.Timeout | null = null;
+  private readonly queueName = 'pdf-export';
 
   constructor(
     @Inject(EXPORT_REPOSITORY) private readonly repository: IExportRepository,
@@ -41,7 +50,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       {
         module: 'queue',
         operation: 'export.process',
-        queue: 'pdf-export',
+        queue: this.queueName,
         exportId,
       },
       'queue.job.started',
@@ -52,7 +61,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
         {
           module: 'queue',
           operation: 'export.process',
-          queue: 'pdf-export',
+          queue: this.queueName,
           exportId,
         },
         'queue.job.export_not_found',
@@ -60,11 +69,11 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       return;
     }
 
-    await this.repository.updateStatus(exportId, ExportStatus.PROCESSING, {
-      status: ExportStatus.PROCESSING,
-    });
-
     try {
+      await this.repository.updateStatus(exportId, ExportStatus.PROCESSING, {
+        status: ExportStatus.PROCESSING,
+      });
+
       const outDir = join(process.cwd(), 'tmp', 'exports');
       mkdirSync(outDir, { recursive: true });
 
@@ -82,27 +91,37 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
         {
           module: 'queue',
           operation: 'export.process',
-          queue: 'pdf-export',
+          queue: this.queueName,
           exportId,
           filePath,
         },
         'queue.job.completed',
       );
     } catch (error) {
+      const terminalFailure = this.isTerminalFailure(error);
+
       await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
         status: ExportStatus.FAILED,
         errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
       });
+
       this.logger.error(
         {
           module: 'queue',
           operation: 'export.process',
-          queue: 'pdf-export',
+          queue: this.queueName,
           exportId,
+          failureType: terminalFailure ? 'terminal' : 'retryable',
           err: error instanceof Error ? error : undefined,
         },
-        'queue.job.failed',
+        terminalFailure ? 'queue.job.failed.terminal' : 'queue.job.failed.retryable',
       );
+
+      if (terminalFailure) {
+        const message = error instanceof Error ? error.message : 'Terminal PDF export error';
+        throw new UnrecoverableError(message);
+      }
+
       throw error;
     } finally {
       this.reportHeartbeat();
@@ -110,6 +129,15 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
   }
 
   private reportHeartbeat(): void {
-    this.workerHealthRegistry.heartbeat('pdf-export');
+    this.workerHealthRegistry.heartbeat(this.queueName);
+  }
+
+  private isTerminalFailure(error: unknown): boolean {
+    return (
+      error instanceof BadRequestException ||
+      error instanceof ConflictException ||
+      error instanceof NotFoundException ||
+      error instanceof UnprocessableEntityException
+    );
   }
 }

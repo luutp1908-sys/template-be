@@ -68,7 +68,7 @@ Tasks:
   - backoff strategy
   - remove-on-complete policy
   - retain-on-fail policy
-- [ ] Distinguish retryable failures from terminal failures in the worker.
+- [x] Distinguish retryable failures from terminal failures in the worker.
 - [ ] Persist failure reason and attempt count in export job state where useful.
 - [ ] Add worker logs for retry, terminal failure, and exhaustion of attempts.
 - [ ] Add tests for transient failure then success, and repeated failure until terminal state.
@@ -130,7 +130,7 @@ Exit criteria:
 
 ### Code Paths
 - [x] `be/src/export/export.service.ts`
-- [ ] `be/src/export/export.processor.ts`
+- [x] `be/src/export/export.processor.ts`
 - [ ] `be/src/queue/queue.module.ts`
 - [ ] `be/src/queue/queue-health.service.ts`
 - [ ] `be/src/export/export.repository.prisma.ts`
