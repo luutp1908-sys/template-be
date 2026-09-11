@@ -187,7 +187,7 @@ Exit criteria:
 - [x] Extend redaction coverage for cookies and token-like payload fields.
 - [x] Add tests that fail when sensitive values appear in logs.
 - [x] Publish metrics taxonomy document for names, types, units, labels.
-- [ ] Add label cardinality guardrails and naming conventions.
+- [x] Add label cardinality guardrails and naming conventions.
 
 ### Phase 2 Tasks
 - [ ] Add durable metrics export endpoint compatible with scraping.

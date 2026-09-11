@@ -38,6 +38,55 @@ Allowed labels (controlled cardinality):
 Disallowed labels:
 - `userId`, `email`, `requestId`, tokens, UUID IDs, raw search strings, file names.
 
+## Label Cardinality Guardrails
+
+### Cardinality Budget by Label
+
+| Label | Max expected values per env | Guardrail |
+| --- | --- | --- |
+| `service` | 1-3 | fixed enum in code/config |
+| `env` | 3 | fixed enum (`development`, `test`, `production`) |
+| `method` | <= 9 | fixed HTTP verbs only |
+| `status_class` | 4 | fixed enum (`2xx`, `3xx`, `4xx`, `5xx`) |
+| `status_code` | <= 70 | use only when necessary; prefer `status_class` |
+| `queue` | <= 10 | fixed queue-name allowlist |
+| `operation` | <= 40 | fixed operation-name allowlist |
+| `route` | <= 200 | templated route only; never raw URL |
+
+### Guardrail Rules
+
+- Do not emit labels with unbounded value spaces.
+- Do not use IDs or high-cardinality text as label values.
+- Normalize route labels to templates before recording metrics.
+- Prefer coarser labels (`status_class`) over finer labels (`status_code`) unless required.
+- Any new label requires explicit budget declaration in this document.
+
+### Route Label Normalization Conventions
+
+Use templated route names:
+- Good: `/api/v1/template/:id`
+- Good: `/api/v1/workspace/:workspaceId/members`
+- Bad: `/api/v1/template/24f4629f-2b52-4e7e-b77d-16f920e1810d`
+- Bad: `/api/v1/search?q=presentation+for+startup`
+
+### Operation Naming Conventions
+
+- Format: `<domain>.<action>` in lowercase snake_case segments.
+- Examples:
+  - `auth.login`
+  - `export.process`
+  - `workspace.member_add`
+  - `template.publish`
+- Keep operation values from a bounded allowlist per module.
+
+### Metrics Review Gate
+
+Before adding or changing any metric:
+- Confirm metric name follows naming rules.
+- Confirm every label has bounded cardinality and a declared budget.
+- Confirm sensitive values cannot appear in labels.
+- Confirm dashboards/alerts that consume the metric are updated.
+
 ## Implemented Metrics (Current)
 
 These are currently exposed via the health metrics payload from [be/src/common/health/health.controller.ts](be/src/common/health/health.controller.ts).
