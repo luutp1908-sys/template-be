@@ -51,8 +51,8 @@ Tasks:
 - [x] Define behavior when queue is disabled or unhealthy:
   - fail request with a clear service-unavailable style error when exports require queue
   - keep mock-mode bypass behavior explicit and documented
-- [ ] Add structured logs for enqueue attempt, enqueue success, and enqueue failure.
-- [ ] Record enqueue operation names consistently with `module=queue` and `operation=export.enqueue`.
+- [x] Add structured logs for enqueue attempt, enqueue success, and enqueue failure.
+- [x] Record enqueue operation names consistently with `module=queue` and `operation=export.enqueue`.
 - [x] Add focused tests for queue unavailable and queue disabled behavior.
 
 Exit criteria:

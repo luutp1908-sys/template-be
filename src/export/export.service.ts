@@ -2,6 +2,7 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   NotFoundException,
   Optional,
   ServiceUnavailableException,
@@ -26,6 +27,7 @@ export class ExportService {
     private readonly workspaceService: WorkspaceService,
     private readonly templateService: TemplateService,
     private readonly configService: ConfigService,
+    private readonly logger: Logger,
     @Optional() private readonly queueHealthService?: QueueHealthService,
   ) {}
 
@@ -70,7 +72,46 @@ export class ExportService {
     await this.assertQueueSubmissionReady();
 
     const created = await this.repository.create(payload, userId);
-    await this.exportQueue.add('pdf-export', { exportId: created.id });
+
+    this.logger.log(
+      {
+        module: 'queue',
+        operation: 'export.enqueue',
+        queue: 'pdf-export',
+        exportId: created.id,
+        userId,
+      },
+      'queue.enqueue.attempt',
+    );
+
+    try {
+      const job = await this.exportQueue.add('pdf-export', { exportId: created.id });
+      this.logger.log(
+        {
+          module: 'queue',
+          operation: 'export.enqueue',
+          queue: 'pdf-export',
+          exportId: created.id,
+          userId,
+          jobId: job.id,
+        },
+        'queue.enqueue.success',
+      );
+    } catch (error) {
+      this.logger.error(
+        {
+          module: 'queue',
+          operation: 'export.enqueue',
+          queue: 'pdf-export',
+          exportId: created.id,
+          userId,
+          err: error instanceof Error ? error : undefined,
+        },
+        'queue.enqueue.failed',
+      );
+      throw new ServiceUnavailableException('Export queue is unavailable');
+    }
+
     return created;
   }
 

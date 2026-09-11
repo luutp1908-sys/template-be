@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
+import { Logger } from '@nestjs/common';
 import { WorkspaceService } from '../../workspace/workspace.service';
 import { TemplateService } from '../../template/template.service';
 import { ExportService } from '../export.service';
@@ -20,6 +21,7 @@ describe('ExportService', () => {
   let templateService: { findById: jest.Mock };
   let configService: { get: jest.Mock };
   let queueHealthService: { checkReadiness: jest.Mock };
+  let logger: { log: jest.Mock; error: jest.Mock; warn: jest.Mock };
 
   beforeEach(async () => {
     repository = {
@@ -43,6 +45,7 @@ describe('ExportService', () => {
       }),
     };
     queueHealthService = { checkReadiness: jest.fn() };
+    logger = { log: jest.fn(), error: jest.fn(), warn: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -59,6 +62,7 @@ describe('ExportService', () => {
         { provide: TemplateService, useValue: templateService },
         { provide: ConfigService, useValue: configService },
         { provide: QueueHealthService, useValue: queueHealthService },
+        { provide: Logger, useValue: logger },
       ],
     }).compile();
 
