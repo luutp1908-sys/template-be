@@ -51,7 +51,7 @@ Focus on what happens when Redis is available vs unavailable.
 Relevant files:
 - be/src/cache/cache.service.ts
 - be/src/common/health/health.controller.ts
-- be/docs/CACHING_STRATEGY_2026-08-06.md
+- be/docs/reliability/CACHING_STRATEGY_2026-08-06.md
 
 Questions to answer:
 - Do reads still work when cache is down?
