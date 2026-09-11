@@ -234,20 +234,20 @@ jobs:
             --services "$ECS_SERVICE" \
             --query 'services[0].{desired:desiredCount,running:runningCount,pending:pendingCount,taskDef:taskDefinition,status:status}'
 
-      - name: Health check
+      - name: Readiness check
         run: |
           ALB_DNS="$(terraform -chdir="$TF_DIR" output -raw alb_dns_name)"
-          HEALTH_URL="http://${ALB_DNS}/api/v1/health"
+          READY_URL="http://${ALB_DNS}/api/v1/health/ready"
 
-          HTTP_CODE="$(curl -sS -o /tmp/health.json -w "%{http_code}" "$HEALTH_URL")"
-          cat /tmp/health.json
+          HTTP_CODE="$(curl -sS -o /tmp/readiness.json -w "%{http_code}" "$READY_URL")"
+          cat /tmp/readiness.json
 
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "Health check failed: $HEALTH_URL returned HTTP $HTTP_CODE"
+            echo "Readiness check failed: $READY_URL returned HTTP $HTTP_CODE"
             exit 1
           fi
 
-          echo "Health check passed: $HEALTH_URL"
+          echo "Readiness check passed: $READY_URL"
 
       - name: Smoke checks for critical public routes
         run: |

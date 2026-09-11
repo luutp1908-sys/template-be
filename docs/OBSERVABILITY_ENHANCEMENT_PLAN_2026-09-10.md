@@ -180,7 +180,7 @@ Exit criteria:
 ### Phase 1 Tasks
 - [x] Implement readiness endpoint with DB, Redis, and queue worker checks.
 - [x] Keep liveness process-only on /api/v1/health and /api/v1/health/live.
-- [ ] Update deploy workflow to gate on /api/v1/health/ready instead of /api/v1/health.
+- [x] Update deploy workflow to gate on /api/v1/health/ready instead of /api/v1/health.
 - [ ] Add deploy workflow smoke assertion for readiness response status field.
 - [ ] Wire ENABLE_REQUEST_LOGS to control request.completed log emission.
 - [ ] Add structured log field standards for module and operation on key flows.
@@ -228,7 +228,7 @@ Exit criteria:
 ### Foundation
 - [x] Readiness endpoint implemented
 - [x] Liveness endpoint kept process-only
-- [ ] Deploy workflow gates on readiness
+- [x] Deploy workflow gates on readiness
 - [ ] Structured logging controls wired to config
 - [ ] Redaction rules validated with tests
 
