@@ -71,7 +71,7 @@ Tasks:
 - [x] Distinguish retryable failures from terminal failures in the worker.
 - [x] Persist failure reason and attempt count in export job state where useful.
 - [x] Add worker logs for retry, terminal failure, and exhaustion of attempts.
-- [ ] Add tests for transient failure then success, and repeated failure until terminal state.
+- [x] Add tests for transient failure then success, and repeated failure until terminal state.
 
 Exit criteria:
 - Temporary worker errors cause bounded retries instead of silent job loss.
@@ -139,7 +139,7 @@ Exit criteria:
 ### Tests
 - [x] enqueue fails cleanly when Redis/queue is unavailable
 - [x] queue disabled behavior is explicit and tested
-- [ ] retry policy behaves as configured
+- [x] retry policy behaves as configured
 - [ ] duplicate processing is idempotent
 - [ ] stalled worker or stale heartbeat is surfaced
 

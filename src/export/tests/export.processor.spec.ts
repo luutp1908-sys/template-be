@@ -120,6 +120,119 @@ describe('ExportProcessor', () => {
     );
   });
 
+  it('should recover after transient failure on a later attempt', async () => {
+    repository.findById.mockResolvedValue({ id: 'export-4', fileName: 'file.pdf' });
+
+    const transientError = new Error('Temporary render dependency unavailable');
+    let shouldFailCompletion = true;
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.COMPLETED && shouldFailCompletion) {
+        shouldFailCompletion = false;
+        throw transientError;
+      }
+
+      return { id: 'export-4', status };
+    });
+
+    const firstAttemptJob = {
+      data: { exportId: 'export-4' },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+    const secondAttemptJob = {
+      data: { exportId: 'export-4' },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(firstAttemptJob)).rejects.toBe(transientError);
+    await expect(processor.process(secondAttemptJob)).resolves.toBeUndefined();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-4',
+        attemptCount: 1,
+        maxAttempts: 3,
+        nextAttempt: 2,
+      }),
+      'queue.job.retry.scheduled',
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-4',
+        attemptCount: 2,
+      }),
+      'queue.job.completed',
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-4',
+        attemptCount: 1,
+        failureType: 'retryable',
+      }),
+      'queue.job.failed.retryable',
+    );
+  });
+
+  it('should keep failing with retryable errors until final attempt is exhausted', async () => {
+    repository.findById.mockResolvedValue({ id: 'export-5', fileName: 'file.pdf' });
+
+    const transientError = new Error('Renderer cold start timeout');
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.COMPLETED) {
+        throw transientError;
+      }
+      return { id: 'export-5', status };
+    });
+
+    const attempt1Job = {
+      data: { exportId: 'export-5' },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+    const attempt2Job = {
+      data: { exportId: 'export-5' },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+    const attempt3Job = {
+      data: { exportId: 'export-5' },
+      attemptsMade: 2,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(attempt1Job)).rejects.toBe(transientError);
+    await expect(processor.process(attempt2Job)).rejects.toBe(transientError);
+    await expect(processor.process(attempt3Job)).rejects.toBe(transientError);
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-5',
+        attemptCount: 1,
+        maxAttempts: 3,
+        nextAttempt: 2,
+      }),
+      'queue.job.retry.scheduled',
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-5',
+        attemptCount: 2,
+        maxAttempts: 3,
+        nextAttempt: 3,
+      }),
+      'queue.job.retry.scheduled',
+    );
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-5',
+        attemptCount: 3,
+        maxAttempts: 3,
+      }),
+      'queue.job.retry.exhausted',
+    );
+  });
+
   it('should throw UnrecoverableError for terminal failures', async () => {
     repository.findById.mockResolvedValue({ id: 'export-2', fileName: 'file.pdf' });
 
