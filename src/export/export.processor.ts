@@ -180,16 +180,15 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     job: Job<{ exportId: string }>,
     exportId: string,
     attemptCount: number,
-  ): Promise<never> {
+  ): Promise<void> {
     const terminalFailure = this.isTerminalFailure(error);
     const maxAttempts = this.resolveMaxAttempts(job, attemptCount);
     const retriesExhausted = !terminalFailure && attemptCount >= maxAttempts;
 
-    await this.repository.updateStatus(exportId, ExportStatus.FAILED, {
-      status: ExportStatus.FAILED,
-      errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
-      attemptCount,
-    });
+    const failed = await this.markFailed(exportId, attemptCount, error);
+    if (!failed) {
+      return;
+    }
 
     this.logger.error(
       this.logContext(exportId, attemptCount, {
@@ -223,6 +222,33 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     }
 
     throw error;
+  }
+
+  private async markFailed(
+    exportId: string,
+    attemptCount: number,
+    error: unknown,
+  ): Promise<boolean> {
+    const failed = await this.repository.updateStatus(
+      exportId,
+      ExportStatus.FAILED,
+      {
+        status: ExportStatus.FAILED,
+        errorMessage: error instanceof Error ? error.message : 'Unknown PDF export error',
+        attemptCount,
+      },
+      [ExportStatus.PROCESSING],
+    );
+
+    if (failed) {
+      return true;
+    }
+
+    this.logger.warn(
+      this.logContext(exportId, attemptCount),
+      'queue.job.idempotent.skip_stale_failure',
+    );
+    return false;
   }
 
   private logContext(

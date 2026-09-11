@@ -61,7 +61,7 @@ describe('ExportProcessor', () => {
       status: ExportStatus.FAILED,
       errorMessage: 'Temporary storage write failure',
       attemptCount: 1,
-    });
+    }, [ExportStatus.PROCESSING]);
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         module: 'queue',
@@ -258,7 +258,7 @@ describe('ExportProcessor', () => {
       status: ExportStatus.FAILED,
       errorMessage: 'Invalid export status transition',
       attemptCount: 2,
-    });
+    }, [ExportStatus.PROCESSING]);
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         module: 'queue',
@@ -372,6 +372,52 @@ describe('ExportProcessor', () => {
         exportId: 'export-8',
       }),
       'queue.job.completed',
+    );
+  });
+
+  it('should ignore stale failure transition when export state has already moved on', async () => {
+    repository.findById.mockResolvedValue({ id: 'export-9', fileName: 'file.pdf' });
+
+    const transientError = new Error('Renderer timed out');
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.PROCESSING) {
+        return { id: 'export-9', status: ExportStatus.PROCESSING };
+      }
+
+      if (status === ExportStatus.COMPLETED) {
+        throw transientError;
+      }
+
+      if (status === ExportStatus.FAILED) {
+        return null;
+      }
+
+      return { id: 'export-9', status };
+    });
+
+    const job = {
+      data: { exportId: 'export-9' },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).resolves.toBeUndefined();
+
+    expect(logger.warn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId: 'export-9',
+        attemptCount: 1,
+      }),
+      'queue.job.idempotent.skip_stale_failure',
+    );
+    expect(logger.error).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId: 'export-9',
+      }),
+      'queue.job.failed.retryable',
     );
   });
 });
