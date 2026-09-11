@@ -1,7 +1,16 @@
-import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Inject,
+  Injectable,
+  NotFoundException,
+  Optional,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { existsSync } from 'fs';
+import { QueueHealthService } from '../queue/queue-health.service';
 import { WorkspaceService } from '../workspace/workspace.service';
 import { TemplateService } from '../template/template.service';
 import { CreateExportDto } from './dto/create-export.dto';
@@ -16,7 +25,35 @@ export class ExportService {
     @InjectQueue('pdf-export') private readonly exportQueue: Queue,
     private readonly workspaceService: WorkspaceService,
     private readonly templateService: TemplateService,
+    private readonly configService: ConfigService,
+    @Optional() private readonly queueHealthService?: QueueHealthService,
   ) {}
+
+  private async assertQueueSubmissionReady(): Promise<void> {
+    const mockMode = this.configService.get<boolean>('app.mockMode', false);
+    if (mockMode) {
+      return;
+    }
+
+    const queueEnabled = this.configService.get<boolean>('queue.enabled', true);
+    if (!queueEnabled) {
+      throw new ServiceUnavailableException('Export queue is disabled');
+    }
+
+    if (this.queueHealthService) {
+      const readiness = await this.queueHealthService.checkReadiness();
+      if (readiness.required && !readiness.healthy) {
+        throw new ServiceUnavailableException(readiness.reason ?? 'Export queue is unavailable');
+      }
+      return;
+    }
+
+    try {
+      await this.exportQueue.waitUntilReady();
+    } catch {
+      throw new ServiceUnavailableException('Export queue is unavailable');
+    }
+  }
 
   async createJob(payload: CreateExportDto, userId: string): Promise<ExportEntity> {
     if (payload.workspaceId) {
@@ -29,6 +66,8 @@ export class ExportService {
     if (payload.templateId) {
       await this.templateService.findById(payload.templateId);
     }
+
+    await this.assertQueueSubmissionReady();
 
     const created = await this.repository.create(payload, userId);
     await this.exportQueue.add('pdf-export', { exportId: created.id });

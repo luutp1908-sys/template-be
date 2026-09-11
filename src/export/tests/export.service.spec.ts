@@ -1,30 +1,48 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
+import { ConfigService } from '@nestjs/config';
 import { WorkspaceService } from '../../workspace/workspace.service';
 import { TemplateService } from '../../template/template.service';
 import { ExportService } from '../export.service';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { ConflictException, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { ExportFormat } from '../dto/create-export.dto';
 import { ExportStatus } from '../export.entity';
 import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { QueueHealthService } from '../../queue/queue-health.service';
 
 describe('ExportService', () => {
   let service: ExportService;
   let repository: { create: jest.Mock; findById: jest.Mock };
-  let queue: { add: jest.Mock };
+  let queue: { add: jest.Mock; waitUntilReady: jest.Mock };
   let workspaceService: { findById: jest.Mock };
   let templateService: { findById: jest.Mock };
+  let configService: { get: jest.Mock };
+  let queueHealthService: { checkReadiness: jest.Mock };
 
   beforeEach(async () => {
     repository = {
       create: jest.fn(),
       findById: jest.fn(),
     };
-    queue = { add: jest.fn() };
+    queue = { add: jest.fn(), waitUntilReady: jest.fn() };
     workspaceService = { findById: jest.fn() };
     templateService = { findById: jest.fn() };
+    configService = {
+      get: jest.fn((key: string, defaultValue?: unknown) => {
+        if (key === 'app.mockMode') {
+          return false;
+        }
+
+        if (key === 'queue.enabled') {
+          return true;
+        }
+
+        return defaultValue;
+      }),
+    };
+    queueHealthService = { checkReadiness: jest.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -39,6 +57,8 @@ describe('ExportService', () => {
         },
         { provide: WorkspaceService, useValue: workspaceService },
         { provide: TemplateService, useValue: templateService },
+        { provide: ConfigService, useValue: configService },
+        { provide: QueueHealthService, useValue: queueHealthService },
       ],
     }).compile();
 
@@ -83,6 +103,58 @@ describe('ExportService', () => {
     ).rejects.toThrow(NotFoundException);
 
     expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it('should fail fast when queue is disabled', async () => {
+    configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
+      if (key === 'app.mockMode') {
+        return false;
+      }
+
+      if (key === 'queue.enabled') {
+        return false;
+      }
+
+      return defaultValue;
+    });
+
+    await expect(
+      service.createJob(
+        {
+          format: ExportFormat.PDF,
+          content: { pages: [] },
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow(ServiceUnavailableException);
+
+    expect(queueHealthService.checkReadiness).not.toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(queue.add).not.toHaveBeenCalled();
+  });
+
+  it('should fail fast when queue health is degraded', async () => {
+    queueHealthService.checkReadiness.mockResolvedValue({
+      required: true,
+      enabled: true,
+      healthy: false,
+      status: 'degraded',
+      reason: 'No healthy queue worker heartbeat',
+    });
+
+    await expect(
+      service.createJob(
+        {
+          format: ExportFormat.PDF,
+          content: { pages: [] },
+        } as any,
+        'user-1',
+      ),
+    ).rejects.toThrow(ServiceUnavailableException);
+
+    expect(queueHealthService.checkReadiness).toHaveBeenCalled();
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(queue.add).not.toHaveBeenCalled();
   });
 
   it('should throw not-found when status job does not exist', async () => {
