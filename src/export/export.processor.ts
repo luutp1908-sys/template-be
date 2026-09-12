@@ -168,6 +168,35 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       return true;
     }
 
+    const latest = await this.repository.findById(exportId);
+    if (latest?.status === ExportStatus.COMPLETED) {
+      const contractPreserved = latest.fileName === fileName && latest.downloadPath === filePath;
+      if (contractPreserved) {
+        this.logger.log(
+          this.logContext(exportId, attemptCount, {
+            filePath,
+            fileName,
+            state: latest.status,
+          }),
+          'queue.job.idempotent.contract_preserved',
+        );
+        return false;
+      }
+
+      this.logger.error(
+        this.logContext(exportId, attemptCount, {
+          expectedFilePath: filePath,
+          expectedFileName: fileName,
+          actualFilePath: latest.downloadPath,
+          actualFileName: latest.fileName,
+          state: latest.status,
+        }),
+        'queue.job.idempotent.contract_mismatch',
+      );
+
+      throw new UnrecoverableError('Completed export output contract mismatch');
+    }
+
     this.logger.warn(
       this.logContext(exportId, attemptCount, { filePath }),
       'queue.job.idempotent.skip_stale_completion',
@@ -272,6 +301,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
 
   private isTerminalFailure(error: unknown): boolean {
     return (
+      error instanceof UnrecoverableError ||
       error instanceof BadRequestException ||
       error instanceof ConflictException ||
       error instanceof NotFoundException ||

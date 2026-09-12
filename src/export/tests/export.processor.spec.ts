@@ -420,4 +420,105 @@ describe('ExportProcessor', () => {
       'queue.job.failed.retryable',
     );
   });
+
+  it('should preserve logical output contract on repeated completion write', async () => {
+    const exportId = 'export-10';
+    const fileName = 'file.pdf';
+    const expectedPath = `${process.cwd()}/tmp/exports/${exportId}.pdf`;
+
+    repository.findById
+      .mockResolvedValueOnce({ id: exportId, fileName, status: ExportStatus.PENDING })
+      .mockResolvedValueOnce({
+        id: exportId,
+        fileName,
+        downloadPath: expectedPath,
+        status: ExportStatus.COMPLETED,
+      });
+
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.PROCESSING) {
+        return { id: exportId, status: ExportStatus.PROCESSING };
+      }
+
+      if (status === ExportStatus.COMPLETED) {
+        return null;
+      }
+
+      return { id: exportId, status };
+    });
+
+    const job = {
+      data: { exportId },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).resolves.toBeUndefined();
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId,
+        attemptCount: 1,
+        filePath: expectedPath,
+        fileName,
+        state: ExportStatus.COMPLETED,
+      }),
+      'queue.job.idempotent.contract_preserved',
+    );
+    expect(logger.error).not.toHaveBeenCalledWith(
+      expect.objectContaining({ exportId }),
+      'queue.job.idempotent.contract_mismatch',
+    );
+  });
+
+  it('should fail terminally when repeated completion violates output contract', async () => {
+    const exportId = 'export-11';
+    repository.findById
+      .mockResolvedValueOnce({ id: exportId, fileName: 'file.pdf', status: ExportStatus.PENDING })
+      .mockResolvedValueOnce({
+        id: exportId,
+        fileName: 'unexpected.pdf',
+        downloadPath: '/tmp/other.pdf',
+        status: ExportStatus.COMPLETED,
+      });
+
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.PROCESSING) {
+        return { id: exportId, status: ExportStatus.PROCESSING };
+      }
+
+      if (status === ExportStatus.COMPLETED) {
+        return null;
+      }
+
+      if (status === ExportStatus.FAILED) {
+        return { id: exportId, status: ExportStatus.FAILED };
+      }
+
+      return { id: exportId, status };
+    });
+
+    const job = {
+      data: { exportId },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).rejects.toBeInstanceOf(UnrecoverableError);
+
+    expect(logger.error).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId,
+        expectedFileName: 'file.pdf',
+        actualFileName: 'unexpected.pdf',
+      }),
+      'queue.job.idempotent.contract_mismatch',
+    );
+  });
 });

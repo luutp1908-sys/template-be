@@ -84,7 +84,7 @@ Tasks:
 - [x] Define idempotency rules for export jobs by `exportId`.
 - [x] Prevent duplicate processing from overwriting a completed export unexpectedly.
 - [x] Guard status transitions so invalid state changes are rejected or ignored safely.
-- [ ] Ensure repeated completion writes keep the same logical output contract.
+- [x] Ensure repeated completion writes keep the same logical output contract.
 - [ ] Add tests for duplicate queue delivery and replayed worker execution.
 
 Exit criteria:
