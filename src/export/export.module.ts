@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule, getQueueToken } from '@nestjs/bullmq';
+import { LoggerModule } from 'nestjs-pino';
 import { ExportController } from './export.controller';
 import { ExportProcessor } from './export.processor';
 import { ExportService } from './export.service';
@@ -19,6 +20,7 @@ const queueProviders = isMock
 
 @Module({
   imports: [
+    LoggerModule.forRoot(),
     ...queueImports,
     WorkspaceModule,
     TemplateModule,

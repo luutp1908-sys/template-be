@@ -2,12 +2,12 @@ import {
   ConflictException,
   Inject,
   Injectable,
-  Logger,
   NotFoundException,
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
+import { Logger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 import { JobsOptions, Queue } from 'bullmq';
 import { existsSync } from 'fs';

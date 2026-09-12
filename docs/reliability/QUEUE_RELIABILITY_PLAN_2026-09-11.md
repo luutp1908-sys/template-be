@@ -103,7 +103,11 @@ Tasks:
 - [x] Define cleanup policy for completed and failed job artifacts.
   - Any failed export attempt removes the generated temporary PDF artifact from `tmp/exports` before the failure is recorded.
   - Completed exports keep their generated artifact until the application chooses a durable storage migration or explicit retention policy. The default queue policy keeps the job record and output file available for the current learning setup while job metadata is retained.
-- [ ] Document manual recovery steps for stuck or orphaned export records.
+- [x] Document manual recovery steps for stuck or orphaned export records.
+  - If a job stays in `waiting` or `active` too long, check Redis queue state and worker heartbeat. A stale worker heartbeat means the processor likely died; BullMQ should reclaim the job after `lockDuration` and `stalledInterval` recovery settings.
+  - If the job record is still `processing` after the worker is back, inspect the export row by `exportId` and confirm whether the worker actually generated a file. If no file exists and the job is older than the retry window, reset it back to `pending` for another attempt or mark it `failed` with the last error message.
+  - If the export file exists but the DB record is missing or orphaned, reconcile by comparing the file name in `tmp/exports` to the export record. If the record is absent, keep the file as non-linked output and remove it only after confirming no active consumer depends on it.
+  - For a genuine orphaned row, update the export status to `failed` with a clear recovery note, then enqueue a new job only when the export payload is still valid and deduplicated by `exportId`.
 
 Exit criteria:
 - Restart scenarios and stuck-job handling have explicit operational behavior.
@@ -113,7 +117,12 @@ Exit criteria:
 Objective: make queue failure visible quickly.
 
 Tasks:
-- [ ] Publish queue metrics taxonomy entries for enqueue, backlog, retries, failures, and processing duration.
+- [x] Publish queue metrics taxonomy entries for enqueue, backlog, retries, failures, and processing duration.
+  - `queue.enqueued.total` counts successful export job submissions.
+  - `queue.backlog.waiting` and `queue.backlog.delayed` are surfaced via queue readiness job counts.
+  - `queue.job.retries` tracks retryable failure re-entries and exhausted retries.
+  - `queue.job.failures.total` captures terminal and retry-exhausted failure states.
+  - `queue.job.processing.duration_ms` is captured from the worker lifecycle around `queue.job.started` to `queue.job.completed` and `queue.job.failed.*` logs.
 - [ ] Expose queue backlog and failure signals through durable metrics export.
 - [ ] Add alerts for:
   - worker heartbeat stale

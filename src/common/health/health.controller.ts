@@ -44,13 +44,15 @@ export class HealthController {
   }
 
   @Get('metrics')
-  metrics() {
+  async metrics() {
     const metrics = this.metricsService.snapshot();
     const cache = this.cacheService.snapshot();
+    const queue = this.queueHealthService ? await this.queueHealthService.checkReadiness() : undefined;
 
     return {
       ...metrics,
       cache,
+      queue,
       saturation: {
         cacheBackendAvailable: cache.backendAvailable,
         cacheFallbackEvents: cache.fallbackEvents,
