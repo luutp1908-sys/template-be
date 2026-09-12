@@ -521,4 +521,85 @@ describe('ExportProcessor', () => {
       'queue.job.idempotent.contract_mismatch',
     );
   });
+
+  it('should treat duplicate queue delivery for the same exportId as idempotent', async () => {
+    const exportId = 'export-dup-1';
+    const inMemoryState = {
+      id: exportId,
+      fileName: 'file.pdf',
+      status: ExportStatus.PENDING,
+      downloadPath: undefined as string | undefined,
+    };
+
+    repository.findById.mockImplementation(async () => ({ ...inMemoryState }));
+    repository.updateStatus.mockImplementation(async (_id: string, status: string, data: any) => {
+      if (status === ExportStatus.PROCESSING && inMemoryState.status === ExportStatus.PENDING) {
+        inMemoryState.status = ExportStatus.PROCESSING;
+        return { ...inMemoryState };
+      }
+
+      if (status === ExportStatus.COMPLETED && inMemoryState.status === ExportStatus.PROCESSING) {
+        inMemoryState.status = ExportStatus.COMPLETED;
+        inMemoryState.downloadPath = data.downloadPath;
+        return { ...inMemoryState };
+      }
+
+      return null;
+    });
+
+    const firstDelivery = {
+      data: { exportId },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+    const duplicateDelivery = {
+      data: { exportId },
+      attemptsMade: 1,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(firstDelivery)).resolves.toBeUndefined();
+    await expect(processor.process(duplicateDelivery)).resolves.toBeUndefined();
+
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({ exportId }),
+      'queue.job.completed',
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId,
+        state: ExportStatus.COMPLETED,
+      }),
+      'queue.job.idempotent.skip_completed',
+    );
+  });
+
+  it('should keep replayed worker execution stable after completion', async () => {
+    const exportId = 'export-replay-1';
+    const completedPath = `${process.cwd()}/tmp/exports/${exportId}.pdf`;
+
+    repository.findById.mockResolvedValue({
+      id: exportId,
+      fileName: 'file.pdf',
+      status: ExportStatus.COMPLETED,
+      downloadPath: completedPath,
+    });
+
+    const replayedJob = {
+      data: { exportId },
+      attemptsMade: 2,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(replayedJob)).resolves.toBeUndefined();
+
+    expect(repository.updateStatus).not.toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        exportId,
+        state: ExportStatus.COMPLETED,
+      }),
+      'queue.job.idempotent.skip_completed',
+    );
+  });
 });
