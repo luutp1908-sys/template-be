@@ -100,7 +100,9 @@ Tasks:
   - On a worker crash while a job is `active`, BullMQ releases the lock after `lockDuration` (60s). The stalled checker runs every `stalledInterval` (30s) and can recover the job once (`maxStalledCount = 1`) back to the wait queue.
   - Replayed or duplicate processing is still protected by `exportId` idempotency and repository compare-and-set status transitions, so a stale completion or failed write cannot overwrite a newer state.
 - [ ] Move export output from local `tmp/exports` to durable storage when ready.
-- [ ] Define cleanup policy for completed and failed job artifacts.
+- [x] Define cleanup policy for completed and failed job artifacts.
+  - Any failed export attempt removes the generated temporary PDF artifact from `tmp/exports` before the failure is recorded.
+  - Completed exports keep their generated artifact until the application chooses a durable storage migration or explicit retention policy. The default queue policy keeps the job record and output file available for the current learning setup while job metadata is retained.
 - [ ] Document manual recovery steps for stuck or orphaned export records.
 
 Exit criteria:

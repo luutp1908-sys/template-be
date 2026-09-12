@@ -9,7 +9,7 @@ import {
 } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job, UnrecoverableError } from 'bullmq';
-import { writeFileSync, mkdirSync } from 'fs';
+import { writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { Logger } from 'nestjs-pino';
 import { ExportEntity, ExportStatus } from './export.entity';
@@ -232,6 +232,8 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     const maxAttempts = this.resolveMaxAttempts(job, attemptCount);
     const retriesExhausted = !terminalFailure && attemptCount >= maxAttempts;
 
+    this.cleanupGeneratedArtifact(exportId);
+
     const failed = await this.markFailed(exportId, attemptCount, error);
     if (!failed) {
       return;
@@ -269,6 +271,18 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     }
 
     throw error;
+  }
+
+  private cleanupGeneratedArtifact(exportId: string): void {
+    const artifactPath = join(process.cwd(), 'tmp', 'exports', `${exportId}.pdf`);
+
+    if (existsSync(artifactPath)) {
+      try {
+        unlinkSync(artifactPath);
+      } catch {
+        // Best-effort cleanup for failed export artifacts.
+      }
+    }
   }
 
   private async markFailed(

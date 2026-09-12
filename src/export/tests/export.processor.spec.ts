@@ -1,6 +1,8 @@
 import { ConflictException } from '@nestjs/common';
 import { Job, UnrecoverableError } from 'bullmq';
 import { Logger } from 'nestjs-pino';
+import { existsSync, unlinkSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
+import { join } from 'path';
 import { ExportProcessor } from '../export.processor';
 import { ExportStatus } from '../export.entity';
 
@@ -40,6 +42,34 @@ describe('ExportProcessor', () => {
       maxStalledCount: 1,
       lockDuration: 60_000,
     });
+  });
+
+  it('should delete generated export artifact when a job fails', async () => {
+    const exportId = 'export-cleanup-1';
+    const artifactPath = join(process.cwd(), 'tmp', 'exports', `${exportId}.pdf`);
+    mkdirSync(join(process.cwd(), 'tmp', 'exports'), { recursive: true });
+    writeFileSync(artifactPath, 'pdf stub');
+
+    jest.spyOn(require('fs'), 'unlinkSync').mockImplementation(() => undefined);
+
+    repository.findById.mockResolvedValue({ id: exportId, fileName: 'file.pdf' });
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => {
+      if (status === ExportStatus.COMPLETED) {
+        throw new Error('Temporary render failure');
+      }
+
+      return { id: exportId, status };
+    });
+
+    const job = {
+      data: { exportId },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+    } as Job<{ exportId: string }>;
+
+    await expect(processor.process(job)).rejects.toThrow('Temporary render failure');
+
+    expect(require('fs').unlinkSync).toHaveBeenCalledWith(artifactPath);
   });
 
   it('should log retry scheduled for retryable failures with attempts remaining', async () => {
