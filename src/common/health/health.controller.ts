@@ -49,8 +49,12 @@ export class HealthController {
     const cache = this.cacheService.snapshot();
     const queue = this.queueHealthService ? await this.queueHealthService.checkReadiness() : undefined;
 
+    if (queue && typeof this.metricsService.recordQueueHealth === 'function') {
+      this.metricsService.recordQueueHealth(queue);
+    }
+
     return {
-      ...metrics,
+      ...this.metricsService.snapshot(),
       cache,
       queue,
       saturation: {

@@ -13,6 +13,24 @@ export interface RequestMetricSnapshot {
     min: number;
   };
   latencyBuckets: Record<string, number>;
+  queue: {
+    backlog: {
+      waiting: number;
+      active: number;
+      delayed: number;
+      total: number;
+    };
+    failures: {
+      failedJobs: number;
+      retryable: number;
+      terminal: number;
+    };
+    workers: {
+      total: number;
+      healthy: boolean;
+      staleCount: number;
+    };
+  };
 }
 
 @Injectable()
@@ -27,6 +45,24 @@ export class MetricsService {
     '1000+': 0,
   };
   private requestsTotal = 0;
+  private queueSnapshot = {
+    backlog: {
+      waiting: 0,
+      active: 0,
+      delayed: 0,
+      total: 0,
+    },
+    failures: {
+      failedJobs: 0,
+      retryable: 0,
+      terminal: 0,
+    },
+    workers: {
+      total: 0,
+      healthy: true,
+      staleCount: 0,
+    },
+  };
 
   recordRequest(statusCode: number, durationMs: number): void {
     this.requestsTotal += 1;
@@ -44,6 +80,40 @@ export class MetricsService {
     } else {
       this.latencyBuckets['1000+'] += 1;
     }
+  }
+
+  recordQueueHealth(health: {
+    healthy?: boolean;
+    details?: {
+      jobCounts?: Record<string, number>;
+      workers?: Array<{ healthy?: boolean }>;
+    };
+  }): void {
+    const jobCounts = health.details?.jobCounts ?? {};
+    const workers = health.details?.workers ?? [];
+    const waiting = Number(jobCounts.waiting ?? 0);
+    const active = Number(jobCounts.active ?? 0);
+    const delayed = Number(jobCounts.delayed ?? 0);
+    const failedJobs = Number(jobCounts.failed ?? 0);
+
+    this.queueSnapshot = {
+      backlog: {
+        waiting,
+        active,
+        delayed,
+        total: waiting + active + delayed,
+      },
+      failures: {
+        failedJobs,
+        retryable: failedJobs,
+        terminal: failedJobs,
+      },
+      workers: {
+        total: workers.length,
+        healthy: health.healthy ?? workers.every((worker) => worker.healthy !== false),
+        staleCount: workers.filter((worker) => worker.healthy === false).length,
+      },
+    };
   }
 
   snapshot(): RequestMetricSnapshot {
@@ -76,6 +146,11 @@ export class MetricsService {
         min,
       },
       latencyBuckets: { ...this.latencyBuckets },
+      queue: {
+        backlog: { ...this.queueSnapshot.backlog },
+        failures: { ...this.queueSnapshot.failures },
+        workers: { ...this.queueSnapshot.workers },
+      },
     };
   }
 }

@@ -24,6 +24,44 @@ describe('MetricsService', () => {
     expect(snapshot.latencyBuckets['1000+']).toBe(1);
   });
 
+  it('tracks queue backlog and failure signals in the exported metrics', () => {
+    const service = new MetricsService();
+
+    service.recordQueueHealth({
+      required: true,
+      enabled: true,
+      healthy: false,
+      status: 'degraded',
+      details: {
+        queueName: 'pdf-export',
+        jobCounts: {
+          waiting: 6,
+          active: 2,
+          completed: 30,
+          failed: 8,
+          delayed: 3,
+        },
+        workers: [
+          {
+            workerName: 'pdf-export',
+            healthy: false,
+            lastHeartbeatAt: '2026-09-12T00:00:00.000Z',
+            ageMs: 120000,
+          },
+        ],
+        staleAfterMs: 90000,
+      },
+    } as any);
+
+    const snapshot = service.snapshot();
+
+    expect(snapshot.queue.backlog.waiting).toBe(6);
+    expect(snapshot.queue.backlog.delayed).toBe(3);
+    expect(snapshot.queue.failures.failedJobs).toBe(8);
+    expect(snapshot.queue.workers.healthy).toBe(false);
+    expect(snapshot.queue.workers.staleCount).toBe(1);
+  });
+
   it('returns zeroed metrics when no requests have been recorded yet', () => {
     const service = new MetricsService();
     const snapshot = service.snapshot();
