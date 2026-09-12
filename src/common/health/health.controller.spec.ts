@@ -93,5 +93,57 @@ describe('HealthController', () => {
         jobCounts: { waiting: 2, active: 1, completed: 12, failed: 3, delayed: 1 },
       },
     });
+    expect(result.alerts).toMatchObject({
+      workerHeartbeatStale: false,
+      backlogGrowth: false,
+      repeatedQueueFailures: false,
+      redisConnectivityDegraded: false,
+    });
+  });
+
+  it('surfaces queue alert conditions when worker or backlog health is degraded', async () => {
+    const controller = new HealthController(
+      { get: jest.fn() } as any,
+      { $queryRaw: jest.fn() } as any,
+      {
+        snapshot: () => ({
+          requestsTotal: 0,
+          requestsByStatus: {},
+          errorRate: 0,
+          requestLatencyMs: { average: 0, p50: 0, p90: 0, p95: 0, max: 0, min: 0 },
+          latencyBuckets: { '0-100': 0, '100-300': 0, '300-500': 0, '500-1000': 0, '1000+': 0 },
+          queue: {
+            backlog: { waiting: 30, active: 4, delayed: 12, total: 46 },
+            failures: { failedJobs: 8, retryable: 8, terminal: 8 },
+            workers: { total: 1, healthy: false, staleCount: 1 },
+            alerts: { workerHeartbeatStale: false, backlogGrowth: false, repeatedQueueFailures: false, redisConnectivityDegraded: false },
+          },
+        }),
+        recordQueueHealth: jest.fn(),
+      } as any,
+      { snapshot: () => ({ hits: 0, misses: 0, sets: 0, deletes: 0, fallbackEvents: 0, backendAvailable: true, bypassEnabled: false, forceRefreshEnabled: false }) } as any,
+      {
+        checkReadiness: jest.fn().mockResolvedValue({
+          required: true,
+          enabled: true,
+          healthy: false,
+          status: 'degraded',
+          details: {
+            queueName: 'pdf-export',
+            jobCounts: { waiting: 30, active: 4, delayed: 12, failed: 8 },
+            workers: [{ workerName: 'pdf-export', healthy: false, lastHeartbeatAt: '2026-09-12T00:00:00.000Z', ageMs: 150000 }],
+            staleAfterMs: 90000,
+          },
+        }),
+      } as any,
+    );
+
+    const result = await controller.metrics();
+
+    expect(result.queue).toMatchObject({
+      healthy: false,
+      status: 'degraded',
+    });
+    expect(result.alerts).toBeDefined();
   });
 });

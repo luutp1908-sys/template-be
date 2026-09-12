@@ -124,7 +124,7 @@ Tasks:
   - `queue.job.failures.total` captures terminal and retry-exhausted failure states.
   - `queue.job.processing.duration_ms` is captured from the worker lifecycle around `queue.job.started` to `queue.job.completed` and `queue.job.failed.*` logs.
 - [x] Expose queue backlog and failure signals through durable metrics export.
-- [ ] Add alerts for:
+- [x] Add alerts for:
   - worker heartbeat stale
   - repeated queue job failures
   - backlog growth

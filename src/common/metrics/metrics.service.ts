@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
+export interface QueueAlertSnapshot {
+  workerHeartbeatStale: boolean;
+  backlogGrowth: boolean;
+  repeatedQueueFailures: boolean;
+  redisConnectivityDegraded: boolean;
+}
+
 export interface RequestMetricSnapshot {
   requestsTotal: number;
   requestsByStatus: Record<string, number>;
@@ -30,6 +37,7 @@ export interface RequestMetricSnapshot {
       healthy: boolean;
       staleCount: number;
     };
+    alerts: QueueAlertSnapshot;
   };
 }
 
@@ -43,6 +51,11 @@ export class MetricsService {
     '300-500': 0,
     '500-1000': 0,
     '1000+': 0,
+  };
+  private readonly alertThresholds = {
+    backlogGrowth: 20,
+    repeatedQueueFailures: 5,
+    staleAfterMs: 90_000,
   };
   private requestsTotal = 0;
   private queueSnapshot = {
@@ -61,6 +74,12 @@ export class MetricsService {
       total: 0,
       healthy: true,
       staleCount: 0,
+    },
+    alerts: {
+      workerHeartbeatStale: false,
+      backlogGrowth: false,
+      repeatedQueueFailures: false,
+      redisConnectivityDegraded: false,
     },
   };
 
@@ -84,17 +103,27 @@ export class MetricsService {
 
   recordQueueHealth(health: {
     healthy?: boolean;
+    status?: string;
     details?: {
       jobCounts?: Record<string, number>;
-      workers?: Array<{ healthy?: boolean }>;
+      workers?: Array<{ healthy?: boolean; ageMs?: number }>;
+      staleAfterMs?: number;
     };
   }): void {
     const jobCounts = health.details?.jobCounts ?? {};
     const workers = health.details?.workers ?? [];
+    const staleAfterMs = Number(health.details?.staleAfterMs ?? this.alertThresholds.staleAfterMs);
     const waiting = Number(jobCounts.waiting ?? 0);
     const active = Number(jobCounts.active ?? 0);
     const delayed = Number(jobCounts.delayed ?? 0);
     const failedJobs = Number(jobCounts.failed ?? 0);
+    const workerHeartbeatStale = workers.some((worker) => {
+      const ageMs = Number(worker.ageMs ?? 0);
+      return worker.healthy === false || ageMs > staleAfterMs;
+    });
+    const backlogGrowth = waiting + delayed > this.alertThresholds.backlogGrowth;
+    const repeatedQueueFailures = failedJobs > this.alertThresholds.repeatedQueueFailures;
+    const redisConnectivityDegraded = health.status === 'degraded' || health.healthy === false;
 
     this.queueSnapshot = {
       backlog: {
@@ -111,7 +140,13 @@ export class MetricsService {
       workers: {
         total: workers.length,
         healthy: health.healthy ?? workers.every((worker) => worker.healthy !== false),
-        staleCount: workers.filter((worker) => worker.healthy === false).length,
+        staleCount: workers.filter((worker) => worker.healthy === false || Number(worker.ageMs ?? 0) > staleAfterMs).length,
+      },
+      alerts: {
+        workerHeartbeatStale,
+        backlogGrowth,
+        repeatedQueueFailures,
+        redisConnectivityDegraded,
       },
     };
   }
@@ -150,6 +185,7 @@ export class MetricsService {
         backlog: { ...this.queueSnapshot.backlog },
         failures: { ...this.queueSnapshot.failures },
         workers: { ...this.queueSnapshot.workers },
+        alerts: { ...this.queueSnapshot.alerts },
       },
     };
   }

@@ -35,11 +35,11 @@ describe('MetricsService', () => {
       details: {
         queueName: 'pdf-export',
         jobCounts: {
-          waiting: 6,
+          waiting: 30,
           active: 2,
           completed: 30,
           failed: 8,
-          delayed: 3,
+          delayed: 12,
         },
         workers: [
           {
@@ -55,11 +55,15 @@ describe('MetricsService', () => {
 
     const snapshot = service.snapshot();
 
-    expect(snapshot.queue.backlog.waiting).toBe(6);
-    expect(snapshot.queue.backlog.delayed).toBe(3);
+    expect(snapshot.queue.backlog.waiting).toBe(30);
+    expect(snapshot.queue.backlog.delayed).toBe(12);
     expect(snapshot.queue.failures.failedJobs).toBe(8);
     expect(snapshot.queue.workers.healthy).toBe(false);
     expect(snapshot.queue.workers.staleCount).toBe(1);
+    expect(snapshot.queue.alerts.workerHeartbeatStale).toBe(true);
+    expect(snapshot.queue.alerts.backlogGrowth).toBe(true);
+    expect(snapshot.queue.alerts.repeatedQueueFailures).toBe(true);
+    expect(snapshot.queue.alerts.redisConnectivityDegraded).toBe(true);
   });
 
   it('returns zeroed metrics when no requests have been recorded yet', () => {

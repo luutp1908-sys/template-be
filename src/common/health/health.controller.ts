@@ -45,7 +45,6 @@ export class HealthController {
 
   @Get('metrics')
   async metrics() {
-    const metrics = this.metricsService.snapshot();
     const cache = this.cacheService.snapshot();
     const queue = this.queueHealthService ? await this.queueHealthService.checkReadiness() : undefined;
 
@@ -53,10 +52,19 @@ export class HealthController {
       this.metricsService.recordQueueHealth(queue);
     }
 
+    const metrics = this.metricsService.snapshot();
+    const queueAlerts = metrics.queue?.alerts ?? {
+      workerHeartbeatStale: false,
+      backlogGrowth: false,
+      repeatedQueueFailures: false,
+      redisConnectivityDegraded: false,
+    };
+
     return {
-      ...this.metricsService.snapshot(),
+      ...metrics,
+      alerts: queueAlerts,
       cache,
-      queue,
+      queue: queue ? { ...queue, alerts: queueAlerts } : undefined,
       saturation: {
         cacheBackendAvailable: cache.backendAvailable,
         cacheFallbackEvents: cache.fallbackEvents,
