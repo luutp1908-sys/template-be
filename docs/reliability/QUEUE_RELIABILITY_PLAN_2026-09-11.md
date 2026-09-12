@@ -129,12 +129,24 @@ Tasks:
   - repeated queue job failures
   - backlog growth
   - Redis connectivity degradation
-- [ ] Document queue incident runbook:
+- [x] Document queue incident runbook:
   - job stuck in waiting
   - job stuck in active
   - worker stale
   - Redis outage
-- [ ] Add one failure drill checklist for local learning.
+  - Recovery steps:
+    1. Check `/health/ready` and `/health/metrics` for queue status, stale worker flag, failed-job count, and backlog count.
+    2. Inspect Redis queue state with BullMQ job counts or the queue readiness response. If `waiting` or `delayed` is elevated, verify whether the queue is healthy or stalled.
+    3. For a job stuck in `waiting`, confirm that no worker heartbeat is stale and the queue is still accepting work. If the queue is healthy but jobs are not moving, inspect the worker logs for a crash/restart event; if the worker restarted, the lock should be reclaimed automatically according to the configured `lockDuration` and `stalledInterval`.
+    4. For a job stuck in `active`, check the worker heartbeat age. If the heartbeat is stale past `staleAfterMs` (90s by default), treat the worker as dead and allow BullMQ to reclaim the job after the stall recovery window. If the same export record is still `processing` in the DB with no generated file, reset it to a retryable state after verifying the output artifact is absent.
+    5. For a stale worker, confirm the worker health registry heartbeat and compare it to the queue readiness `workers` list. If all workers are unhealthy, restart the worker process and re-check `queue.job.failed.*` and backlog counts before resubmitting work.
+    6. For Redis outage, first inspect the readiness `redis` check, then stop queue submissions through the export service guard and avoid re-enqueuing work until Redis connectivity is back. Once Redis is stable, re-run the queue readiness probe and verify workers recover their heartbeats before returning to normal export processing.
+- [x] Add one failure drill checklist for local learning.
+  - Trigger a stale heartbeat by stopping the queue worker while leaving Redis running, then confirm `queueHealthService.checkReadiness()` reports `healthy: false` and the metrics endpoint surfaces `workerHeartbeatStale: true`.
+  - Trigger backlog pressure by enqueueing a burst of export jobs and confirm `waiting + delayed` exceeds the alert threshold and shows `backlogGrowth: true`.
+  - Trigger repeated failures by simulating a transient processor exception or a forced failed export and confirm `failedJobs` crosses the repeated-failure threshold and sets `repeatedQueueFailures: true`.
+  - Trigger Redis degradation by temporarily stopping Redis and confirming the `redis` readiness check flips to `degraded`, the queue health payload marks `redisConnectivityDegraded: true`, and exports fail fast before submission.
+  - Recovery validation: re-start Redis or the worker, confirm the health endpoint returns `status: "ok"`, and verify the queue backlog drops back to normal before resuming normal export flow.
 
 Exit criteria:
 - Queue incidents are visible through metrics, readiness, logs, and a runbook.
