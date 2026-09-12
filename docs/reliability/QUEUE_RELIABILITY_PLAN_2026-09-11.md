@@ -96,7 +96,9 @@ Objective: improve behavior across process restarts and infrastructure incidents
 
 Tasks:
 - [x] Review BullMQ stalled-job behavior and document chosen settings.
-- [ ] Add recovery expectations for worker restart during processing.
+- [x] Add recovery expectations for worker restart during processing.
+  - On a worker crash while a job is `active`, BullMQ releases the lock after `lockDuration` (60s). The stalled checker runs every `stalledInterval` (30s) and can recover the job once (`maxStalledCount = 1`) back to the wait queue.
+  - Replayed or duplicate processing is still protected by `exportId` idempotency and repository compare-and-set status transitions, so a stale completion or failed write cannot overwrite a newer state.
 - [ ] Move export output from local `tmp/exports` to durable storage when ready.
 - [ ] Define cleanup policy for completed and failed job artifacts.
 - [ ] Document manual recovery steps for stuck or orphaned export records.
@@ -141,7 +143,7 @@ Exit criteria:
 - [x] queue disabled behavior is explicit and tested
 - [x] retry policy behaves as configured
 - [x] duplicate processing is idempotent
-- [ ] stalled worker or stale heartbeat is surfaced
+- [x] stalled worker or stale heartbeat is surfaced
 
 ### Documentation
 - [ ] retry/backoff policy documented
