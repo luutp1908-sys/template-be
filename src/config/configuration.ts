@@ -29,6 +29,12 @@ export default () => ({
       removeOnCompleteCount: Number(process.env.QUEUE_EXPORT_REMOVE_ON_COMPLETE_COUNT ?? 1000),
       removeOnFail: process.env.QUEUE_EXPORT_REMOVE_ON_FAIL === 'true',
     },
+    exportWorker: {
+      concurrency: Number(process.env.QUEUE_EXPORT_WORKER_CONCURRENCY ?? 1),
+      stalledIntervalMs: Number(process.env.QUEUE_EXPORT_STALLED_INTERVAL_MS ?? 30000),
+      maxStalledCount: Number(process.env.QUEUE_EXPORT_MAX_STALLED_COUNT ?? 1),
+      lockDurationMs: Number(process.env.QUEUE_EXPORT_LOCK_DURATION_MS ?? 60000),
+    },
   },
   redis: {
     host: process.env.REDIS_HOST ?? 'localhost',

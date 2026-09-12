@@ -17,7 +17,21 @@ import { IExportRepository } from './interfaces/export.repository.interface';
 import { EXPORT_REPOSITORY } from './export.tokens';
 import { WorkerHealthRegistry } from '../queue/worker-health.registry';
 
-@Processor('pdf-export')
+export const EXPORT_WORKER_DEFAULT_OPTIONS = {
+  concurrency: Number(process.env.QUEUE_EXPORT_WORKER_CONCURRENCY ?? 1),
+  stalledInterval: Number(process.env.QUEUE_EXPORT_STALLED_INTERVAL_MS ?? 30_000),
+  maxStalledCount: Number(process.env.QUEUE_EXPORT_MAX_STALLED_COUNT ?? 1),
+  lockDuration: Number(process.env.QUEUE_EXPORT_LOCK_DURATION_MS ?? 60_000),
+} as const;
+
+const exportProcessorWorkerOptions = {
+  concurrency: Number(process.env.QUEUE_EXPORT_WORKER_CONCURRENCY ?? EXPORT_WORKER_DEFAULT_OPTIONS.concurrency),
+  stalledInterval: Number(process.env.QUEUE_EXPORT_STALLED_INTERVAL_MS ?? EXPORT_WORKER_DEFAULT_OPTIONS.stalledInterval),
+  maxStalledCount: Number(process.env.QUEUE_EXPORT_MAX_STALLED_COUNT ?? EXPORT_WORKER_DEFAULT_OPTIONS.maxStalledCount),
+  lockDuration: Number(process.env.QUEUE_EXPORT_LOCK_DURATION_MS ?? EXPORT_WORKER_DEFAULT_OPTIONS.lockDuration),
+};
+
+@Processor('pdf-export', exportProcessorWorkerOptions)
 export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModuleDestroy {
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private readonly queueName = 'pdf-export';
@@ -29,6 +43,10 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     private readonly logger: Logger,
   ) {
     super();
+  }
+
+  static getWorkerOptions() {
+    return { ...exportProcessorWorkerOptions };
   }
 
   onModuleInit(): void {

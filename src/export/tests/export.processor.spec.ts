@@ -31,6 +31,17 @@ describe('ExportProcessor', () => {
     );
   });
 
+  it('should expose explicit stalled-job recovery defaults for the export worker', () => {
+    const workerOptions = ExportProcessor.getWorkerOptions();
+
+    expect(workerOptions).toMatchObject({
+      concurrency: 1,
+      stalledInterval: 30_000,
+      maxStalledCount: 1,
+      lockDuration: 60_000,
+    });
+  });
+
   it('should log retry scheduled for retryable failures with attempts remaining', async () => {
     repository.findById.mockResolvedValue({ id: 'export-1', fileName: 'file.pdf' });
 

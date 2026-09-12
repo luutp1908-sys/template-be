@@ -95,7 +95,7 @@ Exit criteria:
 Objective: improve behavior across process restarts and infrastructure incidents.
 
 Tasks:
-- [ ] Review BullMQ stalled-job behavior and document chosen settings.
+- [x] Review BullMQ stalled-job behavior and document chosen settings.
 - [ ] Add recovery expectations for worker restart during processing.
 - [ ] Move export output from local `tmp/exports` to durable storage when ready.
 - [ ] Define cleanup policy for completed and failed job artifacts.

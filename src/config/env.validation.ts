@@ -39,6 +39,10 @@ const envSchema = Joi.object({
   QUEUE_EXPORT_BACKOFF_DELAY_MS: Joi.number().integer().min(100).default(5000),
   QUEUE_EXPORT_REMOVE_ON_COMPLETE_COUNT: Joi.number().integer().min(1).default(1000),
   QUEUE_EXPORT_REMOVE_ON_FAIL: Joi.boolean().truthy('true').falsy('false').default(false),
+  QUEUE_EXPORT_WORKER_CONCURRENCY: Joi.number().integer().min(1).default(1),
+  QUEUE_EXPORT_STALLED_INTERVAL_MS: Joi.number().integer().min(1000).default(30000),
+  QUEUE_EXPORT_MAX_STALLED_COUNT: Joi.number().integer().min(0).default(1),
+  QUEUE_EXPORT_LOCK_DURATION_MS: Joi.number().integer().min(1000).default(60000),
   DATABASE_URL: Joi.when('MOCK_MODE', {
     is: true,
     then: Joi.string().optional(),
