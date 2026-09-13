@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { Logger } from 'nestjs-pino';
 import { MetricsService } from '../common/metrics/metrics.service';
 
@@ -14,31 +15,91 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     super();
   }
 
+  private buildQueryText(query: Prisma.Sql | TemplateStringsArray, values: any[]): string {
+    if (typeof (query as any).sql === 'string') {
+      return (query as any).sql;
+    }
+
+    if (Array.isArray(query)) {
+      return String.raw({ raw: query } as any, ...values);
+    }
+
+    return String(query);
+  }
+
+  private startQuerySpan(operation: string, query: Prisma.Sql | TemplateStringsArray, values: any[]) {
+    const tracer = trace.getTracer('be.prisma');
+    const statement = this.buildQueryText(query, values).slice(0, 2048);
+    const span = tracer.startSpan(`prisma.${operation}`, {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'db.system': 'postgresql',
+        'db.operation': operation,
+        'db.statement': statement,
+        'db.name': this.configService.get<string>('database.name', 'postgres'),
+      },
+    });
+
+    return {
+      span,
+      startedAt: Date.now(),
+    };
+  }
+
+  private finalizeQuerySpan(
+    span: Span,
+    startedAt: number,
+    success: boolean,
+    error?: unknown,
+  ): void {
+    const duration = Date.now() - startedAt;
+
+    span.setAttributes({
+      'db.duration_ms': duration,
+      'db.result': success ? 'success' : 'error',
+    });
+
+    if (success) {
+      span.setStatus({ code: SpanStatusCode.OK });
+    } else {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : 'Database query failed',
+      });
+    }
+
+    span.end();
+  }
+
   override $queryRaw<T>(query: Prisma.Sql | TemplateStringsArray, ...values: any[]): any {
-    const startedAt = Date.now();
+    const { span, startedAt } = this.startQuerySpan('query_raw', query, values);
     const promise = super.$queryRaw(query as any, ...values) as any;
 
     return promise
       .then((result: T) => {
+        this.finalizeQuerySpan(span, startedAt, true);
         this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, true);
         return result;
       })
       .catch((error: unknown) => {
+        this.finalizeQuerySpan(span, startedAt, false, error);
         this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, false);
         throw error;
       });
   }
 
   override $executeRaw(query: Prisma.Sql | TemplateStringsArray, ...values: any[]): any {
-    const startedAt = Date.now();
+    const { span, startedAt } = this.startQuerySpan('execute_raw', query, values);
     const promise = super.$executeRaw(query as any, ...values) as any;
 
     return promise
       .then((result: number) => {
+        this.finalizeQuerySpan(span, startedAt, true);
         this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, true);
         return result;
       })
       .catch((error: unknown) => {
+        this.finalizeQuerySpan(span, startedAt, false, error);
         this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, false);
         throw error;
       });
