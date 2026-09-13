@@ -175,9 +175,9 @@ Exit criteria:
 - One incident drill completed with evidence.
 - Root cause traceable across API and dependencies.
 
-## Implementation Task List
+## Implementation Checklist
 
-### Phase 1 Tasks
+### Phase 1: Foundation Hardening
 - [x] Implement readiness endpoint with DB, Redis, and queue worker checks.
 - [x] Keep liveness process-only on /api/v1/health and /api/v1/health/live.
 - [x] Update deploy workflow to gate on /api/v1/health/ready instead of /api/v1/health.
@@ -189,7 +189,7 @@ Exit criteria:
 - [x] Publish metrics taxonomy document for names, types, units, labels.
 - [x] Add label cardinality guardrails and naming conventions.
 
-### Phase 2 Tasks
+### Phase 2: Durable Telemetry
 - [ ] Add durable metrics export endpoint compatible with scraping.
 - [ ] Implement HTTP request counter and latency histogram metrics.
 - [ ] Implement exception count metrics grouped by status class and code.
@@ -203,7 +203,7 @@ Exit criteria:
 - [ ] Configure first alert set for 5xx, latency, restarts, and saturation.
 - [ ] Run non-production alert trigger tests and tune thresholds.
 
-### Phase 3 Tasks
+### Phase 3: Tracing and Incident Readiness
 - [ ] Add OpenTelemetry bootstrap and exporter configuration.
 - [ ] Instrument HTTP ingress with spans and request attributes.
 - [ ] Instrument Prisma calls with query latency spans.
@@ -216,43 +216,18 @@ Exit criteria:
 - [ ] Run one game day incident drill and capture findings.
 - [ ] Close post-drill action items and update runbook.
 
+### Status Summary
+- [x] Foundation complete
+- [ ] Metrics pipeline complete
+- [ ] Tracing complete
+- [ ] Alerting and runbooks complete
+
 ## Ownership and Operating Model
 
 - Engineering owner: Backend platform lead
 - Secondary owner: SRE/DevOps counterpart
 - Reviewers: API module owners (auth, template, export)
 - Cadence: weekly reliability review with checklist updates
-
-## Tracking Checklist
-
-### Foundation
-- [x] Readiness endpoint implemented
-- [x] Liveness endpoint kept process-only
-- [x] Deploy workflow gates on readiness
-- [x] Structured logging controls wired to config
-- [x] Redaction rules validated with tests
-
-### Metrics
-- [ ] Durable metrics export enabled
-- [x] HTTP metrics taxonomy finalized
-- [ ] Queue metrics added
-- [ ] DB metrics added
-- [ ] Cache hit/fallback metrics validated
-- [ ] Dashboards published
-
-### Tracing
-- [ ] OpenTelemetry bootstrap integrated
-- [ ] Prisma spans visible
-- [ ] Redis spans visible
-- [ ] BullMQ spans visible
-- [ ] Trace ID included in logs
-
-### Alerting and Runbooks
-- [ ] Alert catalog finalized
-- [ ] Severity and escalation policy published
-- [ ] Alert action docs linked
-- [ ] Game day executed
-- [ ] Post-game improvements closed
 
 ## Risks and Mitigations
 

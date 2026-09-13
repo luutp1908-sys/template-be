@@ -169,10 +169,23 @@ Exit criteria:
 - [x] stalled worker or stale heartbeat is surfaced
 
 ### Documentation
-- [ ] retry/backoff policy documented
-- [ ] failure-state meanings documented
-- [ ] manual recovery steps documented
-- [ ] alert thresholds documented
+- [x] retry/backoff policy documented
+  - Default export job attempts: `3`.
+  - Default backoff: exponential with `5000ms` delay.
+  - Retryable worker errors are re-thrown until the attempt limit is reached, while terminal errors such as validation, conflict, not-found, and explicit `UnrecoverableError` states fail immediately without retry.
+- [x] failure-state meanings documented
+  - `pending`: job accepted and queued, awaiting processing.
+  - `processing`: worker claimed the job and is generating the PDF artifact.
+  - `completed`: artifact and DB record agree on the final state and output contract.
+  - `failed`: terminal or retry-exhausted failure; the item is marked failed and the last error message is retained.
+- [x] manual recovery steps documented
+  - The queue incident runbook above covers waiting jobs, active jobs, stale workers, and Redis outage recovery flows.
+  - Recovery order is: verify readiness and metrics, inspect Redis/BullMQ state, confirm worker heartbeat, reclaim or retry only when the output artifact is absent, and avoid re-enqueueing while Redis is degraded.
+- [x] alert thresholds documented
+  - backlog growth: `waiting + delayed > 20`
+  - repeated queue failures: `failedJobs > 5`
+  - stale worker heartbeat: age greater than `90_000ms`
+  - Redis connectivity degraded: readiness status is `degraded` or `healthy === false`
 
 ## Suggested Order
 
