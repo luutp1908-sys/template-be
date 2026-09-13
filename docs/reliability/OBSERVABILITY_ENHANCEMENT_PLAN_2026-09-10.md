@@ -195,7 +195,7 @@ Exit criteria:
 - [x] Implement exception count metrics grouped by status class and code.
 - [x] Add queue depth, enqueue rate, failure, and retry metrics.
 - [x] Add DB operation latency and DB error metrics.
-- [ ] Add cache hit ratio and cache fallback event metrics.
+- [x] Add cache hit ratio and cache fallback event metrics.
 - [ ] Build API dashboard with latency, throughput, and error panels.
 - [ ] Build queue dashboard with backlog, failure, and retry panels.
 - [ ] Build DB and cache dashboard with saturation and error panels.

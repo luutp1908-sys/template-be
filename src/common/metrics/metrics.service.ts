@@ -50,6 +50,11 @@ export class MetricsService {
     success: 0,
     error: 0,
   };
+  private readonly cacheMetrics = {
+    hits: 0,
+    misses: 0,
+    fallbackEvents: 0,
+  };
   private readonly latencyBuckets: Record<string, number> = {
     '0-100': 0,
     '100-300': 0,
@@ -110,6 +115,17 @@ export class MetricsService {
     this.dbQueryLatencies.push(durationMs);
     const result = success ? 'success' : 'error';
     this.dbQueryResults[result] = (this.dbQueryResults[result] ?? 0) + 1;
+  }
+
+  recordCacheSnapshot(snapshot: {
+    hits?: number;
+    misses?: number;
+    fallbackEvents?: number;
+    backendAvailable?: boolean;
+  }): void {
+    this.cacheMetrics.hits = Number(snapshot.hits ?? this.cacheMetrics.hits);
+    this.cacheMetrics.misses = Number(snapshot.misses ?? this.cacheMetrics.misses);
+    this.cacheMetrics.fallbackEvents = Number(snapshot.fallbackEvents ?? this.cacheMetrics.fallbackEvents);
   }
 
   recordQueueHealth(health: {
@@ -267,6 +283,22 @@ export class MetricsService {
       }),
       `db_query_duration_ms_sum ${dbQueryLatencySum}`,
       `db_query_duration_ms_count ${this.dbQueryLatencies.length}`,
+      '',
+      '# HELP cache_hits_total Total cache hits.',
+      '# TYPE cache_hits_total counter',
+      `cache_hits_total ${this.cacheMetrics.hits}`,
+      '',
+      '# HELP cache_misses_total Total cache misses.',
+      '# TYPE cache_misses_total counter',
+      `cache_misses_total ${this.cacheMetrics.misses}`,
+      '',
+      '# HELP cache_fallback_events_total Total cache fallback events.',
+      '# TYPE cache_fallback_events_total counter',
+      `cache_fallback_events_total ${this.cacheMetrics.fallbackEvents}`,
+      '',
+      '# HELP cache_hit_ratio Ratio of cache hits to total cache attempts.',
+      '# TYPE cache_hit_ratio gauge',
+      `cache_hit_ratio ${this.cacheMetrics.hits + this.cacheMetrics.misses > 0 ? this.cacheMetrics.hits / (this.cacheMetrics.hits + this.cacheMetrics.misses) : 0}`,
       '',
       '# HELP queue_waiting_jobs Current number of waiting jobs.',
       '# TYPE queue_waiting_jobs gauge',

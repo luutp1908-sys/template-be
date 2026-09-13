@@ -30,6 +30,7 @@ describe('HealthController', () => {
             '1000+': 0,
           },
         }),
+        recordCacheSnapshot: jest.fn(),
       } as any,
       {
         snapshot: () => ({
@@ -50,6 +51,9 @@ describe('HealthController', () => {
 
     expect(result.errorRate).toBe(0.5);
     expect(result.requestLatencyMs.p95).toBe(400);
+    expect((controller as any).metricsService.recordCacheSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({ hits: 10, misses: 2, fallbackEvents: 1 }),
+    );
     expect(result.saturation).toMatchObject({
       cacheBackendAvailable: true,
       cacheFallbackEvents: 1,

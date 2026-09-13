@@ -148,6 +148,24 @@ describe('MetricsService', () => {
     expect(metrics).toContain('db_query_duration_ms_sum 297');
   });
 
+  it('records cache hit ratio and fallback events for Prometheus scraping', () => {
+    const service = new MetricsService();
+
+    service.recordCacheSnapshot({
+      hits: 80,
+      misses: 20,
+      fallbackEvents: 3,
+      backendAvailable: true,
+    } as any);
+
+    const metrics = service.getPrometheusMetrics();
+
+    expect(metrics).toContain('cache_hits_total 80');
+    expect(metrics).toContain('cache_misses_total 20');
+    expect(metrics).toContain('cache_fallback_events_total 3');
+    expect(metrics).toContain('cache_hit_ratio 0.8');
+  });
+
   it('returns zeroed metrics when no requests have been recorded yet', () => {
     const service = new MetricsService();
     const snapshot = service.snapshot();

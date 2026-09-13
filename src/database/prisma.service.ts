@@ -1,15 +1,47 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PrismaClient } from '@prisma/client';
+import { Prisma, PrismaClient } from '@prisma/client';
 import { Logger } from 'nestjs-pino';
+import { MetricsService } from '../common/metrics/metrics.service';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly logger: Logger,
+    @Optional() private readonly metricsService?: MetricsService,
   ) {
     super();
+  }
+
+  override $queryRaw<T>(query: Prisma.Sql | TemplateStringsArray, ...values: any[]): any {
+    const startedAt = Date.now();
+    const promise = super.$queryRaw(query as any, ...values) as any;
+
+    return promise
+      .then((result: T) => {
+        this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, true);
+        return result;
+      })
+      .catch((error: unknown) => {
+        this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, false);
+        throw error;
+      });
+  }
+
+  override $executeRaw(query: Prisma.Sql | TemplateStringsArray, ...values: any[]): any {
+    const startedAt = Date.now();
+    const promise = super.$executeRaw(query as any, ...values) as any;
+
+    return promise
+      .then((result: number) => {
+        this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, true);
+        return result;
+      })
+      .catch((error: unknown) => {
+        this.metricsService?.recordDatabaseQuery(Date.now() - startedAt, false);
+        throw error;
+      });
   }
 
   async onModuleInit(): Promise<void> {
