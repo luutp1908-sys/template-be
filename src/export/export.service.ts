@@ -73,7 +73,7 @@ export class ExportService {
     }
   }
 
-  async createJob(payload: CreateExportDto, userId: string): Promise<ExportEntity> {
+  async createJob(payload: CreateExportDto, userId: string, requestId?: string): Promise<ExportEntity> {
     if (payload.workspaceId) {
       const workspace = await this.workspaceService.findById(payload.workspaceId);
       if (!workspace) {
@@ -96,6 +96,7 @@ export class ExportService {
         queue: this.queueName,
         exportId: created.id,
         userId,
+        requestId,
       },
       'queue.enqueue.attempt',
     );
@@ -108,7 +109,7 @@ export class ExportService {
 
       const job = await this.exportQueue.add(
         this.queueName,
-        { exportId: created.id },
+        { exportId: created.id, requestId },
         enqueueOptions,
       );
       this.logger.log(
@@ -118,6 +119,7 @@ export class ExportService {
           queue: this.queueName,
           exportId: created.id,
           userId,
+          requestId,
           jobId: job.id,
         },
         'queue.enqueue.success',
@@ -130,6 +132,7 @@ export class ExportService {
           queue: this.queueName,
           exportId: created.id,
           userId,
+          requestId,
           err: error instanceof Error ? error : undefined,
         },
         'queue.enqueue.failed',

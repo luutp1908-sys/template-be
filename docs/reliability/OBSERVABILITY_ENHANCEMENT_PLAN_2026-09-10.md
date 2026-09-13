@@ -208,8 +208,8 @@ Exit criteria:
 - [x] Instrument HTTP ingress with spans and request attributes.
 - [x] Instrument Prisma calls with query latency spans.
 - [x] Instrument Redis operations with client spans.
-- [ ] Instrument BullMQ lifecycle events with job spans.
-- [ ] Propagate correlation IDs from API request to queue jobs.
+- [x] Instrument BullMQ lifecycle events with job spans.
+- [x] Propagate correlation IDs from API request to queue jobs.
 - [ ] Include traceId and spanId in structured log events.
 - [ ] Publish incident runbook with per-alert triage actions.
 - [ ] Define severity matrix and escalation ownership.

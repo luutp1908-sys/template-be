@@ -6,6 +6,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -17,7 +18,7 @@ import {
   ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
-import { Response } from 'express';
+import { Request, Response } from 'express';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AuthUser } from '../auth/types/auth-user.type';
@@ -39,8 +40,10 @@ export class ExportController {
   async createJob(
     @Body() payload: CreateExportDto,
     @CurrentUser() user: AuthUser,
+    @Req() req: Request,
   ): Promise<ExportEntity> {
-    return this.service.createJob(payload, user.id);
+    const requestId = (req.headers['x-request-id'] as string | undefined) ?? undefined;
+    return this.service.createJob(payload, user.id, requestId);
   }
 
   @Get('jobs/:id')

@@ -63,12 +63,13 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     }
   }
 
-  async process(job: Job<{ exportId: string }>): Promise<void> {
+  async process(job: Job<{ exportId: string; requestId?: string }>): Promise<void> {
     this.reportHeartbeat();
     const exportId = job.data.exportId;
+    const requestId = job.data.requestId;
     const attemptCount = this.resolveAttemptCount(job);
     const span = this.startJobSpan(job, exportId, attemptCount);
-    this.logger.log(this.logContext(exportId, attemptCount), 'queue.job.started');
+    this.logger.log(this.logContext(exportId, attemptCount, { requestId }), 'queue.job.started');
 
     try {
       const exportJob = await this.loadExportJobOrSkip(exportId);
@@ -81,6 +82,8 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
         this.finalizeJobSpan(span, true);
         return;
       }
+
+      this.logger.log(this.logContext(exportId, attemptCount, { requestId, state: 'processing' }), 'queue.job.processing');
 
       const claimed = await this.claimProcessingState(exportId, attemptCount);
       if (!claimed) {
@@ -102,7 +105,13 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
       );
       this.finalizeJobSpan(span, true);
     } catch (error) {
-      await this.handleProcessingError(error, job, exportId, attemptCount);
+      try {
+        await this.handleProcessingError(error, job, exportId, attemptCount);
+      } catch (processingError) {
+        this.finalizeJobSpan(span, false, processingError);
+        throw processingError;
+      }
+
       this.finalizeJobSpan(span, false, error);
     } finally {
       this.reportHeartbeat();

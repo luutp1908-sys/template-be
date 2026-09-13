@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@nestjs/common';
+import { Logger } from 'nestjs-pino';
 import { WorkspaceService } from '../../workspace/workspace.service';
 import { TemplateService } from '../../template/template.service';
 import { ExportService } from '../export.service';
@@ -161,6 +161,50 @@ describe('ExportService', () => {
     expect(queue.add).not.toHaveBeenCalled();
   });
 
+  it('should propagate request correlation data to the queue job payload', async () => {
+    const createdJob = { id: 'export-1' };
+    queueHealthService.checkReadiness.mockResolvedValue({
+      required: true,
+      enabled: true,
+      healthy: true,
+      status: 'ok',
+    });
+    repository.create.mockResolvedValue(createdJob as any);
+    queue.add.mockResolvedValue({ id: 'bull-job-1' });
+
+    configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
+      if (key === 'app.mockMode') {
+        return false;
+      }
+
+      if (key === 'queue.enabled') {
+        return true;
+      }
+
+      return defaultValue;
+    });
+
+    await expect(
+      service.createJob(
+        {
+          format: ExportFormat.PDF,
+          content: { pages: [] },
+        } as any,
+        'user-1',
+        'req-42',
+      ),
+    ).resolves.toEqual(createdJob);
+
+    expect(queue.add).toHaveBeenCalledWith(
+      'pdf-export',
+      expect.objectContaining({
+        exportId: 'export-1',
+        requestId: 'req-42',
+      }),
+      expect.objectContaining({ jobId: 'export-1' }),
+    );
+  });
+
   it('should enqueue with configured BullMQ job options', async () => {
     const createdJob = { id: 'export-1' };
     queueHealthService.checkReadiness.mockResolvedValue({
@@ -216,7 +260,7 @@ describe('ExportService', () => {
 
     expect(queue.add).toHaveBeenCalledWith(
       'pdf-export',
-      { exportId: 'export-1' },
+      { exportId: 'export-1', requestId: undefined },
       {
         attempts: 5,
         backoff: {
