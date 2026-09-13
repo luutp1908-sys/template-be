@@ -8,6 +8,7 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { Job, UnrecoverableError } from 'bullmq';
 import { writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
@@ -66,20 +67,24 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     this.reportHeartbeat();
     const exportId = job.data.exportId;
     const attemptCount = this.resolveAttemptCount(job);
+    const span = this.startJobSpan(job, exportId, attemptCount);
     this.logger.log(this.logContext(exportId, attemptCount), 'queue.job.started');
 
-    const exportJob = await this.loadExportJobOrSkip(exportId);
-    if (!exportJob) {
-      return;
-    }
-
-    if (this.shouldSkipDuplicate(exportJob, exportId, attemptCount)) {
-      return;
-    }
-
     try {
+      const exportJob = await this.loadExportJobOrSkip(exportId);
+      if (!exportJob) {
+        this.finalizeJobSpan(span, true);
+        return;
+      }
+
+      if (this.shouldSkipDuplicate(exportJob, exportId, attemptCount)) {
+        this.finalizeJobSpan(span, true);
+        return;
+      }
+
       const claimed = await this.claimProcessingState(exportId, attemptCount);
       if (!claimed) {
+        this.finalizeJobSpan(span, true);
         return;
       }
 
@@ -87,6 +92,7 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
 
       const completed = await this.markCompleted(exportId, exportJob.fileName, attemptCount, filePath);
       if (!completed) {
+        this.finalizeJobSpan(span, true);
         return;
       }
 
@@ -94,11 +100,48 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
         this.logContext(exportId, attemptCount, { filePath }),
         'queue.job.completed',
       );
+      this.finalizeJobSpan(span, true);
     } catch (error) {
       await this.handleProcessingError(error, job, exportId, attemptCount);
+      this.finalizeJobSpan(span, false, error);
     } finally {
       this.reportHeartbeat();
     }
+  }
+
+  private startJobSpan(job: Job<{ exportId: string }>, exportId: string, attemptCount: number): Span {
+    const tracer = trace.getTracer('be.bullmq');
+    const span = tracer.startSpan('bullmq.process', {
+      kind: SpanKind.CONSUMER,
+      attributes: {
+        'messaging.system': 'bullmq',
+        'messaging.operation': 'process',
+        'messaging.destination': this.queueName,
+        'messaging.job.id': job.id ?? exportId,
+        'messaging.job.name': this.queueName,
+        'messaging.job.attempt': attemptCount,
+        'messaging.job.export_id': exportId,
+      },
+    });
+
+    return span;
+  }
+
+  private finalizeJobSpan(span: Span, success: boolean, error?: unknown): void {
+    span.setAttributes({
+      'messaging.result': success ? 'success' : 'error',
+    });
+
+    if (success) {
+      span.setStatus({ code: SpanStatusCode.OK });
+    } else {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : 'BullMQ job processing failed',
+      });
+    }
+
+    span.end();
   }
 
   private async loadExportJobOrSkip(exportId: string): Promise<ExportEntity | null> {

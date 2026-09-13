@@ -1,10 +1,29 @@
 import { ConflictException } from '@nestjs/common';
+import * as otel from '@opentelemetry/api';
 import { Job, UnrecoverableError } from 'bullmq';
 import { Logger } from 'nestjs-pino';
 import { existsSync, unlinkSync, writeFileSync, mkdirSync, readdirSync, statSync } from 'fs';
 import { join } from 'path';
 import { ExportProcessor } from '../export.processor';
 import { ExportStatus } from '../export.entity';
+
+jest.mock('@opentelemetry/api', () => {
+  const span = {
+    setAttributes: jest.fn(),
+    setStatus: jest.fn(),
+    end: jest.fn(),
+  };
+
+  return {
+    trace: {
+      getTracer: jest.fn(() => ({
+        startSpan: jest.fn(() => span),
+      })),
+    },
+    SpanKind: { CONSUMER: 4 },
+    SpanStatusCode: { OK: 1, ERROR: 2 },
+  };
+});
 
 describe('ExportProcessor', () => {
   let repository: { findById: jest.Mock; updateStatus: jest.Mock };
@@ -31,6 +50,42 @@ describe('ExportProcessor', () => {
       workerHealthRegistry as any,
       logger as unknown as Logger,
     );
+  });
+
+  it('should create a BullMQ job span around export processing', async () => {
+    const span = {
+      setAttributes: jest.fn(),
+      setStatus: jest.fn(),
+      end: jest.fn(),
+    };
+    const tracer = { startSpan: jest.fn(() => span) };
+    (otel.trace.getTracer as jest.Mock).mockReturnValue(tracer);
+
+    repository.findById.mockResolvedValue({ id: 'export-span-1', fileName: 'file.pdf' });
+    repository.updateStatus.mockImplementation(async (_id: string, status: string) => ({ id: 'export-span-1', status }));
+
+    const job = {
+      data: { exportId: 'export-span-1' },
+      attemptsMade: 0,
+      opts: { attempts: 3 },
+      id: 'bull-job-span-1',
+    } as any as Job<{ exportId: string }>;
+
+    await processor.process(job);
+
+    expect(otel.trace.getTracer).toHaveBeenCalledWith('be.bullmq');
+    expect(tracer.startSpan).toHaveBeenCalledWith(
+      'bullmq.process',
+      expect.objectContaining({
+        kind: 4,
+        attributes: expect.objectContaining({
+          'messaging.system': 'bullmq',
+          'messaging.operation': 'process',
+          'messaging.destination': 'pdf-export',
+        }),
+      }),
+    );
+    expect(span.setStatus).toHaveBeenCalledWith(expect.objectContaining({ code: 1 }));
   });
 
   it('should expose explicit stalled-job recovery defaults for the export worker', () => {

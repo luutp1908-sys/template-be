@@ -207,7 +207,7 @@ Exit criteria:
 - [x] Add OpenTelemetry bootstrap and exporter configuration.
 - [x] Instrument HTTP ingress with spans and request attributes.
 - [x] Instrument Prisma calls with query latency spans.
-- [ ] Instrument Redis operations with client spans.
+- [x] Instrument Redis operations with client spans.
 - [ ] Instrument BullMQ lifecycle events with job spans.
 - [ ] Propagate correlation IDs from API request to queue jobs.
 - [ ] Include traceId and spanId in structured log events.
