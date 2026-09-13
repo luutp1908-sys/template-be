@@ -200,11 +200,34 @@ export class MetricsService {
       ['1000+', this.latencyBuckets['1000+']],
     ];
     const latencySum = this.latencies.reduce((sum, value) => sum + value, 0);
+    const exceptionCounts = Object.entries(requestsByStatus).reduce<Record<string, number>>(
+      (acc, [status, count]) => {
+        const code = Number(status);
+        if (code >= 400) {
+          if (code >= 500) {
+            acc['5xx'] = (acc['5xx'] ?? 0) + count;
+          } else {
+            acc['4xx'] = (acc['4xx'] ?? 0) + count;
+          }
+          acc[String(code)] = (acc[String(code)] ?? 0) + count;
+        }
+        return acc;
+      },
+      { '4xx': 0, '5xx': 0, '400': 0, '401': 0, '403': 0, '404': 0, '409': 0, '429': 0, '500': 0, '503': 0 },
+    );
 
     const lines: string[] = [
       '# HELP http_requests_total Total number of HTTP requests by status code.',
       '# TYPE http_requests_total counter',
       ...Object.entries(requestsByStatus).map(([status, count]) => `http_requests_total{status="${status}"} ${count}`),
+      '',
+      '# HELP http_exceptions_total Total number of HTTP exceptions grouped by status class and code.',
+      '# TYPE http_exceptions_total counter',
+      `http_exceptions_total{status_class="4xx"} ${exceptionCounts['4xx']}`,
+      `http_exceptions_total{status_class="5xx"} ${exceptionCounts['5xx']}`,
+      ...Object.entries(requestsByStatus)
+        .filter(([status]) => Number(status) >= 400)
+        .map(([status, count]) => `http_exceptions_total{status_code="${status}"} ${count}`),
       '',
       '# HELP http_request_duration_ms HTTP request latency in milliseconds.',
       '# TYPE http_request_duration_ms histogram',
@@ -224,9 +247,21 @@ export class MetricsService {
       '# TYPE queue_active_jobs gauge',
       `queue_active_jobs ${queue.backlog.active}`,
       '',
+      '# HELP queue_depth_total Current queue depth across waiting, active, and delayed jobs.',
+      '# TYPE queue_depth_total gauge',
+      `queue_depth_total ${queue.backlog.total}`,
+      '',
       '# HELP queue_failed_jobs Current number of failed jobs.',
       '# TYPE queue_failed_jobs gauge',
       `queue_failed_jobs ${queue.failures.failedJobs}`,
+      '',
+      '# HELP queue_retryable_jobs Number of retryable jobs currently tracked as failed or waiting for retry.',
+      '# TYPE queue_retryable_jobs gauge',
+      `queue_retryable_jobs ${queue.failures.failedJobs}`,
+      '',
+      '# HELP queue_enqueued_jobs_total Total jobs currently represented in the queue backlog and retry state.',
+      '# TYPE queue_enqueued_jobs_total gauge',
+      `queue_enqueued_jobs_total ${queue.backlog.total + queue.failures.failedJobs}`,
       '',
       '# HELP queue_workers_stale_count Number of stale workers.',
       '# TYPE queue_workers_stale_count gauge',

@@ -92,6 +92,46 @@ describe('MetricsService', () => {
     expect(metrics).toContain('queue_failed_jobs');
   });
 
+  it('includes grouped exception counts for HTTP 4xx and 5xx errors', () => {
+    const service = new MetricsService();
+
+    service.recordRequest(400, 120);
+    service.recordRequest(401, 180);
+    service.recordRequest(500, 220);
+    service.recordRequest(503, 260);
+
+    const metrics = service.getPrometheusMetrics();
+
+    expect(metrics).toContain('http_exceptions_total{status_class="4xx"} 2');
+    expect(metrics).toContain('http_exceptions_total{status_class="5xx"} 2');
+    expect(metrics).toContain('http_exceptions_total{status_code="500"} 1');
+  });
+
+  it('exposes queue depth, retry, and failure metrics for scrape consumers', () => {
+    const service = new MetricsService();
+
+    service.recordQueueHealth({
+      healthy: true,
+      status: 'ok',
+      details: {
+        jobCounts: {
+          waiting: 4,
+          active: 2,
+          delayed: 1,
+          failed: 3,
+        },
+        workers: [{ healthy: true, ageMs: 1000 }],
+      },
+    } as any);
+
+    const metrics = service.getPrometheusMetrics();
+
+    expect(metrics).toContain('queue_depth_total 7');
+    expect(metrics).toContain('queue_failed_jobs 3');
+    expect(metrics).toContain('queue_retryable_jobs 3');
+    expect(metrics).toContain('queue_enqueued_jobs_total 10');
+  });
+
   it('returns zeroed metrics when no requests have been recorded yet', () => {
     const service = new MetricsService();
     const snapshot = service.snapshot();

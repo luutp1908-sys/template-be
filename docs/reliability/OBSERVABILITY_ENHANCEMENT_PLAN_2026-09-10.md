@@ -190,9 +190,9 @@ Exit criteria:
 - [x] Add label cardinality guardrails and naming conventions.
 
 ### Phase 2: Durable Telemetry
-- [ ] Add durable metrics export endpoint compatible with scraping.
-- [ ] Implement HTTP request counter and latency histogram metrics.
-- [ ] Implement exception count metrics grouped by status class and code.
+- [x] Add durable metrics export endpoint compatible with scraping.
+- [x] Implement HTTP request counter and latency histogram metrics.
+- [x] Implement exception count metrics grouped by status class and code.
 - [ ] Add queue depth, enqueue rate, failure, and retry metrics.
 - [ ] Add DB operation latency and DB error metrics.
 - [ ] Add cache hit ratio and cache fallback event metrics.
