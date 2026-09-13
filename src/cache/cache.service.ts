@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { createClient, type RedisClientType } from 'redis';
 import { Logger } from 'nestjs-pino';
 
@@ -78,6 +79,43 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  private startRedisSpan(operation: 'get' | 'set' | 'del' | 'scan', key: string): {
+    span: Span;
+    startedAt: number;
+  } {
+    const tracer = trace.getTracer('be.redis');
+    const span = tracer.startSpan(`redis.${operation}`, {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'db.system': 'redis',
+        'db.operation': operation,
+        'db.statement': `KEY ${key}`,
+      },
+    });
+
+    return { span, startedAt: Date.now() };
+  }
+
+  private finalizeRedisSpan(span: Span, startedAt: number, success: boolean, error?: unknown): void {
+    const duration = Date.now() - startedAt;
+
+    span.setAttributes({
+      'db.duration_ms': duration,
+      'db.result': success ? 'success' : 'error',
+    });
+
+    if (success) {
+      span.setStatus({ code: SpanStatusCode.OK });
+    } else {
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : 'Redis operation failed',
+      });
+    }
+
+    span.end();
+  }
+
   async getJson<T>(key: string): Promise<T | null> {
     const bypassEnabled = this.configService.get<boolean>('cache.bypass', false);
     const forceRefreshEnabled = this.configService.get<boolean>('cache.forceRefresh', false);
@@ -88,12 +126,20 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     }
 
     if (forceRefreshEnabled) {
-      if (this.client && this.isAvailable) {
-        await this.client.del(this.withPrefix(key));
-        this.deletes += 1;
+      const { span, startedAt } = this.startRedisSpan('del', key);
+      try {
+        if (this.client && this.isAvailable) {
+          await this.client.del(this.withPrefix(key));
+          this.deletes += 1;
+        }
+        this.misses += 1;
+        this.finalizeRedisSpan(span, startedAt, true);
+        return null;
+      } catch (error) {
+        this.misses += 1;
+        this.finalizeRedisSpan(span, startedAt, false, error);
+        throw error;
       }
-      this.misses += 1;
-      return null;
     }
 
     if (!this.client || !this.isAvailable) {
@@ -102,19 +148,31 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       return null;
     }
 
-    const value = await this.client.get(this.withPrefix(key));
-    if (!value) {
-      this.misses += 1;
-      return null;
-    }
-
-    this.hits += 1;
+    const { span, startedAt } = this.startRedisSpan('get', key);
 
     try {
-      return JSON.parse(value) as T;
-    } catch {
+      const value = await this.client.get(this.withPrefix(key));
+      if (!value) {
+        this.misses += 1;
+        this.finalizeRedisSpan(span, startedAt, true);
+        return null;
+      }
+
+      this.hits += 1;
+
+      try {
+        const parsed = JSON.parse(value) as T;
+        this.finalizeRedisSpan(span, startedAt, true);
+        return parsed;
+      } catch {
+        this.misses += 1;
+        this.finalizeRedisSpan(span, startedAt, true);
+        return null;
+      }
+    } catch (error) {
       this.misses += 1;
-      return null;
+      this.finalizeRedisSpan(span, startedAt, false, error);
+      throw error;
     }
   }
 
@@ -124,10 +182,18 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.client.set(this.withPrefix(key), JSON.stringify(value), {
-      PX: ttlMs,
-    });
-    this.sets += 1;
+    const { span, startedAt } = this.startRedisSpan('set', key);
+
+    try {
+      await this.client.set(this.withPrefix(key), JSON.stringify(value), {
+        PX: ttlMs,
+      });
+      this.sets += 1;
+      this.finalizeRedisSpan(span, startedAt, true);
+    } catch (error) {
+      this.finalizeRedisSpan(span, startedAt, false, error);
+      throw error;
+    }
   }
 
   async delete(key: string): Promise<void> {
@@ -136,8 +202,16 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
-    await this.client.del(this.withPrefix(key));
-    this.deletes += 1;
+    const { span, startedAt } = this.startRedisSpan('del', key);
+
+    try {
+      await this.client.del(this.withPrefix(key));
+      this.deletes += 1;
+      this.finalizeRedisSpan(span, startedAt, true);
+    } catch (error) {
+      this.finalizeRedisSpan(span, startedAt, false, error);
+      throw error;
+    }
   }
 
   async deleteByPattern(pattern: string): Promise<number> {
@@ -146,25 +220,33 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
       return 0;
     }
 
-    let deleted = 0;
-    let cursor = '0';
-    const namespacedPattern = this.withPrefix(pattern);
+    const { span, startedAt } = this.startRedisSpan('scan', pattern);
 
-    do {
-      const result = await this.client.scan(cursor, {
-        MATCH: namespacedPattern,
-        COUNT: 100,
-      });
-      cursor = result.cursor;
-      const keys = result.keys;
+    try {
+      let deleted = 0;
+      let cursor = '0';
+      const namespacedPattern = this.withPrefix(pattern);
 
-      if (keys.length > 0) {
-        deleted += await this.client.del(keys);
-      }
-    } while (cursor !== '0');
+      do {
+        const result = await this.client.scan(cursor, {
+          MATCH: namespacedPattern,
+          COUNT: 100,
+        });
+        cursor = result.cursor;
+        const keys = result.keys;
 
-    this.deletes += deleted;
-    return deleted;
+        if (keys.length > 0) {
+          deleted += await this.client.del(keys);
+        }
+      } while (cursor !== '0');
+
+      this.deletes += deleted;
+      this.finalizeRedisSpan(span, startedAt, true);
+      return deleted;
+    } catch (error) {
+      this.finalizeRedisSpan(span, startedAt, false, error);
+      throw error;
+    }
   }
 
   snapshot(): CacheMetricSnapshot {

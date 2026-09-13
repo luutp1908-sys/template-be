@@ -206,7 +206,7 @@ Exit criteria:
 ### Phase 3: Tracing and Incident Readiness
 - [x] Add OpenTelemetry bootstrap and exporter configuration.
 - [x] Instrument HTTP ingress with spans and request attributes.
-- [ ] Instrument Prisma calls with query latency spans.
+- [x] Instrument Prisma calls with query latency spans.
 - [ ] Instrument Redis operations with client spans.
 - [ ] Instrument BullMQ lifecycle events with job spans.
 - [ ] Propagate correlation IDs from API request to queue jobs.

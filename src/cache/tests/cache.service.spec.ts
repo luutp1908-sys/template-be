@@ -1,4 +1,23 @@
+import * as otel from '@opentelemetry/api';
 import { CacheService } from '../cache.service';
+
+jest.mock('@opentelemetry/api', () => {
+  const span = {
+    setAttributes: jest.fn(),
+    setStatus: jest.fn(),
+    end: jest.fn(),
+  };
+
+  return {
+    trace: {
+      getTracer: jest.fn(() => ({
+        startSpan: jest.fn(() => span),
+      })),
+    },
+    SpanKind: { CLIENT: 3 },
+    SpanStatusCode: { OK: 1, ERROR: 2 },
+  };
+});
 
 describe('CacheService metrics', () => {
   const logger = {
@@ -6,6 +25,48 @@ describe('CacheService metrics', () => {
     warn: jest.fn(),
     error: jest.fn(),
   } as any;
+
+  it('creates Redis client spans for cache operations and records success status', async () => {
+    const span = {
+      setAttributes: jest.fn(),
+      setStatus: jest.fn(),
+      end: jest.fn(),
+    };
+    const tracer = { startSpan: jest.fn(() => span) };
+    (otel.trace.getTracer as jest.Mock).mockReturnValue(tracer);
+
+    const configService = {
+      get: jest.fn((key: string, defaultValue: unknown) => defaultValue),
+    } as any;
+
+    const client = {
+      get: jest.fn().mockResolvedValue(JSON.stringify({ id: 'abc' })),
+      set: jest.fn().mockResolvedValue('OK'),
+      del: jest.fn().mockResolvedValue(1),
+      scan: jest.fn(),
+      isOpen: true,
+    };
+
+    const service = new CacheService(configService, logger);
+    (service as any).client = client;
+    (service as any).isAvailable = true;
+
+    await service.getJson('user:1');
+    await service.setJson('user:2', { id: 'def' }, 3000);
+
+    expect(otel.trace.getTracer).toHaveBeenCalledWith('be.redis');
+    expect(tracer.startSpan).toHaveBeenCalledWith(
+      'redis.get',
+      expect.objectContaining({
+        kind: 3,
+        attributes: expect.objectContaining({
+          'db.system': 'redis',
+          'db.operation': 'get',
+        }),
+      }),
+    );
+    expect(span.setStatus).toHaveBeenCalledWith(expect.objectContaining({ code: 1 }));
+  });
 
   it('tracks cache hits, misses, sets, and deletes in the shared cache layer', async () => {
     const configService = {
