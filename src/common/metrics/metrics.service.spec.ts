@@ -66,6 +66,32 @@ describe('MetricsService', () => {
     expect(snapshot.queue.alerts.redisConnectivityDegraded).toBe(true);
   });
 
+  it('exposes Prometheus-compatible metrics for scraping', () => {
+    const service = new MetricsService();
+
+    service.recordRequest(200, 45);
+    service.recordQueueHealth({
+      healthy: true,
+      status: 'ok',
+      details: {
+        jobCounts: {
+          waiting: 3,
+          active: 1,
+          delayed: 0,
+          failed: 2,
+        },
+        workers: [{ healthy: true, ageMs: 1000 }],
+      },
+    } as any);
+
+    const metrics = service.getPrometheusMetrics();
+
+    expect(metrics).toContain('# HELP');
+    expect(metrics).toContain('http_requests_total');
+    expect(metrics).toContain('queue_waiting_jobs');
+    expect(metrics).toContain('queue_failed_jobs');
+  });
+
   it('returns zeroed metrics when no requests have been recorded yet', () => {
     const service = new MetricsService();
     const snapshot = service.snapshot();

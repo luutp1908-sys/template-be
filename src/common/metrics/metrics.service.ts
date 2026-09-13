@@ -189,4 +189,75 @@ export class MetricsService {
       },
     };
   }
+
+  getPrometheusMetrics(): string {
+    const { requestsByStatus, requestLatencyMs, queue } = this.snapshot();
+    const latencyBucketLines = [
+      ['0-100', this.latencyBuckets['0-100']],
+      ['100-300', this.latencyBuckets['100-300']],
+      ['300-500', this.latencyBuckets['300-500']],
+      ['500-1000', this.latencyBuckets['500-1000']],
+      ['1000+', this.latencyBuckets['1000+']],
+    ];
+    const latencySum = this.latencies.reduce((sum, value) => sum + value, 0);
+
+    const lines: string[] = [
+      '# HELP http_requests_total Total number of HTTP requests by status code.',
+      '# TYPE http_requests_total counter',
+      ...Object.entries(requestsByStatus).map(([status, count]) => `http_requests_total{status="${status}"} ${count}`),
+      '',
+      '# HELP http_request_duration_ms HTTP request latency in milliseconds.',
+      '# TYPE http_request_duration_ms histogram',
+      ...latencyBucketLines.map(([bucket, count]) => `http_request_duration_ms_bucket{le="${bucket}"} ${count}`),
+      `http_request_duration_ms_sum ${latencySum}`,
+      `http_request_duration_ms_count ${this.requestsTotal}`,
+      '',
+      '# HELP queue_waiting_jobs Current number of waiting jobs.',
+      '# TYPE queue_waiting_jobs gauge',
+      `queue_waiting_jobs ${queue.backlog.waiting}`,
+      '',
+      '# HELP queue_delayed_jobs Current number of delayed jobs.',
+      '# TYPE queue_delayed_jobs gauge',
+      `queue_delayed_jobs ${queue.backlog.delayed}`,
+      '',
+      '# HELP queue_active_jobs Current number of active jobs.',
+      '# TYPE queue_active_jobs gauge',
+      `queue_active_jobs ${queue.backlog.active}`,
+      '',
+      '# HELP queue_failed_jobs Current number of failed jobs.',
+      '# TYPE queue_failed_jobs gauge',
+      `queue_failed_jobs ${queue.failures.failedJobs}`,
+      '',
+      '# HELP queue_workers_stale_count Number of stale workers.',
+      '# TYPE queue_workers_stale_count gauge',
+      `queue_workers_stale_count ${queue.workers.staleCount}`,
+      '',
+      '# HELP queue_worker_heartbeat_stale Alert when the worker heartbeat is stale.',
+      '# TYPE queue_worker_heartbeat_stale gauge',
+      `queue_worker_heartbeat_stale ${Number(queue.alerts.workerHeartbeatStale)}`,
+      '',
+      '# HELP queue_backlog_growth_alert Alert when backlog exceeds configured threshold.',
+      '# TYPE queue_backlog_growth_alert gauge',
+      `queue_backlog_growth_alert ${Number(queue.alerts.backlogGrowth)}`,
+      '',
+      '# HELP queue_repeated_failures_alert Alert when repeated queue failures exceed threshold.',
+      '# TYPE queue_repeated_failures_alert gauge',
+      `queue_repeated_failures_alert ${Number(queue.alerts.repeatedQueueFailures)}`,
+      '',
+      '# HELP queue_redis_degraded_alert Alert when Redis connectivity is degraded.',
+      '# TYPE queue_redis_degraded_alert gauge',
+      `queue_redis_degraded_alert ${Number(queue.alerts.redisConnectivityDegraded)}`,
+      '',
+      '# HELP http_request_latency_ms Average and percentile latency values.',
+      '# TYPE http_request_latency_ms gauge',
+      `http_request_latency_ms_average ${requestLatencyMs.average}`,
+      `http_request_latency_ms_p50 ${requestLatencyMs.p50}`,
+      `http_request_latency_ms_p90 ${requestLatencyMs.p90}`,
+      `http_request_latency_ms_p95 ${requestLatencyMs.p95}`,
+      `http_request_latency_ms_max ${requestLatencyMs.max}`,
+      `http_request_latency_ms_min ${requestLatencyMs.min}`,
+    ];
+
+    return `${lines.join('\n')}\n`;
+  }
 }
