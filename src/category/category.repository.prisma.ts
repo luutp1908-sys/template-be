@@ -37,7 +37,7 @@ export class CategoryRepository implements ICategoryRepository {
         AND "categoryId" = ANY(${categoryIds}::uuid[])
     `;
 
-    return new Map<string, any>(rows.map((row) => [String(row.categoryId), row]));
+    return new Map<string, any>(rows.map((row: any) => [String(row.categoryId), row]));
   }
 
 

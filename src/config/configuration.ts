@@ -60,6 +60,12 @@ export default () => ({
     level: process.env.LOG_LEVEL ?? 'warn',
     enableRequestLogs: process.env.ENABLE_REQUEST_LOGS === 'true',
   },
+  telemetry: {
+    enabled: process.env.OTEL_ENABLED === 'true',
+    serviceName: process.env.OTEL_SERVICE_NAME ?? 'template-saas-backend',
+    exporterEndpoint: process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? 'http://localhost:4318/v1/traces',
+    insecure: process.env.OTEL_EXPORTER_OTLP_INSECURE === 'true',
+  },
   security: {
     bcryptSaltRounds: Number(process.env.BCRYPT_SALT_ROUNDS ?? 12),
   },

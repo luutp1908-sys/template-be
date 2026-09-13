@@ -85,6 +85,10 @@ const envSchema = Joi.object({
   BCRYPT_SALT_ROUNDS: Joi.number().integer().min(10).max(15).default(12),
   LOG_LEVEL: Joi.string().valid('fatal', 'error', 'warn', 'info', 'debug', 'trace').default('warn'),
   ENABLE_REQUEST_LOGS: Joi.boolean().truthy('true').falsy('false').default(false),
+  OTEL_ENABLED: Joi.boolean().truthy('true').falsy('false').default(false),
+  OTEL_SERVICE_NAME: Joi.string().default('template-saas-backend'),
+  OTEL_EXPORTER_OTLP_ENDPOINT: Joi.string().uri({ scheme: ['http', 'https'] }).optional(),
+  OTEL_EXPORTER_OTLP_INSECURE: Joi.boolean().truthy('true').falsy('false').default(false),
 });
 
 export function validateEnv(config: Record<string, unknown>): Record<string, unknown> {

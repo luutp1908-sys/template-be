@@ -7,6 +7,7 @@ import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { bootstrapOpenTelemetry, shutdownOpenTelemetry } from './common/telemetry/otel.bootstrap';
 
 const bootstrapLogger = new NestLogger('Bootstrap');
 
@@ -38,6 +39,8 @@ process.on('uncaughtException', (error) => {
 });
 
 async function bootstrap(): Promise<void> {
+  bootstrapOpenTelemetry();
+
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
   app.use(helmet());
@@ -138,6 +141,18 @@ async function bootstrap(): Promise<void> {
   // (useful when running with --watch to avoid orphaned processes)
   app.enableShutdownHooks();
   await app.listen(port);
+
+  const shutdown = async (): Promise<void> => {
+    await app.close();
+    shutdownOpenTelemetry();
+  };
+
+  process.on('SIGTERM', () => {
+    void shutdown();
+  });
+  process.on('SIGINT', () => {
+    void shutdown();
+  });
 }
 
 void bootstrap();

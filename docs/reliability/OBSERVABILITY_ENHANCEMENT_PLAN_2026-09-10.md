@@ -204,7 +204,7 @@ Exit criteria:
 - [ ] Run non-production alert trigger tests and tune thresholds.
 
 ### Phase 3: Tracing and Incident Readiness
-- [ ] Add OpenTelemetry bootstrap and exporter configuration.
+- [x] Add OpenTelemetry bootstrap and exporter configuration.
 - [ ] Instrument HTTP ingress with spans and request attributes.
 - [ ] Instrument Prisma calls with query latency spans.
 - [ ] Instrument Redis operations with client spans.
