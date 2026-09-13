@@ -132,6 +132,22 @@ describe('MetricsService', () => {
     expect(metrics).toContain('queue_enqueued_jobs_total 10');
   });
 
+  it('records database latency and error metrics for Prometheus scraping', () => {
+    const service = new MetricsService();
+
+    service.recordDatabaseQuery(12, true);
+    service.recordDatabaseQuery(45, true);
+    service.recordDatabaseQuery(240, false);
+
+    const metrics = service.getPrometheusMetrics();
+
+    expect(metrics).toContain('db_queries_total{result="success"} 2');
+    expect(metrics).toContain('db_queries_total{result="error"} 1');
+    expect(metrics).toContain('db_errors_total 1');
+    expect(metrics).toContain('db_query_duration_ms_count 3');
+    expect(metrics).toContain('db_query_duration_ms_sum 297');
+  });
+
   it('returns zeroed metrics when no requests have been recorded yet', () => {
     const service = new MetricsService();
     const snapshot = service.snapshot();

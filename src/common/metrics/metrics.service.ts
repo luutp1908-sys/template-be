@@ -44,7 +44,12 @@ export interface RequestMetricSnapshot {
 @Injectable()
 export class MetricsService {
   private readonly latencies: number[] = [];
+  private readonly dbQueryLatencies: number[] = [];
   private readonly statusCounts: Record<string, number> = {};
+  private readonly dbQueryResults: Record<string, number> = {
+    success: 0,
+    error: 0,
+  };
   private readonly latencyBuckets: Record<string, number> = {
     '0-100': 0,
     '100-300': 0,
@@ -99,6 +104,12 @@ export class MetricsService {
     } else {
       this.latencyBuckets['1000+'] += 1;
     }
+  }
+
+  recordDatabaseQuery(durationMs: number, success: boolean): void {
+    this.dbQueryLatencies.push(durationMs);
+    const result = success ? 'success' : 'error';
+    this.dbQueryResults[result] = (this.dbQueryResults[result] ?? 0) + 1;
   }
 
   recordQueueHealth(health: {
@@ -200,6 +211,10 @@ export class MetricsService {
       ['1000+', this.latencyBuckets['1000+']],
     ];
     const latencySum = this.latencies.reduce((sum, value) => sum + value, 0);
+    const dbQueryLatencyBuckets = [10, 50, 100, 250, 1000].map((limit) =>
+      this.dbQueryLatencies.filter((value) => value <= limit).length,
+    );
+    const dbQueryLatencySum = this.dbQueryLatencies.reduce((sum, value) => sum + value, 0);
     const exceptionCounts = Object.entries(requestsByStatus).reduce<Record<string, number>>(
       (acc, [status, count]) => {
         const code = Number(status);
@@ -234,6 +249,24 @@ export class MetricsService {
       ...latencyBucketLines.map(([bucket, count]) => `http_request_duration_ms_bucket{le="${bucket}"} ${count}`),
       `http_request_duration_ms_sum ${latencySum}`,
       `http_request_duration_ms_count ${this.requestsTotal}`,
+      '',
+      '# HELP db_queries_total Total database queries by result.',
+      '# TYPE db_queries_total counter',
+      `db_queries_total{result="success"} ${this.dbQueryResults.success}`,
+      `db_queries_total{result="error"} ${this.dbQueryResults.error}`,
+      '',
+      '# HELP db_errors_total Total database query errors.',
+      '# TYPE db_errors_total counter',
+      `db_errors_total ${this.dbQueryResults.error}`,
+      '',
+      '# HELP db_query_duration_ms Database query latency in milliseconds.',
+      '# TYPE db_query_duration_ms histogram',
+      ...dbQueryLatencyBuckets.map((count, index) => {
+        const le = [10, 50, 100, 250, 1000][index];
+        return `db_query_duration_ms_bucket{le="${le}"} ${count}`;
+      }),
+      `db_query_duration_ms_sum ${dbQueryLatencySum}`,
+      `db_query_duration_ms_count ${this.dbQueryLatencies.length}`,
       '',
       '# HELP queue_waiting_jobs Current number of waiting jobs.',
       '# TYPE queue_waiting_jobs gauge',

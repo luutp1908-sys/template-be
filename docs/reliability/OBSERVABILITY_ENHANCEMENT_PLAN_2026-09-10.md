@@ -193,8 +193,8 @@ Exit criteria:
 - [x] Add durable metrics export endpoint compatible with scraping.
 - [x] Implement HTTP request counter and latency histogram metrics.
 - [x] Implement exception count metrics grouped by status class and code.
-- [ ] Add queue depth, enqueue rate, failure, and retry metrics.
-- [ ] Add DB operation latency and DB error metrics.
+- [x] Add queue depth, enqueue rate, failure, and retry metrics.
+- [x] Add DB operation latency and DB error metrics.
 - [ ] Add cache hit ratio and cache fallback event metrics.
 - [ ] Build API dashboard with latency, throughput, and error panels.
 - [ ] Build queue dashboard with backlog, failure, and retry panels.
