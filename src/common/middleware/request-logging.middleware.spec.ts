@@ -1,4 +1,28 @@
 import { EventEmitter } from 'events';
+import { trace } from '@opentelemetry/api';
+
+jest.mock('@opentelemetry/api', () => {
+  const span = {
+    setAttributes: jest.fn(),
+    setStatus: jest.fn(),
+    end: jest.fn(),
+  };
+
+  return {
+    context: {
+      active: jest.fn(() => ({ active: true })),
+      setSpan: jest.fn((ctx, nextSpan) => ({ ...ctx, span: nextSpan })),
+    },
+    trace: {
+      getTracer: jest.fn(() => ({ startSpan: jest.fn(() => span) })),
+      setSpan: jest.fn((ctx, nextSpan) => ({ ...ctx, span: nextSpan })),
+      getSpanContext: jest.fn(() => ({ traceId: 'trace-abc', spanId: 'span-xyz' })),
+    },
+    SpanKind: { SERVER: 2 },
+    SpanStatusCode: { OK: 1, ERROR: 2 },
+  };
+});
+
 import { RequestLoggingMiddleware } from './request-logging.middleware';
 
 type ResponseLike = EventEmitter & {
@@ -65,8 +89,11 @@ describe('RequestLoggingMiddleware', () => {
         path: '/api/v1/export/jobs',
         statusCode: 201,
         userId: 'user-1',
+        traceId: 'trace-abc',
+        spanId: 'span-xyz',
       }),
       'request.completed',
     );
+    expect(trace.getTracer).toHaveBeenCalledWith('be.http');
   });
 });
