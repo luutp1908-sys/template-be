@@ -3,6 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { createClient, type RedisClientType } from 'redis';
 import { Logger } from 'nestjs-pino';
+import { enrichWithTraceContext } from '../common/telemetry/trace-context';
 
 export interface CacheMetricSnapshot {
   hits: number;
@@ -58,18 +59,18 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     this.client.on('error', (error: Error) => {
       this.isAvailable = false;
       this.fallbackEvents += 1;
-      this.logger.warn(`Cache backend error: ${error.message}`);
+      this.logger.warn(enrichWithTraceContext({ message: `Cache backend error: ${error.message}` }));
     });
 
     try {
       await this.client.connect();
       this.isAvailable = true;
-      this.logger.log('Cache backend connected');
+      this.logger.log(enrichWithTraceContext({ message: 'Cache backend connected' }));
     } catch (error) {
       this.client = null;
       this.isAvailable = false;
       this.fallbackEvents += 1;
-      this.logger.warn(`Cache backend unavailable, continuing without cache: ${(error as Error).message}`);
+      this.logger.warn(enrichWithTraceContext({ message: `Cache backend unavailable, continuing without cache: ${(error as Error).message}` }));
     }
   }
 

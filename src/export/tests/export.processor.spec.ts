@@ -15,10 +15,17 @@ jest.mock('@opentelemetry/api', () => {
   };
 
   return {
+    context: {
+      active: jest.fn(() => ({ active: true })),
+      with: jest.fn((_ctx, fn) => fn()),
+      setSpan: jest.fn((ctx, nextSpan) => ({ ...ctx, span: nextSpan })),
+    },
     trace: {
       getTracer: jest.fn(() => ({
         startSpan: jest.fn(() => span),
       })),
+      setSpan: jest.fn((ctx, nextSpan) => ({ ...ctx, span: nextSpan })),
+      getSpanContext: jest.fn(() => ({ traceId: 'trace-abc', spanId: 'span-xyz' })),
     },
     SpanKind: { CONSUMER: 4 },
     SpanStatusCode: { OK: 1, ERROR: 2 },
@@ -84,6 +91,17 @@ describe('ExportProcessor', () => {
           'messaging.destination': 'pdf-export',
         }),
       }),
+    );
+    expect(logger.log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        module: 'queue',
+        operation: 'export.process',
+        queue: 'pdf-export',
+        exportId: 'export-span-1',
+        traceId: 'trace-abc',
+        spanId: 'span-xyz',
+      }),
+      'queue.job.started',
     );
     expect(span.setStatus).toHaveBeenCalledWith(expect.objectContaining({ code: 1 }));
   });

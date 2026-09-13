@@ -11,6 +11,7 @@ import { Logger } from 'nestjs-pino';
 import { ConfigService } from '@nestjs/config';
 import { JobsOptions, Queue } from 'bullmq';
 import { existsSync } from 'fs';
+import { enrichWithTraceContext } from '../common/telemetry/trace-context';
 import { QueueHealthService } from '../queue/queue-health.service';
 import { WorkspaceService } from '../workspace/workspace.service';
 import { TemplateService } from '../template/template.service';
@@ -90,14 +91,14 @@ export class ExportService {
     const created = await this.repository.create(payload, userId);
 
     this.logger.log(
-      {
+      enrichWithTraceContext({
         module: 'queue',
         operation: 'export.enqueue',
         queue: this.queueName,
         exportId: created.id,
         userId,
         requestId,
-      },
+      }),
       'queue.enqueue.attempt',
     );
 
@@ -113,7 +114,7 @@ export class ExportService {
         enqueueOptions,
       );
       this.logger.log(
-        {
+        enrichWithTraceContext({
           module: 'queue',
           operation: 'export.enqueue',
           queue: this.queueName,
@@ -121,12 +122,12 @@ export class ExportService {
           userId,
           requestId,
           jobId: job.id,
-        },
+        }),
         'queue.enqueue.success',
       );
     } catch (error) {
       this.logger.error(
-        {
+        enrichWithTraceContext({
           module: 'queue',
           operation: 'export.enqueue',
           queue: this.queueName,
@@ -134,7 +135,7 @@ export class ExportService {
           userId,
           requestId,
           err: error instanceof Error ? error : undefined,
-        },
+        }),
         'queue.enqueue.failed',
       );
       throw new ServiceUnavailableException('Export queue is unavailable');

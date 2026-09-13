@@ -4,6 +4,7 @@ import { context, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'crypto';
 import { Logger } from 'nestjs-pino';
+import { enrichWithTraceContext } from '../telemetry/trace-context';
 import { MetricsService } from '../metrics/metrics.service';
 
 @Injectable()
@@ -35,9 +36,8 @@ export class RequestLoggingMiddleware implements NestMiddleware {
         'http.request_id': requestId,
       },
     });
-
-    const activeContext = context.active();
-    const spanContext = trace.getSpanContext(activeContext);
+    const spanContext = span.spanContext();
+    const activeContext = trace.setSpan(context.active(), span);
 
     res.on('finish', () => {
       const duration = Date.now() - startedAt;
@@ -58,7 +58,7 @@ export class RequestLoggingMiddleware implements NestMiddleware {
         return;
       }
 
-      this.logger.log(
+      const logContext = enrichWithTraceContext(
         {
           module: 'http',
           operation: 'request.completed',
@@ -68,12 +68,12 @@ export class RequestLoggingMiddleware implements NestMiddleware {
           statusCode,
           duration,
           userId: (req as any).user?.id ?? undefined,
-          traceId: spanContext?.traceId,
-          spanId: spanContext?.spanId,
         },
-        'request.completed',
+        spanContext ?? trace.getSpanContext(activeContext),
       );
+
+      this.logger.log(logContext, 'request.completed');
     });
-    next();
+    context.with(activeContext, () => next());
   }
 }

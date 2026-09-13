@@ -6,11 +6,13 @@ jest.mock('@opentelemetry/api', () => {
     setAttributes: jest.fn(),
     setStatus: jest.fn(),
     end: jest.fn(),
+    spanContext: jest.fn(() => ({ traceId: 'trace-abc', spanId: 'span-xyz' })),
   };
 
   return {
     context: {
       active: jest.fn(() => ({ active: true })),
+      with: jest.fn((_ctx, fn) => fn()),
       setSpan: jest.fn((ctx, nextSpan) => ({ ...ctx, span: nextSpan })),
     },
     trace: {

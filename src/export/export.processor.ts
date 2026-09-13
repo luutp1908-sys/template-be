@@ -8,11 +8,12 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import { context, Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { Job, UnrecoverableError } from 'bullmq';
 import { writeFileSync, mkdirSync, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { Logger } from 'nestjs-pino';
+import { enrichWithTraceContext } from '../common/telemetry/trace-context';
 import { ExportEntity, ExportStatus } from './export.entity';
 import { IExportRepository } from './interfaces/export.repository.interface';
 import { EXPORT_REPOSITORY } from './export.tokens';
@@ -69,53 +70,57 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     const requestId = job.data.requestId;
     const attemptCount = this.resolveAttemptCount(job);
     const span = this.startJobSpan(job, exportId, attemptCount);
-    this.logger.log(this.logContext(exportId, attemptCount, { requestId }), 'queue.job.started');
+    const activeContext = trace.setSpan(context.active(), span);
 
-    try {
-      const exportJob = await this.loadExportJobOrSkip(exportId);
-      if (!exportJob) {
-        this.finalizeJobSpan(span, true);
-        return;
-      }
+    await context.with(activeContext, async () => {
+      this.logger.log(this.logContext(exportId, attemptCount, { requestId }), 'queue.job.started');
 
-      if (this.shouldSkipDuplicate(exportJob, exportId, attemptCount)) {
-        this.finalizeJobSpan(span, true);
-        return;
-      }
-
-      this.logger.log(this.logContext(exportId, attemptCount, { requestId, state: 'processing' }), 'queue.job.processing');
-
-      const claimed = await this.claimProcessingState(exportId, attemptCount);
-      if (!claimed) {
-        this.finalizeJobSpan(span, true);
-        return;
-      }
-
-      const filePath = this.generatePdfFile(exportId);
-
-      const completed = await this.markCompleted(exportId, exportJob.fileName, attemptCount, filePath);
-      if (!completed) {
-        this.finalizeJobSpan(span, true);
-        return;
-      }
-
-      this.logger.log(
-        this.logContext(exportId, attemptCount, { filePath }),
-        'queue.job.completed',
-      );
-      this.finalizeJobSpan(span, true);
-    } catch (error) {
       try {
-        await this.handleProcessingError(error, job, exportId, attemptCount);
-      } catch (processingError) {
-        this.finalizeJobSpan(span, false, processingError);
-        throw processingError;
-      }
+        const exportJob = await this.loadExportJobOrSkip(exportId);
+        if (!exportJob) {
+          this.finalizeJobSpan(span, true);
+          return;
+        }
 
-      this.finalizeJobSpan(span, false, error);
-    } finally {
-      this.reportHeartbeat();
-    }
+        if (this.shouldSkipDuplicate(exportJob, exportId, attemptCount)) {
+          this.finalizeJobSpan(span, true);
+          return;
+        }
+
+        this.logger.log(this.logContext(exportId, attemptCount, { requestId, state: 'processing' }), 'queue.job.processing');
+
+        const claimed = await this.claimProcessingState(exportId, attemptCount);
+        if (!claimed) {
+          this.finalizeJobSpan(span, true);
+          return;
+        }
+
+        const filePath = this.generatePdfFile(exportId);
+
+        const completed = await this.markCompleted(exportId, exportJob.fileName, attemptCount, filePath);
+        if (!completed) {
+          this.finalizeJobSpan(span, true);
+          return;
+        }
+
+        this.logger.log(
+          this.logContext(exportId, attemptCount, { filePath }),
+          'queue.job.completed',
+        );
+        this.finalizeJobSpan(span, true);
+      } catch (error) {
+        try {
+          await this.handleProcessingError(error, job, exportId, attemptCount);
+        } catch (processingError) {
+          this.finalizeJobSpan(span, false, processingError);
+          throw processingError;
+        }
+
+        this.finalizeJobSpan(span, false, error);
+      } finally {
+        this.reportHeartbeat();
+      }
+    });
   }
 
   private startJobSpan(job: Job<{ exportId: string }>, exportId: string, attemptCount: number): Span {
@@ -369,14 +374,14 @@ export class ExportProcessor extends WorkerHost implements OnModuleInit, OnModul
     attemptCount?: number,
     extra: Record<string, unknown> = {},
   ): Record<string, unknown> {
-    return {
+    return enrichWithTraceContext({
       module: 'queue',
       operation: this.operation,
       queue: this.queueName,
       exportId,
       ...(attemptCount !== undefined ? { attemptCount } : {}),
       ...extra,
-    };
+    });
   }
 
   private reportHeartbeat(): void {

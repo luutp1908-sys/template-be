@@ -4,6 +4,7 @@ import { Prisma, PrismaClient } from '@prisma/client';
 import { Span, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { Logger } from 'nestjs-pino';
 import { MetricsService } from '../common/metrics/metrics.service';
+import { enrichWithTraceContext } from '../common/telemetry/trace-context';
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
@@ -113,11 +114,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     try {
       await this.$connect();
       this.logger.log(
-        {
+        enrichWithTraceContext({
           module: 'database',
           operation: 'prisma.connect',
           startupMode: this.configService.get<'fail-fast' | 'warn'>('database.startupMode', 'warn'),
-        },
+        }),
         'database.connected',
       );
     } catch (error) {
@@ -129,24 +130,24 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
 
       if (startupMode === 'fail-fast') {
         this.logger.error(
-          {
+          enrichWithTraceContext({
             module: 'database',
             operation: 'prisma.connect',
             startupMode,
             reason,
-          },
+          }),
           'database.connection.failed',
         );
         throw error;
       }
 
       this.logger.warn(
-        {
+        enrichWithTraceContext({
           module: 'database',
           operation: 'prisma.connect',
           startupMode,
           reason,
-        },
+        }),
         'database.connection.skipped',
       );
     }
