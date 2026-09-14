@@ -214,7 +214,7 @@ Exit criteria:
 - [x] Publish incident runbook with per-alert triage actions. See `be/docs/reliability/INCIDENT_RUNBOOK_2026-09-14.md`.
 - [x] Define severity matrix and escalation ownership. See `be/docs/reliability/SEVERITY_AND_ESCALATION_MATRIX_2026-09-14.md`.
 - [x] Run one game day incident drill and capture findings. See `be/docs/reliability/operations/GAME_DAY_DRILL_PLAN_2026-09-14.md`.
-- [ ] Close post-drill action items and update runbook.
+- [x] Close post-drill action items and update runbook. See `be/docs/reliability/operations/POST_DRILL_ACTIONS_AND_RUNBOOK_UPDATE_2026-09-14.md`.
 
 ### Status Summary
 - [x] Foundation complete
