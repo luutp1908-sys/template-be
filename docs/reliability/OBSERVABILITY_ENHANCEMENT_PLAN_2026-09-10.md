@@ -218,9 +218,9 @@ Exit criteria:
 
 ### Status Summary
 - [x] Foundation complete
-- [ ] Metrics pipeline complete
-- [ ] Tracing complete
-- [ ] Alerting and runbooks complete
+- [x] Metrics pipeline complete
+- [x] Tracing complete
+- [x] Alerting and runbooks complete
 
 ## Ownership and Operating Model
 
