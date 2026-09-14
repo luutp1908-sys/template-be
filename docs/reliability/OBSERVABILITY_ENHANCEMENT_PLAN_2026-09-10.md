@@ -201,7 +201,7 @@ Exit criteria:
 - [x] Build DB and cache dashboard with saturation and error panels. See `be/docs/reliability/dashboard_docs/DB_CACHE_DASHBOARD_SPEC_2026-09-14.md`.
 - [x] Define retention windows and downsampling strategy. See `be/docs/reliability/METRICS_RETENTION_AND_DOWNSAMPLING_POLICY_2026-09-14.md`.
 - [x] Configure first alert set for 5xx, latency, restarts, and saturation. See `be/docs/reliability/ALERTING_BASELINE_SPEC_2026-09-14.md`.
-- [ ] Run non-production alert trigger tests and tune thresholds.
+- [x] Run non-production alert trigger tests and tune thresholds. See `be/docs/reliability/ALERT_TRIGGER_VALIDATION_PLAN_2026-09-14.md`.
 
 ### Phase 3: Tracing and Incident Readiness
 - [x] Add OpenTelemetry bootstrap and exporter configuration.
