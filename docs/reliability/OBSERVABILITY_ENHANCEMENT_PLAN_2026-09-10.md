@@ -211,7 +211,7 @@ Exit criteria:
 - [x] Instrument BullMQ lifecycle events with job spans.
 - [x] Propagate correlation IDs from API request to queue jobs.
 - [x] Include traceId and spanId in structured log events.
-- [ ] Publish incident runbook with per-alert triage actions.
+- [x] Publish incident runbook with per-alert triage actions. See `be/docs/reliability/INCIDENT_RUNBOOK_2026-09-14.md`.
 - [ ] Define severity matrix and escalation ownership.
 - [ ] Run one game day incident drill and capture findings.
 - [ ] Close post-drill action items and update runbook.
