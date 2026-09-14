@@ -199,7 +199,7 @@ Exit criteria:
 - [x] Build API dashboard with latency, throughput, and error panels. See `be/docs/reliability/dashboard_docs/API_DASHBOARD_SPEC_2026-09-13.md`.
 - [x] Build queue dashboard with backlog, failure, and retry panels. See `be/docs/reliability/dashboard_docs/QUEUE_DASHBOARD_SPEC_2026-09-14.md`.
 - [x] Build DB and cache dashboard with saturation and error panels. See `be/docs/reliability/dashboard_docs/DB_CACHE_DASHBOARD_SPEC_2026-09-14.md`.
-- [ ] Define retention windows and downsampling strategy.
+- [x] Define retention windows and downsampling strategy. See `be/docs/reliability/METRICS_RETENTION_AND_DOWNSAMPLING_POLICY_2026-09-14.md`.
 - [ ] Configure first alert set for 5xx, latency, restarts, and saturation.
 - [ ] Run non-production alert trigger tests and tune thresholds.
 
