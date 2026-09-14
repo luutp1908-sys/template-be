@@ -197,7 +197,7 @@ Exit criteria:
 - [x] Add DB operation latency and DB error metrics.
 - [x] Add cache hit ratio and cache fallback event metrics.
 - [x] Build API dashboard with latency, throughput, and error panels.
-- [ ] Build queue dashboard with backlog, failure, and retry panels.
+- [x] Build queue dashboard with backlog, failure, and retry panels. See `be/docs/reliability/QUEUE_DASHBOARD_SPEC_2026-09-14.md`.
 - [ ] Build DB and cache dashboard with saturation and error panels.
 - [ ] Define retention windows and downsampling strategy.
 - [ ] Configure first alert set for 5xx, latency, restarts, and saturation.
