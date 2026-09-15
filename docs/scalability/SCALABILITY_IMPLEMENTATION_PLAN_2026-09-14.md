@@ -17,13 +17,23 @@ This plan follows the reliability and observability work already completed and c
 - The team can detect saturation and scale before user-facing latency degrades.
 - DB pool and queue worker settings are tuned for realistic concurrency levels.
 
+## Ownership model
+
+This plan should be executed with a clear split of responsibility:
+
+- Backend ownership: application behavior, throughput, bottleneck detection, and tuning of app-level concurrency.
+- DevOps / platform ownership: infrastructure sizing, autoscaling, deployment safety, rollout controls, and operational alerts.
+- Shared ownership: queue scaling, production load thresholds, and saturation response.
+
+This separation matters because application bottlenecks and platform bottlenecks require different fixes and different owners.
+
 ## Workstreams
 
-### 1) Capacity baseline and load targets
+### 1) Backend: Capacity baseline and load targets
 
 Objective: establish measurable production performance goals before changing deployment behavior.
 
-Tasks:
+Backend tasks:
 - define target RPS and concurrency for the API service
 - define target queue throughput and backlog thresholds for export jobs
 - define latency goals for p95 and p99 under expected load
@@ -40,11 +50,11 @@ Recommended initial goals:
 - Queue target: backlog should recover within the configured processing window under expected burst load
 - DB target: query latency should remain within the alert threshold under normal peak traffic
 
-### 2) Load testing and benchmarking
+### 2) Backend: Load testing and benchmarking
 
 Objective: validate how the system behaves under real traffic and queue pressure.
 
-Tasks:
+Backend tasks:
 - create a repeatable load test for the API
 - create a targeted queue test that simulates job bursts
 - test DB and Redis pressure under combined traffic patterns
@@ -63,11 +73,17 @@ Minimum test scenarios:
 - degraded DB or Redis scenario
 - queue saturation scenario with worker slowdown
 
-### 3) Horizontal scaling strategy
+### 3) Shared: Horizontal scaling strategy
 
 Objective: define how the service scales safely in production.
 
-Tasks:
+Backend responsibilities:
+- define the app-level capacity limits and bottleneck points
+- specify the queue backlog triggers that should cause worker changes
+- identify whether scaling is needed for API or worker saturation first
+- validate whether autoscaling is reacting to real workload pressure and not just noisy infra metrics
+
+DevOps responsibilities:
 - define whether the API scales horizontally by ECS task count or another platform primitive
 - set target minimum and maximum task counts
 - define autoscaling policy based on throughput, latency, or CPU utilization
@@ -84,32 +100,40 @@ Recommended approach:
 - scale queue workers based on backlog depth and processing time
 - keep a safe minimum healthy worker count to avoid queue starvation
 
-### 4) Deployment pattern and rollout safety
+### 4) DevOps: Deployment pattern and rollout safety
 
 Objective: make production updates safe at scale.
 
-Tasks:
+DevOps tasks:
 - use rolling deployment patterns with readiness gates
 - require health and dependency checks before new tasks become ready
 - define deployment rollback criteria for latency, error rate, and readiness regressions
 - ensure queue workers are drained or paused appropriately during risky deployments
 - define what happens if a new version cannot meet target error/latency budget
 
+Backend support:
+- provide the app-level performance and stability thresholds used as deployment gates
+- validate whether a rollout is safe under the current queue and response-time profile
+
 Deliverables:
 - rollout and rollback policy
 - health gate and readiness gate checklist
 - safe deployment playbook
 
-### 5) DB, Redis, and connection tuning
+### 5) Backend: DB, Redis, and connection tuning
 
 Objective: remove common production bottlenecks before they become incidents.
 
-Tasks:
+Backend tasks:
 - tune Prisma connection pool settings to match application concurrency
 - validate Postgres connection saturation under peak load
 - ensure Redis is provisioned for queue throughput and cache pressure
 - review queue worker concurrency and retry settings
 - review DB query patterns for N+1 or heavy reads during peak traffic
+
+DevOps support:
+- provide the infra sizing and resource profiles required for the tuned configuration
+- confirm the environment can support the expected DB and Redis concurrency
 
 Deliverables:
 - DB pooling recommendations
@@ -117,12 +141,17 @@ Deliverables:
 - queue worker concurrency settings
 - hot-path query review notes
 
-### 6) Saturation detection and proactive scaling
+### 6) Shared: Saturation detection and proactive scaling
 
 Objective: scale before severe degradation occurs.
 
-Tasks:
-- add first-class saturation signals for CPU, memory, response latency, queue depth, and database latency
+Backend responsibilities:
+- add first-class saturation signals for API response latency, queue depth, and DB latency
+- identify the application-level symptoms that signal overload before user-visible errors occur
+- define which app metrics should feed the scale decision
+
+DevOps responsibilities:
+- add CPU, memory, and infrastructure saturation signals
 - define escalation thresholds before user-visible breakage
 - ensure autoscaling triggers operate on sustained load, not single-sample spikes
 - add alert-to-scale playbook for saturated queues and API workers
@@ -132,15 +161,19 @@ Deliverables:
 - scale-up and scale-down rules
 - response plan for queue lag or DB pressure
 
-### 7) Operational readiness and rollback trigger matrix
+### 7) DevOps: Operational readiness and rollback trigger matrix
 
 Objective: provide a clear operating model for the team during load or scale changes.
 
-Tasks:
+DevOps tasks:
 - define what conditions trigger manual scale actions
 - define what conditions trigger rollback
 - define what conditions require queue throttling or pause
 - define ownership for each scale pattern and decision point
+
+Backend support:
+- confirm the application health metrics and thresholds that should gate operational actions
+- define what is considered acceptable performance degradation during a controlled scale event
 
 Deliverables:
 - rollback trigger matrix
@@ -149,7 +182,7 @@ Deliverables:
 
 ## Execution roadmap
 
-### Phase 1: Baseline and load targets
+### Phase 1: Backend baseline and load targets
 
 - define target traffic and latency budgets
 - create a load test script and benchmark plan
@@ -159,7 +192,7 @@ Exit criteria:
 - the team knows the expected steady-state and peak RPS
 - performance expectations are documented and measurable
 
-### Phase 2: Benchmark under stress
+### Phase 2: Backend benchmark under stress
 
 - run API load tests at 2x and peak target load
 - run queue burst tests and backlog recovery tests
@@ -169,7 +202,7 @@ Exit criteria:
 - system behavior under peak load is recorded
 - bottlenecks are identified with evidence
 
-### Phase 3: Production scaling controls
+### Phase 3: DevOps production scaling controls
 
 - set autoscaling, task count, and queue worker policies
 - tune DB and Redis settings
@@ -179,7 +212,7 @@ Exit criteria:
 - scale actions are deterministic and safe
 - canary or rolling deployment does not create user-visible instability
 
-### Phase 4: Ops and tuning
+### Phase 4: Shared ops and tuning
 
 - tune thresholds after initial load test results
 - update runbook and escalation ownership based on findings
@@ -191,20 +224,27 @@ Exit criteria:
 
 ## Implementation checklist
 
+### Backend checklist
 - [ ] Define API throughput and latency targets
 - [ ] Define queue throughput and backlog expectations
 - [ ] Document normal, burst, and failure load profiles
 - [ ] Create API load test procedure
 - [ ] Create queue burst test procedure
 - [ ] Validate DB and Redis behavior under combined load
-- [ ] Define horizontal scaling rules for API tasks
-- [ ] Define scaling rules for queue workers
 - [ ] Tune Prisma pool and DB concurrency settings
 - [ ] Tune Redis and queue worker settings
+- [ ] Review hot-path DB queries and app bottlenecks
+
+### DevOps checklist
+- [ ] Define horizontal scaling rules for API tasks
+- [ ] Define scaling rules for queue workers
 - [ ] Define rollout and rollback policy
 - [ ] Define scale-up and scale-down triggers
 - [ ] Add saturation alert and capacity review steps
 - [ ] Review results and update ops docs
+- [ ] Configure ECS or platform autoscaling rules
+- [ ] Define readiness and health-gate checks for deploys
+- [ ] Define queue drain / pause playbook during risky releases
 
 ## Risks and mitigations
 
