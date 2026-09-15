@@ -78,18 +78,15 @@ Use these as the first backend baseline until measured data from a real load tes
 
 ## Concrete backend checklist
 
-- [x] **Define expected steady-state API RPS for the representative endpoint mix**
-  - Definition: 25 RPS per app instance for the representative mix of read, write, and export-triggering endpoints.
-  - Scope: backend-only request capacity baseline; this is not an ECS or autoscaling decision.
-  - Measurement rule: validate against a warm, steady-state benchmark before treating this as a production baseline.
-- [ ] **Define expected peak burst API RPS for the same mix**
-- [ ] **Define p95 and p99 latency targets for read and write endpoints**
-- [ ] **Define queue backlog and recovery target for export jobs**
-- [ ] **Document steady-state, 2x load, and peak-burst scenarios**
-- [ ] **Validate the targets with a backend benchmark run against the local test environment**
-- [ ] **Record the measured p95/p99 results and compare them to target values**
-- [ ] **Update the target matrix if the real workload differs from the initial assumption**
-- [ ] **Confirm the initial target numbers are still valid after a benchmark run before treating them as production baselines**
+- [x] Define expected steady-state API RPS for the representative endpoint mix
+- [x] Define expected peak burst API RPS for the same mix
+- [x] Define p95 and p99 latency targets for read and write endpoints
+- [x] Define queue backlog and recovery target for export jobs
+- [x] Document steady-state, 2x load, and peak-burst scenarios
+- [ ] Validate the targets with a backend benchmark run against the local test environment
+- [ ] Record the measured p95/p99 results and compare them to target values
+- [ ] Update the target matrix if the real workload differs from the initial assumption
+- [ ] Confirm the initial target numbers are still valid after a benchmark run before treating them as production baselines
 
 ## Definition of done for this task
 
