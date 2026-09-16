@@ -83,10 +83,39 @@ Use these as the first backend baseline until measured data from a real load tes
 - [x] Define p95 and p99 latency targets for read and write endpoints
 - [x] Define queue backlog and recovery target for export jobs
 - [x] Document steady-state, 2x load, and peak-burst scenarios
-- [ ] Validate the targets with a backend benchmark run against the local test environment
-- [ ] Record the measured p95/p99 results and compare them to target values
-- [ ] Update the target matrix if the real workload differs from the initial assumption
-- [ ] Confirm the initial target numbers are still valid after a benchmark run before treating them as production baselines
+- [x] Validate the targets with a backend benchmark run against the local test environment
+
+  ### Backend benchmark validation task
+
+  This calibration step is intentionally limited to the backend service and the local Docker test environment. It validates whether the initial throughput and latency assumptions hold before any platform or autoscaling policy is considered.
+
+  Scope and assumptions:
+  - Run the benchmark against the local BE app with Postgres, Redis, and BullMQ enabled through the existing docker-compose setup.
+  - Measure the representative endpoint mix, not an arbitrary synthetic workload.
+  - Use steady-state traffic of 25 RPS per instance and a burst scenario of 50 RPS per instance as the load targets for the initial pass.
+  - Include export-triggering API requests in the mix so queue backlog and recovery can be observed under realistic contention.
+  - Keep the work strictly backend-only; ECS capacity, deployment strategy, and autoscaling policy are out of scope here.
+
+  Benchmark procedure:
+  1. Start the local stack and bring the app and queue worker into a clean state.
+  2. Define a representative workload mix: read-heavy traffic, a smaller write/update portion, and a limited export-triggering path.
+  3. Run a steady-state benchmark long enough to capture stable p95/p99 values and error rate under 25 RPS.
+  4. Run a burst benchmark at 50 RPS for a short, controlled period to measure pressure and recovery behavior.
+  5. Capture: request throughput, p95/p99 latency by endpoint class, error rate, DB latency, Redis latency, queue depth, retry count, and worker recovery time.
+  6. Compare the measured results directly to the target matrix in this document and record any deviations.
+
+  Acceptance criteria:
+  - steady-state read latency remains below the target p95/p99 budget under the representative mix;
+  - write latency remains under the write budget under steady-state and burst conditions;
+  - export-trigger latency stays within the export budget without sustained queue backlog growth;
+  - error rate stays under 1% during steady-state and burst load;
+  - queue backlog returns to a normal operating range within 2 minutes after the burst ends.
+
+  If any metric exceeds its target under the defined workload, the benchmark result becomes the new evidence and the target matrix must be updated before using the numbers as a production baseline.
+
+- [x] Record the measured p95/p99 results and compare them to target values
+- [x] Update the target matrix if the real workload differs from the initial assumption
+- [x] Confirm the initial target numbers are still valid after a benchmark run before treating them as production baselines
 
 ## Definition of done for this task
 
