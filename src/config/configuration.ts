@@ -19,6 +19,11 @@ export default () => ({
   database: {
     url: process.env.DATABASE_URL,
     startupMode: process.env.DATABASE_STARTUP_MODE ?? 'warn',
+    pool: {
+      min: Number(process.env.DATABASE_POOL_MIN ?? 1),
+      max: Number(process.env.DATABASE_POOL_MAX ?? 10),
+      connectionTimeoutMs: Number(process.env.DATABASE_POOL_TIMEOUT_MS ?? 20000),
+    },
   },
   queue: {
     enabled: process.env.QUEUE_ENABLED !== 'false',
@@ -43,6 +48,8 @@ export default () => ({
     tls: process.env.REDIS_TLS
       ? process.env.REDIS_TLS === 'true'
       : (process.env.NODE_ENV ?? 'development') === 'production',
+    retryDelayMs: Number(process.env.REDIS_RETRY_DELAY_MS ?? 200),
+    keepAliveEnabled: process.env.REDIS_KEEPALIVE_ENABLED !== 'false',
   },
   cache: {
     enabled: process.env.CACHE_ENABLED !== 'false',

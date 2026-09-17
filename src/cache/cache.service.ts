@@ -45,12 +45,16 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     const tls = this.configService.get<boolean>('redis.tls', false);
     const password = this.configService.get<string>('redis.password') || undefined;
     const connectTimeout = this.configService.get<number>('cache.connectTimeoutMs', 2000);
+    const retryDelayMs = this.configService.get<number>('redis.retryDelayMs', 200);
+    const keepAliveEnabled = this.configService.get<boolean>('redis.keepAliveEnabled', true);
 
     this.client = createClient({
       socket: {
         host,
         port,
         connectTimeout,
+        keepAlive: keepAliveEnabled,
+        reconnectStrategy: (retries) => Math.min(retries * retryDelayMs, 2000),
         ...(tls ? { tls: true as const } : {}),
       },
       password,

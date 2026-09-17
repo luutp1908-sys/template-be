@@ -226,14 +226,14 @@ Exit criteria:
 
 ### Backend checklist
 - [x] Define API throughput and latency targets
-- [ ] Define queue throughput and backlog expectations
+- [x] Define queue throughput and backlog expectations
 - [x] Document normal, burst, and failure load profiles
 - [x] Create API load test procedure
-- [ ] Create queue burst test procedure
-- [ ] Validate DB and Redis behavior under combined load
-- [ ] Tune Prisma pool and DB concurrency settings
-- [ ] Tune Redis and queue worker settings
-- [ ] Review hot-path DB queries and app bottlenecks
+- [x] Create queue burst test procedure
+- [x] Validate DB and Redis behavior under combined load
+- [x] Tune Prisma pool and DB concurrency settings
+- [x] Tune Redis and queue worker settings
+- [x] Review hot-path DB queries and app bottlenecks
 
 ### DevOps checklist
 - [ ] Define horizontal scaling rules for API tasks

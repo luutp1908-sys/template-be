@@ -6,6 +6,28 @@ import { Logger } from 'nestjs-pino';
 import { MetricsService } from '../common/metrics/metrics.service';
 import { enrichWithTraceContext } from '../common/telemetry/trace-context';
 
+function buildPrismaDatasourceUrl(configService: ConfigService): string {
+  const rawUrl = configService.get<string>('database.url');
+  if (!rawUrl) {
+    return 'postgresql://postgres:postgres@localhost:5432/postgres';
+  }
+
+  try {
+    const parsed = new URL(rawUrl);
+    const poolMin = configService.get<number>('database.pool.min', 1);
+    const poolMax = configService.get<number>('database.pool.max', 10);
+    const poolTimeoutMs = configService.get<number>('database.pool.connectionTimeoutMs', 20000);
+
+    parsed.searchParams.set('connection_limit', String(Math.max(1, poolMax)));
+    parsed.searchParams.set('pool_timeout', String(Math.max(1000, poolTimeoutMs / 1000)));
+    parsed.searchParams.set('statement_cache_size', String(Math.max(1, poolMin * 10)));
+
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit {
   constructor(
@@ -13,7 +35,13 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     private readonly logger: Logger,
     @Optional() private readonly metricsService?: MetricsService,
   ) {
-    super();
+    super({
+      datasources: {
+        db: {
+          url: buildPrismaDatasourceUrl(configService),
+        },
+      },
+    });
   }
 
   private buildQueryText(query: Prisma.Sql | TemplateStringsArray, values: any[]): string {
