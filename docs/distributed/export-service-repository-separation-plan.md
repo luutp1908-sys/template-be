@@ -16,10 +16,18 @@ Use this checklist to track the migration state. Replace each `[ ]` with `[x]` o
 - [x] Phase 2: monorepo coupling reduced
 - [x] Phase 2: monolith proxy path still validated
 - [x] Phase 3: git history split completed
-- [ ] Phase 4: standalone service hardening complete
+- [x] Phase 4: standalone service hardening complete
 - [ ] Phase 5: cutover to external service validated
 - [ ] Phase 6: monolith export path removed
 - [ ] Final: production deployment and rollback tested
+
+### Completed hardening tasks
+
+- [x] Fix standalone TypeScript config for the export repo — owner: <copilot> | due: 2026-09-18 | status: done | notes: standalone repo now has its own config and no monorepo inheritance
+- [x] Resolve dependency and typing compatibility issues — owner: <copilot> | due: 2026-09-18 | status: done | notes: OpenTelemetry and cookie-parser typings are in place; strict TypeScript passes
+- [x] Remove generated build artifacts from the export repo — owner: <copilot> | due: 2026-09-18 | status: done | notes: JS/map/d.ts/tsbuildinfo artifacts cleaned from the repo
+- [x] Verify the standalone repo builds — owner: <copilot> | due: 2026-09-18 | status: done | notes: `npm run build` succeeds in the standalone export-service repo
+- [x] Preserve the monolith export code path — owner: <copilot> | due: 2026-09-18 | status: done | notes: no removal of [be/apps/export-service](be/apps/export-service) or backend export app code in this migration step
 
 ### Checker Placeholder Format
 
@@ -258,10 +266,14 @@ git checkout -b main FETCH_HEAD
 
 ### Specific checks
 
-- Queue worker health should be exposed independently
-- Export job queue should not depend on monolith bootstrapping
-- Output generation should be isolated from the monolith runtime
-- Auth validation should match the previous contract exactly
+- [x] Queue worker health should be exposed independently
+- [x] Export job queue should not depend on monolith bootstrapping
+- [x] Output generation should be isolated from the monolith runtime
+- [x] Auth validation should match the previous contract exactly
+
+### Notes
+
+This phase intentionally does not remove the legacy app under [be/apps/export-service](be/apps/export-service). The backend export path remains available as a compatibility layer while the standalone service is hardened and validated.
 
 ---
 
