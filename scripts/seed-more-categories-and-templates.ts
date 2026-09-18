@@ -33,10 +33,31 @@ const makePage = (title: string, bg: string, idx: number) => ({
   background: { color: bg },
 });
 
+async function resetGraphicSeed(editorTypeId: string) {
+  const categoryRows = await prisma.category.findMany({ where: { editorTypeId }, select: { id: true } });
+  const categoryIds = categoryRows.map((category) => category.id);
+
+  const templateRows = await prisma.template.findMany({ where: { editorTypeId }, select: { id: true } });
+  const templateIds = templateRows.map((template) => template.id);
+
+  if (templateIds.length > 0) {
+    await prisma.userDraft.deleteMany({ where: { templateId: { in: templateIds } } });
+    await prisma.templateContent.deleteMany({ where: { templateId: { in: templateIds } } });
+    await prisma.template.deleteMany({ where: { editorTypeId } });
+  }
+
+  if (categoryIds.length > 0) {
+    await prisma.categorySeo.deleteMany({ where: { categoryId: { in: categoryIds } } });
+    await prisma.category.deleteMany({ where: { editorTypeId } });
+  }
+}
+
 async function main() {
   const editor = await prisma.editorType.findFirst({ where: { key: 'graphic' } });
   if (!editor) throw new Error("No EditorType with key 'graphic' found");
   const editorTypeId = editor.id;
+
+  await resetGraphicSeed(editorTypeId);
 
   let user = await prisma.user.findFirst({ where: { email: 'demo+graphic@example.com' } });
   if (!user) {
