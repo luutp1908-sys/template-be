@@ -15,7 +15,7 @@ Use this checklist to track the migration state. Replace each `[ ]` with `[x]` o
 - [x] Phase 1: build and tests pass in the new repo
 - [x] Phase 2: monorepo coupling reduced
 - [x] Phase 2: monolith proxy path still validated
-- [ ] Phase 3: git history split completed
+- [x] Phase 3: git history split completed
 - [ ] Phase 4: standalone service hardening complete
 - [ ] Phase 5: cutover to external service validated
 - [ ] Phase 6: monolith export path removed
