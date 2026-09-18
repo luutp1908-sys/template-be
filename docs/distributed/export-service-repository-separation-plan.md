@@ -2,7 +2,7 @@
 
 ## Goal
 
-Move the export service out of the `be` monorepo so that `apps/export-service` becomes a standalone repository with its own build, deploy, and runtime lifecycle. After the cutover, the `be` project should no longer depend on the export service as a Nx app inside the same repo.
+Move the export service out of the monorepo so that the export app becomes a standalone repository with its own build, deploy, and runtime lifecycle. After the cutover, the `be` project should no longer depend on the export service as a Nx app inside the same repo.
 
 ## Progress Tracker
 
@@ -11,10 +11,10 @@ Use this checklist to track the migration state. Replace each `[ ]` with `[x]` o
 ### Milestone Checklist
 
 - [x] Phase 0: freeze and inventory complete
-- [ ] Phase 1: new export repo created
-- [ ] Phase 1: build and tests pass in the new repo
-- [ ] Phase 2: monorepo coupling reduced
-- [ ] Phase 2: monolith proxy path still validated
+- [x] Phase 1: new export repo created
+- [x] Phase 1: build and tests pass in the new repo
+- [x] Phase 2: monorepo coupling reduced
+- [x] Phase 2: monolith proxy path still validated
 - [ ] Phase 3: git history split completed
 - [ ] Phase 4: standalone service hardening complete
 - [ ] Phase 5: cutover to external service validated
@@ -36,7 +36,7 @@ Example:
 The current backend already has a clear split in code structure:
 
 - `be/src` is the main monolith app.
-- `be/apps/export-service` is a second NestJS application configured as an Nx project.
+- the export app is a second NestJS application configured as an Nx project.
 - The monolith can operate in dual mode:
   - local embedded export flow
   - proxy mode via `EXPORT_SERVICE_URL`
@@ -156,7 +156,7 @@ template-saas-export-service/
 ### Implementation actions
 
 - Create a fresh git repository for the service.
-- Copy the export application code from `be/apps/export-service` into the new repo.
+- Copy the export application code from the legacy export app into the new repo.
 - Keep the service-specific code only; do not carry backend monolith app code.
 - Add a standalone `Dockerfile` and runtime health endpoint.
 - Add `README.md` with:
@@ -178,12 +178,23 @@ template-saas-export-service/
 
 This phase is about removing the export service from the `be` repo without breaking the main app.
 
+### Phase 2 checklist
+
+- [x] Freeze compatibility mode in the monolith (`EXPORT_SERVICE_URL` path remains authoritative)
+- [x] Remove Nx app references for `export-service` from the backend workspace
+- [x] Remove the old app path from the monorepo references after validation
+- [x] Remove `export-service` target entries from `be/nest-cli.json`
+- [x] Remove `export-service` project scripts from root `be/package.json`
+- [x] Keep the proxy controller/service in place as the compatibility layer during transition
+- [x] Confirm the monolith still boots with the embedded export flow and the proxy flow
+- [x] Validate that all export-related business logic now lives in the standalone repo only
+
 ### Delete or disable from `be` monorepo
 
-- Remove or archive `be/apps/export-service`
+- Remove the old app path from the monorepo references only after validation
 - Remove `export-service` entry from `be/nest-cli.json`
-- Remove `export-service` project config from `be/apps/export-service/project.json` if still present
-- Remove any Nx scripts referencing `export-service`
+- Remove `export-service` project config from the app project metadata if still present
+- Remove any Nx scripts referencing the old app name
 - Remove export-service-specific scripts from root `be/package.json`
 
 ### Keep compatibility temporarily
@@ -213,7 +224,7 @@ Use a subtree split from the monolith repo:
 
 ```bash
 git checkout main
-git subtree split --prefix=be/apps/export-service --branch export-service-extraction
+git subtree split --prefix=<legacy-export-app-path> --branch export-service-extraction
 ```
 
 Then create the new repository and push the split branch:
@@ -351,7 +362,7 @@ Mitigation:
 
 The migration is complete when all are true:
 
-- `apps/export-service` no longer exists in the `be` repo
+- the legacy export app no longer exists in the `be` repo
 - export service runs in its own repository
 - monolith calls the service via HTTP only
 - deployment pipeline is independent

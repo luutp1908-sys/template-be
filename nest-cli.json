@@ -15,15 +15,6 @@
       "compilerOptions": {
         "tsConfigPath": "tsconfig.build.json"
       }
-    },
-    "export-service": {
-      "type": "application",
-      "root": "apps/export-service",
-      "entryFile": "main",
-      "sourceRoot": "apps/export-service/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/export-service/tsconfig.app.json"
-      }
     }
   }
 }
