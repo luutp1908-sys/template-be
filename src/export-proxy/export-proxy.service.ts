@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { context, propagation } from '@opentelemetry/api';
 import { CreateExportDto } from '../export/dto/create-export.dto';
 import { ExportEntity } from '../export/export.entity';
 
@@ -87,6 +88,13 @@ export class ExportProxyService {
     const headers: Record<string, string> = {
       accept: 'application/json',
     };
+
+    const carrier: Record<string, string> = {};
+    propagation.inject(context.active(), carrier);
+
+    if (carrier.traceparent) {
+      headers.traceparent = carrier.traceparent;
+    }
 
     if (authorization) {
       headers.authorization = authorization;
