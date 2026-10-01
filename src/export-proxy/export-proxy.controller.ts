@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiConflictResponse, ApiOkResponse, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { Request, Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateExportDto } from '../export/dto/create-export.dto';
@@ -51,10 +52,33 @@ export class ExportProxyController {
     @Req() req: Request,
     @Res() res: Response,
   ): Promise<void> {
-    const result = await this.service.download(id, req.headers.authorization);
+    const tracer = trace.getTracer('be.export-proxy.controller');
 
-    res.setHeader('Content-Type', result.contentType);
-    res.setHeader('Content-Disposition', result.contentDisposition);
-    res.send(result.body);
+    await tracer.startActiveSpan('controller.export.download', { kind: SpanKind.INTERNAL }, async (span) => {
+      span.setAttributes({
+        'app.operation': 'export.download',
+        'export.job.id': id,
+        'http.route': '/export/jobs/:id/download',
+        'auth.present': !!req.headers.authorization,
+      });
+
+      try {
+        const result = await this.service.download(id, req.headers.authorization);
+
+        res.setHeader('Content-Type', result.contentType);
+        res.setHeader('Content-Disposition', result.contentDisposition);
+        res.send(result.body);
+        span.setStatus({ code: SpanStatusCode.OK });
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : 'Export download failed',
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
   }
 }

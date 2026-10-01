@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { context, propagation } from '@opentelemetry/api';
+import { context, propagation, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 import { CreateExportDto } from '../export/dto/create-export.dto';
 import { ExportEntity } from '../export/export.entity';
 
@@ -23,28 +23,69 @@ export class ExportProxyService {
   }
 
   async download(id: string, authorization?: string): Promise<DownloadResult> {
-    const response = await this.fetchWithTimeout(
-      this.buildUrl(`/api/v1/export/jobs/${encodeURIComponent(id)}/download`),
-      {
-        method: 'GET',
-        headers: this.buildHeaders(authorization),
-      },
-    );
+    const tracer = trace.getTracer('be.export-proxy.service');
 
-    if (!response.ok) {
-      await this.throwFromErrorResponse(response);
-    }
+    return tracer.startActiveSpan('service.export.download', { kind: SpanKind.INTERNAL }, async (span) => {
+      span.setAttributes({
+        'app.operation': 'export.download',
+        'export.job.id': id,
+        'auth.present': !!authorization,
+      });
 
-    const contentType = response.headers.get('content-type') ?? 'application/pdf';
-    const contentDisposition =
-      response.headers.get('content-disposition') ?? `attachment; filename="${id}.pdf"`;
-    const body = Buffer.from(await response.arrayBuffer());
+      try {
+        const validationSpan = tracer.startSpan('service.export.download.validate', { kind: SpanKind.INTERNAL });
+        validationSpan.setAttributes({
+          'export.job.id': id,
+          'validation.mode': 'download-request',
+        });
+        validationSpan.setStatus({ code: SpanStatusCode.OK });
+        validationSpan.end();
 
-    return {
-      body,
-      contentType,
-      contentDisposition,
-    };
+        const upstreamUrl = this.buildUrl(`/api/v1/export/jobs/${encodeURIComponent(id)}/download`);
+        const urlSpan = tracer.startSpan('service.export.download.build-url', { kind: SpanKind.INTERNAL });
+        urlSpan.setAttributes({ 'url.full': upstreamUrl });
+        urlSpan.setStatus({ code: SpanStatusCode.OK });
+        urlSpan.end();
+
+        const response = await this.fetchWithTimeout(upstreamUrl, {
+          method: 'GET',
+          headers: this.buildHeaders(authorization),
+        });
+
+        if (!response.ok) {
+          await this.throwFromErrorResponse(response);
+        }
+
+        const parseSpan = tracer.startSpan('service.export.download.parse-response', { kind: SpanKind.INTERNAL });
+        const contentType = response.headers.get('content-type') ?? 'application/pdf';
+        const contentDisposition =
+          response.headers.get('content-disposition') ?? `attachment; filename="${id}.pdf"`;
+        const body = Buffer.from(await response.arrayBuffer());
+        parseSpan.setAttributes({
+          'http.response.content_type': contentType,
+          'http.response.content_length': body.length,
+          'content.disposition': contentDisposition,
+        });
+        parseSpan.setStatus({ code: SpanStatusCode.OK });
+        parseSpan.end();
+
+        span.setStatus({ code: SpanStatusCode.OK });
+        return {
+          body,
+          contentType,
+          contentDisposition,
+        };
+      } catch (error) {
+        span.recordException(error as Error);
+        span.setStatus({
+          code: SpanStatusCode.ERROR,
+          message: error instanceof Error ? error.message : 'Export download failed',
+        });
+        throw error;
+      } finally {
+        span.end();
+      }
+    });
   }
 
   private async forwardJson<T>(
@@ -108,13 +149,31 @@ export class ExportProxyService {
   }
 
   private async fetchWithTimeout(input: string, init: RequestInit): Promise<Response> {
+    const tracer = trace.getTracer('be.export-proxy.service');
+    const fetchSpan = tracer.startSpan('service.export.download.upstream-fetch', {
+      kind: SpanKind.CLIENT,
+      attributes: {
+        'http.method': init.method ?? 'GET',
+        'url.full': input,
+      },
+    });
+
     const controller = new AbortController();
     const timeoutMs = 15_000;
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-      return await fetch(input, { ...init, signal: controller.signal });
+      const response = await fetch(input, { ...init, signal: controller.signal });
+      fetchSpan.setAttributes({ 'http.status_code': response.status });
+      fetchSpan.setStatus({ code: SpanStatusCode.OK });
+      return response;
     } catch (error) {
+      fetchSpan.recordException(error as Error);
+      fetchSpan.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : 'Upstream fetch failed',
+      });
+
       if (error instanceof Error && error.name === 'AbortError') {
         throw new HttpException('Export proxy request timed out', HttpStatus.GATEWAY_TIMEOUT);
       }
@@ -122,6 +181,7 @@ export class ExportProxyService {
       throw new HttpException('Export proxy upstream request failed', HttpStatus.BAD_GATEWAY);
     } finally {
       clearTimeout(timer);
+      fetchSpan.end();
     }
   }
 
