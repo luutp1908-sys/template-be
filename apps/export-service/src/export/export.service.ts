@@ -45,11 +45,6 @@ export class ExportService {
   }
 
   private async assertQueueSubmissionReady(): Promise<void> {
-    const mockMode = this.configService.get<boolean>('app.mockMode', false);
-    if (mockMode) {
-      return;
-    }
-
     const queueEnabled = this.configService.get<boolean>('queue.enabled', true);
     if (!queueEnabled) {
       throw new ServiceUnavailableException('Export queue is disabled');

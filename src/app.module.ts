@@ -75,7 +75,7 @@ const queueEnabled = process.env.QUEUE_ENABLED !== 'false';
     CacheModule,
     DatabaseModule,
     MetricsModule,
-    ...(process.env.MOCK_MODE === 'true' || !queueEnabled ? [] : [QueueModule]),
+    ...(!queueEnabled ? [] : [QueueModule]),
     HealthModule,
     AuthModule,
     UserModule,

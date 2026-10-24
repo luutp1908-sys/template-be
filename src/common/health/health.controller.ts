@@ -85,16 +85,6 @@ export class HealthController {
     status: 'ok' | 'skipped' | 'degraded';
     reason?: string;
   }> {
-    const mockMode = this.configService.get<boolean>('app.mockMode', false);
-    if (mockMode) {
-      return {
-        required: false,
-        healthy: true,
-        status: 'skipped',
-        reason: 'Mock mode enabled',
-      };
-    }
-
     try {
       await this.prismaService.$queryRaw(Prisma.sql`SELECT 1`);
       return {
@@ -118,16 +108,6 @@ export class HealthController {
     status: 'ok' | 'skipped' | 'degraded';
     reason?: string;
   }> {
-    const mockMode = this.configService.get<boolean>('app.mockMode', false);
-    if (mockMode) {
-      return {
-        required: false,
-        healthy: true,
-        status: 'skipped',
-        reason: 'Mock mode enabled',
-      };
-    }
-
     const host = this.configService.get<string>('redis.host', 'localhost');
     const port = this.configService.get<number>('redis.port', 6379);
     const password = this.configService.get<string>('redis.password') || undefined;

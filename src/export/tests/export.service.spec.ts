@@ -33,10 +33,6 @@ describe('ExportService', () => {
     templateService = { findById: jest.fn() };
     configService = {
       get: jest.fn((key: string, defaultValue?: unknown) => {
-        if (key === 'app.mockMode') {
-          return false;
-        }
-
         if (key === 'queue.enabled') {
           return true;
         }
@@ -111,10 +107,6 @@ describe('ExportService', () => {
 
   it('should fail fast when queue is disabled', async () => {
     configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-      if (key === 'app.mockMode') {
-        return false;
-      }
-
       if (key === 'queue.enabled') {
         return false;
       }
@@ -173,10 +165,6 @@ describe('ExportService', () => {
     queue.add.mockResolvedValue({ id: 'bull-job-1' });
 
     configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-      if (key === 'app.mockMode') {
-        return false;
-      }
-
       if (key === 'queue.enabled') {
         return true;
       }
@@ -217,10 +205,6 @@ describe('ExportService', () => {
     queue.add.mockResolvedValue({ id: 'bull-job-1' });
 
     configService.get.mockImplementation((key: string, defaultValue?: unknown) => {
-      if (key === 'app.mockMode') {
-        return false;
-      }
-
       if (key === 'queue.enabled') {
         return true;
       }

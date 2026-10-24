@@ -4,7 +4,6 @@ const frontendOriginPattern = /^https?:\/\/[^,\s]+(,\s*https?:\/\/[^,\s]+)*$/;
 
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
-  MOCK_MODE: Joi.boolean().truthy('true').falsy('false').default(false),
   PORT: Joi.number().port().default(4000),
   APP_NAME: Joi.string().default('template-saas-backend'),
   API_PREFIX: Joi.string().default('api'),
@@ -16,16 +15,8 @@ const envSchema = Joi.object({
     otherwise: Joi.string().pattern(frontendOriginPattern).optional().allow(''),
   }),
   EXPORT_SERVICE_URL: Joi.string().uri({ scheme: ['http', 'https'] }).optional().allow(''),
-  JWT_ACCESS_SECRET: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().default('change_me_access'),
-    otherwise: Joi.string().required(),
-  }),
-  JWT_REFRESH_SECRET: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().default('change_me_refresh'),
-    otherwise: Joi.string().required(),
-  }),
+  JWT_ACCESS_SECRET: Joi.string().required(),
+  JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
   DATABASE_STARTUP_MODE: Joi.when('NODE_ENV', {
@@ -46,23 +37,11 @@ const envSchema = Joi.object({
   QUEUE_EXPORT_STALLED_INTERVAL_MS: Joi.number().integer().min(1000).default(30000),
   QUEUE_EXPORT_MAX_STALLED_COUNT: Joi.number().integer().min(0).default(1),
   QUEUE_EXPORT_LOCK_DURATION_MS: Joi.number().integer().min(1000).default(60000),
-  DATABASE_URL: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().optional(),
-    otherwise: Joi.string()
-      .uri({ scheme: ['postgresql'] })
-      .required(),
-  }),
-  REDIS_HOST: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().optional(),
-    otherwise: Joi.string().required(),
-  }),
-  REDIS_PORT: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.number().port().optional(),
-    otherwise: Joi.number().port().required(),
-  }),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql'] })
+    .required(),
+  REDIS_HOST: Joi.string().required(),
+  REDIS_PORT: Joi.number().port().required(),
   REDIS_TLS: Joi.boolean().truthy('true').falsy('false').default(true),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
   REDIS_RETRY_DELAY_MS: Joi.number().integer().min(50).default(200),

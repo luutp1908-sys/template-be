@@ -1,11 +1,8 @@
 import { Module } from '@nestjs/common';
 import { UserDraftController } from './user-draft.controller';
+import { UserDraftRepository } from './user-draft.repository.prisma';
 import { UserDraftService } from './user-draft.service';
 import { WorkspaceModule } from '../workspace/workspace.module';
-
-const impl = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1'
-  ? require('./user-draft.repository.mock')
-  : require('./user-draft.repository.prisma');
 const USER_DRAFT_REPOSITORY = 'USER_DRAFT_REPOSITORY';
 
 @Module({
@@ -13,7 +10,7 @@ const USER_DRAFT_REPOSITORY = 'USER_DRAFT_REPOSITORY';
   controllers: [UserDraftController],
   providers: [
     UserDraftService,
-    { provide: USER_DRAFT_REPOSITORY, useClass: impl.UserDraftRepository },
+    { provide: USER_DRAFT_REPOSITORY, useClass: UserDraftRepository },
   ],
   exports: [UserDraftService],
 })

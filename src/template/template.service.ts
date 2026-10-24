@@ -26,11 +26,8 @@ export class TemplateService {
   ) {}
 
   async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
-    const isMockMode = (process.env.MOCK_MODE ?? '').toLowerCase() === 'true';
-    if (!authorId && !isMockMode) {
-      throw new UnauthorizedException(
-        'Authentication is required to create template when MOCK_MODE is disabled',
-      );
+    if (!authorId) {
+      throw new UnauthorizedException('Authentication is required to create template');
     }
 
     const created = await this.repository.create(payload, authorId);

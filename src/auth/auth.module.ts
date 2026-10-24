@@ -8,6 +8,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { LocalAuthGuard } from './guards/local-auth.guard';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RolesGuard } from './guards/roles.guard';
+import { AuthRepository } from './auth.repository.prisma';
 import { JwtStrategy } from './jwt.strategy';
 import { LocalStrategy } from './local.strategy';
 
@@ -25,21 +26,16 @@ import { LocalStrategy } from './local.strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: (() => {
-    const impl = process.env.MOCK_MODE === 'true' || process.env.MOCK_MODE === '1'
-      ? require('./auth.repository.mock')
-      : require('./auth.repository.prisma');
-    return [
-      AuthService,
-      { provide: 'AUTH_REPOSITORY', useClass: impl.AuthRepository },
-      JwtStrategy,
-      LocalStrategy,
-      JwtAuthGuard,
-      LocalAuthGuard,
-      RolesGuard,
-      PermissionsGuard,
-    ];
-  })(),
+  providers: [
+    AuthService,
+    { provide: 'AUTH_REPOSITORY', useClass: AuthRepository },
+    JwtStrategy,
+    LocalStrategy,
+    JwtAuthGuard,
+    LocalAuthGuard,
+    RolesGuard,
+    PermissionsGuard,
+  ],
   exports: [AuthService, JwtAuthGuard, RolesGuard, PermissionsGuard],
 })
 export class AuthModule {}

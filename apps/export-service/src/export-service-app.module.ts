@@ -52,7 +52,7 @@ import { QueueModule } from './queue/queue.module';
       },
     }),
     DatabaseModule,
-    ...(process.env.MOCK_MODE === 'true' ? [] : [QueueModule]),
+    QueueModule,
     ExportAuthModule,
     ExportModule,
   ],

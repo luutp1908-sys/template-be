@@ -27,18 +27,7 @@ export class QueueHealthService {
   ) {}
 
   async checkReadiness(): Promise<QueueReadinessCheck> {
-    const mockMode = this.configService.get<boolean>('app.mockMode', false);
     const enabled = this.configService.get<boolean>('queue.enabled', true);
-
-    if (mockMode) {
-      return {
-        required: false,
-        enabled,
-        healthy: true,
-        status: 'skipped',
-        reason: 'Mock mode enabled',
-      };
-    }
 
     if (!enabled) {
       return {

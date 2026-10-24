@@ -134,7 +134,7 @@ export class TemplateController {
   @ApiOperation({ summary: 'Create template metadata' })
   @ApiOkResponse({ type: Object })
   @ApiUnauthorizedResponse({
-    description: 'Authentication is required to create template when MOCK_MODE is disabled.',
+    description: 'Authentication is required to create template.',
   })
   @ApiConflictResponse({ description: 'Template slug already exists.' })
   create(

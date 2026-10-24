@@ -11,10 +11,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
   }
 
   async onModuleInit(): Promise<void> {
-    if (this.configService.get<boolean>('app.mockMode', false)) {
-      return;
-    }
-
     try {
       await this.$connect();
       this.logger.log('Prisma connected successfully');

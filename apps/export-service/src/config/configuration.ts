@@ -7,7 +7,6 @@ export default () => ({
     swaggerPath: process.env.SWAGGER_PATH ?? 'docs',
     trustProxy: Number(process.env.TRUST_PROXY ?? 0),
     frontendOrigin: process.env.FRONTEND_ORIGIN ?? '',
-    mockMode: process.env.MOCK_MODE === 'true',
   },
   jwt: {
     accessSecret: process.env.JWT_ACCESS_SECRET,

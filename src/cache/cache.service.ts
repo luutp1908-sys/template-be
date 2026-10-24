@@ -33,9 +33,8 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
 
   async onModuleInit(): Promise<void> {
     const enabled = this.configService.get<boolean>('cache.enabled', true);
-    const mockMode = this.configService.get<boolean>('app.mockMode', false);
 
-    if (!enabled || mockMode) {
+    if (!enabled) {
       this.fallbackEvents += 1;
       return;
     }

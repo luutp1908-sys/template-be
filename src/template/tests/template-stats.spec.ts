@@ -1,5 +1,3 @@
-process.env.MOCK_MODE = 'true';
-
 import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';

@@ -4,7 +4,6 @@ const frontendOriginPattern = /^https?:\/\/[^,\s]+(,\s*https?:\/\/[^,\s]+)*$/;
 
 const envSchema = Joi.object({
   NODE_ENV: Joi.string().valid('development', 'test', 'production').default('development'),
-  MOCK_MODE: Joi.boolean().truthy('true').falsy('false').default(false),
   PORT: Joi.number().port().default(4000),
   APP_NAME: Joi.string().default('template-saas-backend'),
   API_PREFIX: Joi.string().default('api'),
@@ -15,16 +14,8 @@ const envSchema = Joi.object({
     then: Joi.string().pattern(frontendOriginPattern).required(),
     otherwise: Joi.string().pattern(frontendOriginPattern).optional().allow(''),
   }),
-  JWT_ACCESS_SECRET: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().default('change_me_access'),
-    otherwise: Joi.string().required(),
-  }),
-  JWT_REFRESH_SECRET: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().default('change_me_refresh'),
-    otherwise: Joi.string().required(),
-  }),
+  JWT_ACCESS_SECRET: Joi.string().required(),
+  JWT_REFRESH_SECRET: Joi.string().required(),
   JWT_ACCESS_EXPIRES_IN: Joi.string().default('15m'),
   JWT_REFRESH_EXPIRES_IN: Joi.string().default('7d'),
   DATABASE_STARTUP_MODE: Joi.when('NODE_ENV', {
@@ -32,23 +23,11 @@ const envSchema = Joi.object({
     then: Joi.string().valid('fail-fast', 'warn').default('fail-fast'),
     otherwise: Joi.string().valid('fail-fast', 'warn').default('warn'),
   }),
-  DATABASE_URL: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().optional(),
-    otherwise: Joi.string()
-      .uri({ scheme: ['postgresql'] })
-      .required(),
-  }),
-  REDIS_HOST: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.string().optional(),
-    otherwise: Joi.string().required(),
-  }),
-  REDIS_PORT: Joi.when('MOCK_MODE', {
-    is: true,
-    then: Joi.number().port().optional(),
-    otherwise: Joi.number().port().required(),
-  }),
+  DATABASE_URL: Joi.string()
+    .uri({ scheme: ['postgresql'] })
+    .required(),
+  REDIS_HOST: Joi.string().required(),
+  REDIS_PORT: Joi.number().port().required(),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
   CACHE_ENABLED: Joi.boolean().truthy('true').falsy('false').default(true),
   CACHE_KEY_PREFIX: Joi.string().default('template-saas'),
