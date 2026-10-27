@@ -5,6 +5,7 @@ import { Logger } from 'nestjs-pino';
 import { CacheService } from '../../cache/cache.service';
 import { TemplateService } from '../template.service';
 import { TemplateRepository } from '../template.data.repository';
+import { TemplateIdempotencyService } from '../template-idempotency.service';
 
 describe('TemplateService', () => {
   let service: TemplateService;
@@ -24,6 +25,9 @@ describe('TemplateService', () => {
     setJson: jest.fn(),
     deleteByPattern: jest.fn(),
   };
+  const idempotencyService = {
+    run: jest.fn(),
+  };
   const configService = {
     get: jest.fn((key: string, fallback?: unknown) => {
       if (key === 'cache.ttlMs.templateList') {
@@ -35,6 +39,7 @@ describe('TemplateService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    idempotencyService.run.mockImplementation(async ({ execute }: { execute: () => Promise<unknown> }) => execute());
 
     repository = {
       create: jest.fn(),
@@ -61,6 +66,7 @@ describe('TemplateService', () => {
         },
         { provide: CacheService, useValue: cacheService },
         { provide: ConfigService, useValue: configService },
+        { provide: TemplateIdempotencyService, useValue: idempotencyService },
         {
           provide: Logger,
           useValue: {
@@ -92,6 +98,7 @@ describe('TemplateService', () => {
         categoryId: '0bbf1bb8-7eb2-4f16-bd2d-bd9b27df3e32',
       },
       'user-1',
+      'key-1',
     );
 
     expect(result.id).toBe('template-1');

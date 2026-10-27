@@ -13,6 +13,7 @@ import {
   TemplateListEntity,
 } from './template.entity';
 import { TemplateRepository } from './template.data.repository';
+import { TemplateIdempotencyService } from './template-idempotency.service';
 
 @Injectable()
 export class TemplateService {
@@ -23,14 +24,25 @@ export class TemplateService {
     private readonly cacheService: CacheService,
     private readonly configService: ConfigService,
     private readonly logger: Logger,
+    private readonly idempotencyService: TemplateIdempotencyService,
   ) {}
 
-  async create(payload: CreateTemplateDto, authorId: string): Promise<TemplateEntity> {
+  async create(
+    payload: CreateTemplateDto,
+    authorId: string,
+    idempotencyKey?: string,
+  ): Promise<TemplateEntity> {
     if (!authorId) {
       throw new UnauthorizedException('Authentication is required to create template');
     }
 
-    const created = await this.repository.create(payload, authorId);
+    const created = await this.idempotencyService.run<TemplateEntity>({
+      userId: authorId,
+      idempotencyKey,
+      operation: 'create',
+      payload,
+      execute: () => this.repository.create(payload, authorId),
+    });
     await this.invalidateTemplateListCache();
     return created;
   }

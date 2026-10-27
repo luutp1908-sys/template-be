@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { EditorTypeModule } from '../editor-type/editor-type.module';
 import { TemplateController } from './template.controller';
 import { TemplateService } from './template.service';
+import { TemplateIdempotencyService } from './template-idempotency.service';
 
 const impl = require('./template.repository');
 console.log('[template.module] impl keys:', Object.keys(impl));
@@ -13,6 +14,7 @@ const TEMPLATE_REPOSITORY = 'TEMPLATE_REPOSITORY';
   controllers: [TemplateController],
   providers: [
     TemplateService,
+    TemplateIdempotencyService,
     { provide: TEMPLATE_REPOSITORY, useClass: impl.TemplateRepository },
   ],
   exports: [TemplateService],

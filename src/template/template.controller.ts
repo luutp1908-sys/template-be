@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -140,8 +141,9 @@ export class TemplateController {
   create(
     @Body() payload: CreateTemplateDto,
     @CurrentUser() user?: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<TemplateResponseDto> {
-    return this.service.create(payload, user?.id ?? '').then((entity) => this.toTemplateResponse(entity));
+    return this.service.create(payload, user?.id ?? '', idempotencyKey).then((entity) => this.toTemplateResponse(entity));
   }
 
   @Get('stats/popularity')
