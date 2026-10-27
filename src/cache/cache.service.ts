@@ -200,6 +200,34 @@ export class CacheService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
+  async setJsonIfAbsent<T>(key: string, value: T, ttlMs: number): Promise<boolean> {
+    if (!this.client || !this.isAvailable) {
+      this.fallbackEvents += 1;
+      return false;
+    }
+
+    const { span, startedAt } = this.startRedisSpan('set', key);
+
+    try {
+      const result = await this.client.set(this.withPrefix(key), JSON.stringify(value), {
+        PX: ttlMs,
+        NX: true,
+      });
+
+      if (result === 'OK') {
+        this.sets += 1;
+        this.finalizeRedisSpan(span, startedAt, true);
+        return true;
+      }
+
+      this.finalizeRedisSpan(span, startedAt, true);
+      return false;
+    } catch (error) {
+      this.finalizeRedisSpan(span, startedAt, false, error);
+      throw error;
+    }
+  }
+
   async delete(key: string): Promise<void> {
     if (!this.client || !this.isAvailable) {
       this.fallbackEvents += 1;

@@ -10,6 +10,9 @@ describe('UserDraftService', () => {
     findFirstWorkspaceIdByUserId: jest.Mock;
     findWorkspaceIdsByUserId: jest.Mock;
   };
+  let idempotencyService: {
+    run: jest.Mock;
+  };
   let service: UserDraftService;
 
   beforeEach(() => {
@@ -23,7 +26,11 @@ describe('UserDraftService', () => {
       findWorkspaceIdsByUserId: jest.fn(),
     };
 
-    service = new UserDraftService(repository as any, workspaceService as any);
+    idempotencyService = {
+      run: jest.fn(),
+    };
+
+    service = new UserDraftService(repository as any, workspaceService as any, idempotencyService as any);
   });
 
   it('throws a domain authorization error when filtering by an inaccessible workspace', async () => {

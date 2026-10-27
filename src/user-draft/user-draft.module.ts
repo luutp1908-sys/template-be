@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { UserDraftController } from './user-draft.controller';
 import { UserDraftRepository } from './user-draft.repository.prisma';
 import { UserDraftService } from './user-draft.service';
+import { UserDraftIdempotencyService } from './user-draft-idempotency.service';
 import { WorkspaceModule } from '../workspace/workspace.module';
 const USER_DRAFT_REPOSITORY = 'USER_DRAFT_REPOSITORY';
 
@@ -10,6 +11,7 @@ const USER_DRAFT_REPOSITORY = 'USER_DRAFT_REPOSITORY';
   controllers: [UserDraftController],
   providers: [
     UserDraftService,
+    UserDraftIdempotencyService,
     { provide: USER_DRAFT_REPOSITORY, useClass: UserDraftRepository },
   ],
   exports: [UserDraftService],

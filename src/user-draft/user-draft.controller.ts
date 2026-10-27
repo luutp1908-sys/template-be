@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Headers,
   Get,
   HttpCode,
   HttpStatus,
@@ -71,8 +72,9 @@ export class UserDraftController {
   create(
     @Body() payload: CreateUserDraftDto,
     @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<UserDraftResponseDto> {
-    return this.service.create(payload, user.id).then((entity) => this.toUserDraftResponse(entity));
+    return this.service.create(payload, user.id, idempotencyKey).then((entity) => this.toUserDraftResponse(entity));
   }
 
   @Get(':id')
@@ -96,22 +98,31 @@ export class UserDraftController {
     @Param('id') id: string,
     @Body() payload: UpdateUserDraftDto,
     @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
   ): Promise<UserDraftResponseDto> {
-    return this.service.update(id, payload, user.id).then((entity) => this.toUserDraftResponse(entity));
+    return this.service.update(id, payload, user.id, idempotencyKey).then((entity) => this.toUserDraftResponse(entity));
   }
 
   @Patch(':id/open')
   @ApiOperation({ summary: 'Mark a draft as recently opened' })
   @ApiOkResponse({ type: Object })
-  touch(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<UserDraftResponseDto> {
-    return this.service.touch(id, user.id).then((entity) => this.toUserDraftResponse(entity));
+  touch(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<UserDraftResponseDto> {
+    return this.service.touch(id, user.id, idempotencyKey).then((entity) => this.toUserDraftResponse(entity));
   }
 
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Delete a draft by id for the current user' })
   @ApiNoContentResponse()
-  async remove(@Param('id') id: string, @CurrentUser() user: AuthUser): Promise<void> {
-    await this.service.remove(id, user.id);
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ): Promise<void> {
+    await this.service.remove(id, user.id, idempotencyKey);
   }
 }

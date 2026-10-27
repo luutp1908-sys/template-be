@@ -6,12 +6,14 @@ import { UpdateUserDraftDto } from './dto/update-user-draft.dto';
 import { UserDraftListQueryDto } from './dto/user-draft-list-query.dto';
 import { UserDraftEntity, UserDraftListEntity } from './user-draft.entity';
 import { WorkspaceService } from '../workspace/workspace.service';
+import { UserDraftIdempotencyService } from './user-draft-idempotency.service';
 
 @Injectable()
 export class UserDraftService {
   constructor(
     @Inject('USER_DRAFT_REPOSITORY') private readonly repository: any,
     private readonly workspaceService: WorkspaceService,
+    private readonly idempotencyService: UserDraftIdempotencyService,
   ) {}
 
   private async resolveWorkspaceId(userId: string, requestedWorkspaceId?: string): Promise<string | null> {
@@ -55,9 +57,17 @@ export class UserDraftService {
     }
   }
 
-  async create(payload: CreateUserDraftDto, userId: string): Promise<UserDraftEntity> {
-    const workspaceId = await this.resolveWorkspaceId(userId, payload.workspaceId);
-    return this.repository.create(payload, userId, workspaceId);
+  async create(payload: CreateUserDraftDto, userId: string, idempotencyKey?: string): Promise<UserDraftEntity> {
+    return this.idempotencyService.run({
+      userId,
+      idempotencyKey,
+      operation: 'create',
+      payload,
+      execute: async () => {
+        const workspaceId = await this.resolveWorkspaceId(userId, payload.workspaceId);
+        return this.repository.create(payload, userId, workspaceId);
+      },
+    });
   }
 
   async findById(id: string, userId: string): Promise<UserDraftEntity> {
@@ -81,34 +91,63 @@ export class UserDraftService {
     return this.repository.findMany(query, where);
   }
 
-  async update(id: string, payload: UpdateUserDraftDto, userId: string): Promise<UserDraftEntity> {
-    const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
-    const where = this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
-    const userDraft = await this.repository.update(id, payload, where);
-    if (!userDraft) {
-      throw new NotFoundException('User draft not found');
-    }
+  async update(
+    id: string,
+    payload: UpdateUserDraftDto,
+    userId: string,
+    idempotencyKey?: string,
+  ): Promise<UserDraftEntity> {
+    return this.idempotencyService.run({
+      userId,
+      idempotencyKey,
+      operation: `update:${id}`,
+      payload,
+      execute: async () => {
+        const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
+        const where = this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
+        const userDraft = await this.repository.update(id, payload, where);
+        if (!userDraft) {
+          throw new NotFoundException('User draft not found');
+        }
 
-    return userDraft;
+        return userDraft;
+      },
+    });
   }
 
-  async touch(id: string, userId: string): Promise<UserDraftEntity> {
-    const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
-    const where = this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
-    const userDraft = await this.repository.touch(id, where);
-    if (!userDraft) {
-      throw new NotFoundException('User draft not found');
-    }
+  async touch(id: string, userId: string, idempotencyKey?: string): Promise<UserDraftEntity> {
+    return this.idempotencyService.run({
+      userId,
+      idempotencyKey,
+      operation: `touch:${id}`,
+      payload: { id },
+      execute: async () => {
+        const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
+        const where = this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
+        const userDraft = await this.repository.touch(id, where);
+        if (!userDraft) {
+          throw new NotFoundException('User draft not found');
+        }
 
-    return userDraft;
+        return userDraft;
+      },
+    });
   }
 
-  async remove(id: string, userId: string): Promise<void> {
-    const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
-    const where = this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
-    const removed = await this.repository.remove(where);
-    if (!removed) {
-      throw new NotFoundException('User draft not found');
-    }
+  async remove(id: string, userId: string, idempotencyKey?: string): Promise<void> {
+    await this.idempotencyService.run({
+      userId,
+      idempotencyKey,
+      operation: `remove:${id}`,
+      payload: { id },
+      execute: async () => {
+        const workspaceIds = await this.getAccessibleWorkspaceIds(userId);
+        const where = this.buildAccessibleDraftWhere(userId, workspaceIds, { id });
+        const removed = await this.repository.remove(where);
+        if (!removed) {
+          throw new NotFoundException('User draft not found');
+        }
+      },
+    });
   }
 }
