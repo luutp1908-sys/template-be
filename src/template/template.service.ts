@@ -18,6 +18,9 @@ import { TemplateIdempotencyService } from './template-idempotency.service';
 @Injectable()
 export class TemplateService {
   private readonly templateListCachePrefix = 'template:list:';
+  private readonly createRetryAttempts = 3;
+  private readonly createRetryBaseDelayMs = 150;
+  private readonly createRetryMaxDelayMs = 1200;
 
   constructor(
     @Inject('TEMPLATE_REPOSITORY') private readonly repository: any,
@@ -41,10 +44,76 @@ export class TemplateService {
       idempotencyKey,
       operation: 'create',
       payload,
-      execute: () => this.repository.create(payload, authorId),
+      execute: () => this.executeCreateWithRetry(payload, authorId),
     });
     await this.invalidateTemplateListCache();
     return created;
+  }
+
+  private async executeCreateWithRetry(
+    payload: CreateTemplateDto,
+    authorId: string,
+  ): Promise<TemplateEntity> {
+    let attempt = 0;
+
+    while (attempt < this.createRetryAttempts) {
+      attempt += 1;
+      try {
+        return await this.repository.create(payload, authorId);
+      } catch (error) {
+        const canRetry = this.isRetryableCreateError(error) && attempt < this.createRetryAttempts;
+        if (!canRetry) {
+          throw error;
+        }
+
+        const delayMs = this.computeBackoffDelayMs(attempt);
+        this.logger.warn(
+          `Template create attempt ${attempt} failed; retrying in ${delayMs}ms: ${(error as Error).message}`,
+        );
+        await this.sleep(delayMs);
+      }
+    }
+
+    throw new Error('Template create retries exhausted');
+  }
+
+  private isRetryableCreateError(error: unknown): boolean {
+    const maybe = error as {
+      code?: string;
+      name?: string;
+      message?: string;
+      status?: number;
+      statusCode?: number;
+    };
+
+    const status = maybe.status ?? maybe.statusCode;
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      return false;
+    }
+
+    const code = (maybe.code ?? '').toUpperCase();
+    if (['P1001', 'P1002', 'P1008', 'P1017', 'P2034', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED', 'EPIPE'].includes(code)) {
+      return true;
+    }
+
+    const name = (maybe.name ?? '').toLowerCase();
+    if (name.includes('prismaclientinitializationerror') || name.includes('prismaclientrustpanicerror')) {
+      return true;
+    }
+
+    const message = (maybe.message ?? '').toLowerCase();
+    return message.includes('timeout') || message.includes('temporarily') || message.includes('connection reset');
+  }
+
+  private computeBackoffDelayMs(attempt: number): number {
+    const backoff = this.createRetryBaseDelayMs * Math.pow(2, Math.max(0, attempt - 1));
+    return Math.min(this.createRetryMaxDelayMs, backoff);
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
   }
 
   async findById(id: string): Promise<TemplateEntity> {

@@ -105,6 +105,49 @@ describe('TemplateService', () => {
     expect(repository.create).toHaveBeenCalledTimes(1);
   });
 
+  it('retries template creation with backoff on transient errors', async () => {
+    repository.create
+      .mockRejectedValueOnce({ code: 'P1001', message: 'db unavailable' })
+      .mockResolvedValueOnce({ id: 'template-1' });
+    jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
+
+    const result = await service.create(
+      {
+        title: 'Template 1',
+        slug: 'template-1',
+        editorTypeId: 0,
+        categoryId: '0bbf1bb8-7eb2-4f16-bd2d-bd9b27df3e32',
+      },
+      'user-1',
+      'key-retry',
+    );
+
+    expect(result.id).toBe('template-1');
+    expect(repository.create).toHaveBeenCalledTimes(2);
+    expect((service as any).sleep).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retry template creation on non-retryable conflicts', async () => {
+    repository.create.mockRejectedValue({ status: 409, message: 'Template slug already exists' });
+    jest.spyOn(service as any, 'sleep').mockResolvedValue(undefined);
+
+    await expect(
+      service.create(
+        {
+          title: 'Template 1',
+          slug: 'template-1',
+          editorTypeId: 0,
+          categoryId: '0bbf1bb8-7eb2-4f16-bd2d-bd9b27df3e32',
+        },
+        'user-1',
+        'key-conflict',
+      ),
+    ).rejects.toEqual({ status: 409, message: 'Template slug already exists' });
+
+    expect(repository.create).toHaveBeenCalledTimes(1);
+    expect((service as any).sleep).not.toHaveBeenCalled();
+  });
+
   it('should reject template creation without an author when mock mode is disabled', async () => {
     await expect(
       service.create(
